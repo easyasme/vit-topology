@@ -72,8 +72,8 @@ def pd2betti(birth, death):
     b_x = [x.index(item) for item in birth]
     b_y = [x.index(item) for item in death]
 
-    delta_birth = np.zeros_like(x, dtype=np.int)
-    delta_death = np.zeros_like(x, dtype=np.int)
+    delta_birth = np.zeros_like(x, dtype=int)
+    delta_death = np.zeros_like(x, dtype=int)
 
     acc = 0
     for item in b_x:

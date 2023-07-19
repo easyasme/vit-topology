@@ -1,5 +1,5 @@
 # Where to save topology results
-SAVE_PATH = 'results_dnn_topology'
+SAVE_PATH = 'results'
 
 #  DIPHA
 DIPHA_MAGIC_NUMBER = 8067171840

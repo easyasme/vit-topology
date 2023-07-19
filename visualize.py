@@ -26,14 +26,15 @@ for epc in args.epochs:
 
         #  filter curve for improved visualization
         filter_size = int(len(betti) / 10)
-        betti = scipy.ndimage.filters.uniform_filter1d(betti, size=filter_size, mode='constant')
+        betti = scipy.ndimage.uniform_filter1d(betti, size=filter_size, mode='constant')
 
-        # plor curve
+        # plot curve
         plt.xlabel('$\epsilon$')
         plt.ylabel('#cavities')
         plt.plot(x, betti, label='epc_' + str(epc))
         plt.legend()
         plt.title('betti_{}'.format(args.dim))
+        plt.show()
 
         # compute life and midlife
         life = pd2life(birth, death)
@@ -42,4 +43,4 @@ for epc in args.epochs:
     else:
         print('The persistence diagram is empty!')
 
-plt.show()
+# plt.show()
