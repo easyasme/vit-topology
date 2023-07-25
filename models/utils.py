@@ -84,9 +84,12 @@ def init_from_checkpoint(net):
     ''' Initialize from checkpoint'''
     print('==> Initializing  from fixed checkpoint..')
     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+    
     checkpoint = torch.load('./checkpoint/'+args.net + '_' +args.dataset + '/ckpt_trial_' + str(args.fixed_init) + '_epoch_50.t7')
+    
     net.load_state_dict(checkpoint['net'])
+    
     best_acc = checkpoint['acc']
     start_epoch = checkpoint['epoch']
 
-    return net, best_accc, start_epoch
+    return net, best_acc, start_epoch
