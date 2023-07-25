@@ -26,7 +26,7 @@ class Passer():
         losses, features, total, correct = [], [], 0, 0
         accuracies = []
         
-        for r in range(1, self.repeat+1):
+        for r in range(1, self.repeat + 1):
             for batch_idx, (inputs, targets) in enumerate(self.loader):
                 targets = manipulator(targets)
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
@@ -65,6 +65,7 @@ class Passer():
         else:
             self.network.eval()
             with torch.no_grad():
+                
                 return self._pass(manipulator=manipulator, mask=mask)
 
             
