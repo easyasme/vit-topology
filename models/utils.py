@@ -6,8 +6,6 @@ from .densenet import *
 from .inception import *
 from .conv_x import * 
 
-
-
 num_classes={'mnist':10,
          'cifar10':10,
          'cifar10_gray':10, 
@@ -15,7 +13,6 @@ num_classes={'mnist':10,
          'imagenet':200,
          'imagenet_gray':200,
          'vgg_cifar10_adversarial':10}
-
 
 def get_model(name, dataset):
     if name == 'conv_2':
@@ -85,7 +82,7 @@ def init_from_checkpoint(net):
     print('==> Initializing  from fixed checkpoint..')
     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
     
-    checkpoint = torch.load('./checkpoint/'+args.net + '_' +args.dataset + '/ckpt_trial_' + str(args.fixed_init) + '_epoch_50.t7')
+    checkpoint = torch.load('./checkpoint/' + args.net + '_' + args.dataset + '/ckpt_trial_' + str(args.fixed_init) + '_epoch_50.t7')
     
     net.load_state_dict(checkpoint['net'])
     

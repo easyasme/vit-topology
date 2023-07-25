@@ -13,8 +13,10 @@ parser.add_argument('--epochs', nargs='+', type=int)
 parser.add_argument('--dim', default=1, type=int)
 args = parser.parse_args()
 
-directory = os.path.join(SAVE_PATH, args.net+'_'+args.dataset+'/')
+directory = os.path.join(SAVE_PATH, args.net + '_' + args.dataset + '/')
 trial = 0
+
+EMPTY = 0
 
 for epc in args.epochs:
     #  read persistent diagram from persistent homology output
@@ -40,7 +42,13 @@ for epc in args.epochs:
         midlife = pd2midlife(birth, death)
         print('EPC = {}, LIFE = {}, MIDLIFE = {}'.format(epc, life, midlife))
     else:
+        EMPTY += 1
         print('The persistence diagram is empty!')
 
 # plt.show()
-plt.savefig(directory + args.net + "_" + args.dataset + "_epoch_" + str(epc) + ".png")
+
+if not os.path.exists(directory + "/images"):
+    os.makedirs(directory + "/images")
+
+if not EMPTY == len(args.epochs):
+    plt.savefig(directory + "/images/" + args.net + "_" + args.dataset + "_epoch_" + str(epc) + "_b" + str(args.dim) + ".png")

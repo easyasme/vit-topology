@@ -1,5 +1,3 @@
-__author__ = 'cipriancorneanu'
-
 import numpy as np
 import array
 
@@ -47,6 +45,7 @@ def read_betti(fname, dimension, persistence):
     '''
     dims, b_values, d_values = read_bin_out(fname)
     x, betti = pd2betti(b_values, d_values)
+    
     return norm_x_axis(x, betti, np.linspace(0.05, 0.4, 200))
 
 
@@ -94,6 +93,7 @@ def betti_max(x, curve):
 
 def pd2betti_max(birth, death):
     x, betti = pd2betti(birth, death)
+    
     return np.max(betti)
 
 
@@ -103,6 +103,7 @@ def epsilon_max(x, curve):
 
 def pd2epsilon_max(birth, death):
     x, betti = pd2betti(birth, death)
+    
     return x[np.argmax(betti)]
 
 
@@ -151,6 +152,7 @@ def plot(axes, data, epochs, i_epochs, N):
 def norm_x_axis(x, curve, x_ref):
     x_axis = np.array([curve[np.argmin([np.abs(a - b) for b in x])] for a in x_ref])
     # print("{}s".format(time.time()-start))
+    
     return x_axis
 
 
@@ -233,6 +235,7 @@ def get_data(root, nets, datasets, trials, epcs):
 
 def extend(item, t_summary, key):
     item[key] = t_summary(item['pd'][0], item['pd'][1])
+    
     return item
 
 

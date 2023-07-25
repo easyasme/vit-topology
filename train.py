@@ -4,8 +4,7 @@ from passers import Passer
 from savers import save_checkpoint, save_losses
 from loaders import *
 from labels import *
-from models.utils import get_model, get_criterion
-from utils import init_from_checkpoint
+from models.utils import get_model, get_criterion, init_from_checkpoint
 import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
