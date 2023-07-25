@@ -34,7 +34,6 @@ for epc in args.epochs:
         plt.plot(x, betti, label='epc_' + str(epc))
         plt.legend()
         plt.title('betti_{}'.format(args.dim))
-        plt.show()
 
         # compute life and midlife
         life = pd2life(birth, death)
@@ -44,3 +43,4 @@ for epc in args.epochs:
         print('The persistence diagram is empty!')
 
 # plt.show()
+plt.savefig(directory + args.net + "_" + args.dataset + "_epoch_" + str(epc) + ".png")
