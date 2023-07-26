@@ -24,7 +24,7 @@ args = parser.parse_args()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
 ''' Meta-name to be used as prefix on all savings'''
-SAVE_DIR = os.path.join(args.save_path, args.net + '_' + args.dataset + '/')
+SAVE_DIR = os.path.join(args.save_path, args.net + '_' + args.dataset + '/bin/')
 START_LAYER = 3 if args.net in ['vgg', 'resnet'] else 0 
 
 ''' If save directory doesn't exist create '''

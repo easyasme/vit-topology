@@ -13,14 +13,16 @@ parser.add_argument('--epochs', nargs='+', type=int)
 parser.add_argument('--dim', default=1, type=int)
 args = parser.parse_args()
 
-directory = os.path.join(SAVE_PATH, args.net + '_' + args.dataset + '/')
+directory = os.path.join(SAVE_PATH, args.net + '_' + args.dataset)
+bin_dir = os.path.join(directory, 'bin/')
+
 trial = 0
 
 EMPTY = 0
 
 for epc in args.epochs:
     #  read persistent diagram from persistent homology output
-    birth, death = read_results(directory, epc, trl=args.trial, max_epsilon=MAX_EPSILON, dim=args.dim, persistence=0.02)
+    birth, death = read_results(bin_dir, epc, trl=args.trial, max_epsilon=MAX_EPSILON, dim=args.dim, persistence=0.02)
 
     if len(birth) > 0:
         #  compute betti curve from persistent diagram
