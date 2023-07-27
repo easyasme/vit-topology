@@ -61,6 +61,7 @@ class Passer():
     def run(self, optimizer=None, manipulator=identity, mask=None):
         if optimizer:
             self.network.train()
+
             return self._pass(optimizer, manipulator=manipulator, mask=mask)
         else:
             self.network.eval()

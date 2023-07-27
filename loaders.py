@@ -122,9 +122,16 @@ TRANSFORMS_MNIST = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize((0.1307,), (0.3081,))])
 
+TRANSFORMS_TO_MNIST = transforms.Compose([
+    transforms.Resize(28),
+    transforms.ToTensor(),
+    transforms.Normalize((0.1307,), (0.3081,))
+])
+
 
 def loader(data, batch_size, subset=[], sampling=-1):
     ''' Interface to the dataloader function '''
+    print("Batch size: ", batch_size)
     if data == 'mnist_train':
         return dataloader('mnist', './data', train=True, transform=TRANSFORMS_MNIST, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'mnist_test':
@@ -152,7 +159,7 @@ def loader(data, batch_size, subset=[], sampling=-1):
     elif data == 'fashion_mnist_train':
         return dataloader('fashion_mnist', './data', train=True, transform=TRANSFORMS_TR, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'fashion_mnist_test':
-        return dataloader('fashion_mnist', './data', train=False, transform=TRANSFORMS_TE, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
+        return dataloader('fashion_mnist', './data', train=False, transform=TRANSFORMS_TE, batch_size=batch_size, sampling=sampling, num_workers=0, subset=subset)
     elif data == 'fashion_mnist_color32_train':
         return dataloader('fashion_mnist', './data', train=True, transform=TRANSFORMS_TR_COLOR32, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'fashion_mnist_color32_test':

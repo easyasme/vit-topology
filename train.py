@@ -23,7 +23,7 @@ parser.add_argument('--permute_labels', default=0, type=float)
 parser.add_argument('--binarize_labels', default=-1, type=int)
 parser.add_argument('--fixed_init', default=0, type=int)
 parser.add_argument('--train_batch_size', default=128, type=int)
-parser.add_argument('--test_batch_size', default=1, type=int) # default was 100
+parser.add_argument('--test_batch_size', default=100, type=int) # default was 100
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--subset', default=0, type=float)
 args = parser.parse_args()
@@ -78,7 +78,7 @@ loss_te, acc_te = passer_test.run()
 save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': 0}, path='./checkpoint/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_0.t7')
 
 losses = []
-for epoch in range(start_epoch, start_epoch+args.epochs):
+for epoch in range(start_epoch, start_epoch + args.epochs):
     print('Epoch {}'.format(epoch))
 
     loss_tr, acc_tr = passer_train.run(optimizer, manipulator=manipulator)
