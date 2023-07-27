@@ -396,4 +396,3 @@ def structure_from_view(model, x):
         A[start_in:end_in, start_out:end_out] = a
         
     return A
-

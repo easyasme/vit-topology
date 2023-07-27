@@ -1,0 +1,17 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": ["--net", "lenet", "--dataset", "cifar10_gray28", "--trial", "0", "--lr", "0.0005",  "--n_epochs_train", "50", "--epochs_test", "'1 5 10 20 30 40 50'", "--graph_type", "functional", "--train", "1", "--build_graph", "1"],
+            "console": "integratedTerminal",
+            "justMyCode": true
+        }
+    ]
+}

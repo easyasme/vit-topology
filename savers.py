@@ -1,7 +1,3 @@
-'''
-Utilities  for saving data to disk
-'''
-
 import os
 import numpy as np
 import torch

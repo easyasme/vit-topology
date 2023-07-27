@@ -23,7 +23,7 @@ parser.add_argument('--permute_labels', default=0, type=float)
 parser.add_argument('--binarize_labels', default=-1, type=int)
 parser.add_argument('--fixed_init', default=0, type=int)
 parser.add_argument('--train_batch_size', default=128, type=int)
-parser.add_argument('--test_batch_size', default=100, type=int) # default was 100
+parser.add_argument('--test_batch_size', default=1, type=int) # default was 100
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--subset', default=0, type=float)
 args = parser.parse_args()

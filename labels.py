@@ -17,7 +17,8 @@ P128 = [30,  88,  93,  10,  53,  28,  22,   9, 116,  20,  51, 106,  14,
 def accuracy(permuted):
     ordered = np.arange(len(permuted))
     correct = (permuted == ordered).sum()
-    return 100.*correct/len(permuted)
+    
+    return 100. * correct / len(permuted)
 
 
 def permutation(length, ratio=None):
@@ -25,7 +26,8 @@ def permutation(length, ratio=None):
     permuted = np.random.permutation(length)
 
     if ratio:
-        ratio = int(ratio*length)
+        ratio = int(ratio * length)
+    
         return np.concatenate((permuted[:ratio], ordered[ratio:]))
     else:
         return permuted
@@ -44,6 +46,7 @@ class LPermutor():
         ''' Permute input using permutation matrix self.perm and proportion '''
         a = int(self.proportion*list(labels.size())[0])
         labels[:a] = labels[self.perm[:a]]
+    
         return labels
         
         
@@ -55,6 +58,7 @@ class LBinarizer():
         ''' Binarize input. Put pivot to one, rest to zero.'''
         labels[labels != self.pivot] = 0
         labels[labels == self.pivot] = 1
+    
         return labels
 
     
