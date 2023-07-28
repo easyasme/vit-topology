@@ -22,6 +22,7 @@ def get_model(name, dataset):
         net = Conv_4(num_classes=10)
     if name == 'conv_6':
         net = Conv_6(num_classes=10)
+    
     if name=='lenet_300_100' and dataset in ['mnist', 'cifar10_gray28', 'fashion_mnist', 'svhn_gray28']:
         net = LeNet_300_100(num_classes=10)
     if name=='lenet' and dataset in ['mnist', 'cifar10_gray28', 'mnist_adversarial', 'fashion_mnist', 'svhn_gray28']:
@@ -42,22 +43,27 @@ def get_model(name, dataset):
         net = LeNetExt(n_channels=1, num_classes=10)
     if name=='lenetext' and dataset=='cifar10':
         net = LeNetExt(n_channels=3, num_classes=10)
+    
     if name=='vgg' and dataset in ['cifar10', 'mnist_color32', 'fashion_mnist_color32', 'vgg_cifar10_adversarial', 'svhn']:
         net = VGG('VGG16', num_classes=10)
     if name=='vgg' and dataset=='imagenet':
         net = VGG('VGG16', num_classes=200)
+    
     if name=='resnet' and dataset in ['cifar10', 'mnist_color32', 'fashion_mnist_color32', 'svhn']:
         net = ResNet18(num_classes=10)
     if name=='resnet' and dataset=='imagenet':
         net = ResNet18(num_classes=200)
+    
     if name=='densenet' and dataset=='cifar10':
         net = DenseNet121(num_classes=10)    
     if name=='densenet' and dataset=='imagenet':
         net = DenseNet121(num_classes=200)
+    
     if name=='inception' and dataset=='cifar10':
         net = GoogLeNet(num_classes=10)
     if name=='inception' and dataset=='imagenet':
         net = GoogLeNet(num_classes=200)
+    
     if name=='alexnet' and dataset=='cifar10':
         net = AlexNet(num_classes=10)
     if name=='alexnet' and dataset=='imagenet':

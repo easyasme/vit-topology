@@ -15,11 +15,22 @@ import random
 import numpy as np
 
 
-TRANSFORMS_TR = transforms.Compose([
+################# Transformers ############################
+
+# train transform for grayscale images
+TRANSFORMS_TR_GRAY = transforms.Compose([
     transforms.RandomCrop(28, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.5), (0.5))
+])
+
+# train transform for color images
+TRANSFORMS_TR_COLOR = transforms.Compose([
+    transforms.RandomCrop(28, padding=4),
+    transforms.RandomHorizontalFlip(),
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TR_COLOR32 = transforms.Compose([
@@ -28,26 +39,38 @@ TRANSFORMS_TR_COLOR32 = transforms.Compose([
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Lambda(lambda x : x.view(1, 32, 32).expand(3, -1, -1)),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
-TRANSFORMS_TE = transforms.Compose([
+# test transform for grayscale images
+TRANSFORMS_TE_GRAY = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.5), (0.5))
+])
+
+# test transform for color images
+TRANSFORMS_TE_COLOR = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TE_COLOR32 = transforms.Compose([
     transforms.Resize(32),
     transforms.ToTensor(),
     transforms.Lambda(lambda x : x.view(1, 32, 32).expand(3, -1, -1)),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TR_CIFAR10 = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+])
+
+TRANSFORMS_TE_CIFAR10 = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TR_CIFAR10_GRAY28 = transforms.Compose([
@@ -56,26 +79,26 @@ TRANSFORMS_TR_CIFAR10_GRAY28 = transforms.Compose([
     transforms.RandomCrop(28, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-TRANSFORMS_TE_CIFAR10 = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.5), (0.5))
 ])
 
 TRANSFORMS_TE_CIFAR10_GRAY28 = transforms.Compose([
     transforms.Grayscale(1),
     transforms.Resize(28),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.5), (0.5))
 ])
 
 TRANSFORMS_TR_SVHN = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+])
+
+TRANSFORMS_TE_SVHN = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TR_SVHN_GRAY28 = transforms.Compose([
@@ -84,19 +107,14 @@ TRANSFORMS_TR_SVHN_GRAY28 = transforms.Compose([
     transforms.RandomCrop(28, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
-])
-
-TRANSFORMS_TE_SVHN = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.5), (0.5))
 ])
 
 TRANSFORMS_TE_SVHN_GRAY28 = transforms.Compose([
     transforms.Grayscale(1),
     transforms.Resize(28),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010)),
+    transforms.Normalize((0.5), (0.5))
 ])
 
 TRANSFORMS_TR_IMAGENET = transforms.Compose([
@@ -125,9 +143,10 @@ TRANSFORMS_MNIST = transforms.Compose([
 TRANSFORMS_TO_MNIST = transforms.Compose([
     transforms.Resize(28),
     transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))
+    transforms.Normalize((0.1307), (0.3081))
 ])
 
+##############################################################
 
 def loader(data, batch_size, subset=[], sampling=-1):
     ''' Interface to the dataloader function '''
@@ -140,14 +159,16 @@ def loader(data, batch_size, subset=[], sampling=-1):
         return dataloader('mnist', './data', train=True, transform=TRANSFORMS_TR_COLOR32, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'mnist_color32_test':
         return dataloader('mnist', './data', train=False, transform=TRANSFORMS_TE_COLOR32, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
+    
     elif data == 'cifar10_train':
         return dataloader('cifar10', './data', train=True, transform=TRANSFORMS_TR_CIFAR10, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
-    elif data == 'cifar10_gray28_train':
-        return dataloader('cifar10', './data', train=True, transform=TRANSFORMS_TR_CIFAR10_GRAY28, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'cifar10_test':
         return dataloader('cifar10', './data', train=False, transform=TRANSFORMS_TE_CIFAR10, batch_size=batch_size, sampling=sampling , num_workers=2, subset=subset)
+    elif data == 'cifar10_gray28_train':
+        return dataloader('cifar10', './data', train=True, transform=TRANSFORMS_TR_CIFAR10_GRAY28, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'cifar10_gray28_test':
         return dataloader('cifar10', './data', train=False, transform=TRANSFORMS_TE_CIFAR10_GRAY28, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
+    
     elif data == 'svhn_train':
         return dataloader('svhn', './data', train='train', transform=TRANSFORMS_TR_SVHN, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'svhn_test':
@@ -156,22 +177,26 @@ def loader(data, batch_size, subset=[], sampling=-1):
         return dataloader('svhn', './data', train='train', transform=TRANSFORMS_TR_SVHN_GRAY28, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'svhn_gray28_test':
         return dataloader('svhn', './data', train='test', transform=TRANSFORMS_TE_SVHN_GRAY28, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
+    
     elif data == 'fashion_mnist_train':
-        return dataloader('fashion_mnist', './data', train=True, transform=TRANSFORMS_TR, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
+        return dataloader('fashion_mnist', './data', train=True, transform=TRANSFORMS_TR_GRAY, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'fashion_mnist_test':
-        return dataloader('fashion_mnist', './data', train=False, transform=TRANSFORMS_TE, batch_size=batch_size, sampling=sampling, num_workers=0, subset=subset)
+        return dataloader('fashion_mnist', './data', train=False, transform=TRANSFORMS_TE_GRAY, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'fashion_mnist_color32_train':
         return dataloader('fashion_mnist', './data', train=True, transform=TRANSFORMS_TR_COLOR32, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'fashion_mnist_color32_test':
         return dataloader('fashion_mnist', './data', train=False, transform=TRANSFORMS_TE_COLOR32, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
+    
     elif data == 'lenet_mnist_adversarial_test':
         return dataloader('/data/data1/datasets/lenet_mnist_adversarial/', train=False,
                           transform=TRANSFORMS_TE_CIFAR10, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'lenet_cifar10_adversarial_test':
         return dataloader('/data/data1/datasets/lenet_cifar_adversarial/', train=False,
                           transform=TRANSFORMS_TE_CIFAR10, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
+    
     elif data == 'vgg_cifar10_adversarial_test':
         return dataloader('vgg_cifar10_adversarial', '/data/data1/datasets/vgg_cifar_adversarial/', train=False, transform=TRANSFORMS_TE_CIFAR10, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
+    
     elif data == 'imagenet_train':
         return dataloader('tinyimagenet', '/data/data1/datasets/tiny-imagenet-200/train/',
                                  train=True, transform=TRANSFORMS_TR_IMAGENET, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
