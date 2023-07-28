@@ -1,12 +1,3 @@
-'''
-Data loading Utilities for preparing for various different datasets.
-Includes, MNIST, CIFAR10, TinyImagenet.
-For MNIST and CIFAR10 there are special adversarial samples prepared
-for evaluation. -> <dataset>_adversarial(). Each function returns a
-train and a test DataLoader except the dedicated functions for adversarial
-samples that return a single loader.
-'''
-
 import torchvision.transforms as transforms
 import torch
 import torchvision
@@ -68,11 +59,6 @@ TRANSFORMS_TR_CIFAR10 = transforms.Compose([
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
-TRANSFORMS_TE_CIFAR10 = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-])
-
 TRANSFORMS_TR_CIFAR10_GRAY28 = transforms.Compose([
     transforms.Grayscale(1),
     transforms.Resize(28),
@@ -80,6 +66,11 @@ TRANSFORMS_TR_CIFAR10_GRAY28 = transforms.Compose([
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize((0.5), (0.5))
+])
+
+TRANSFORMS_TE_CIFAR10 = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TE_CIFAR10_GRAY28 = transforms.Compose([
@@ -96,11 +87,6 @@ TRANSFORMS_TR_SVHN = transforms.Compose([
     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
-TRANSFORMS_TE_SVHN = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
-])
-
 TRANSFORMS_TR_SVHN_GRAY28 = transforms.Compose([
     transforms.Grayscale(1),
     transforms.Resize(28),
@@ -108,6 +94,11 @@ TRANSFORMS_TR_SVHN_GRAY28 = transforms.Compose([
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Normalize((0.5), (0.5))
+])
+
+TRANSFORMS_TE_SVHN = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TE_SVHN_GRAY28 = transforms.Compose([
@@ -134,11 +125,11 @@ TRANSFORMS_TE_IMAGENET = transforms.Compose([
 TRANSFORMS_MNIST_ADV = transforms.Compose([
     transforms.Grayscale(1),
     transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))])
+    transforms.Normalize((0.1307), (0.3081))])
 
 TRANSFORMS_MNIST = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,))])
+    transforms.Normalize((0.1307), (0.3081))])
 
 TRANSFORMS_TO_MNIST = transforms.Compose([
     transforms.Resize(28),
