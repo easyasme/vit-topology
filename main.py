@@ -9,7 +9,7 @@ parser.add_argument('--net', help='Specify deep network architecture (e.g. lenet
 parser.add_argument('--dataset', help='Specify dataset (e.g. mnist, cifar10, imagenet)')
 parser.add_argument('--trial', default=0, help='Specify trial number. Used to differentiate btw multiple trainings of same setup.')
 parser.add_argument('--n_epochs_train', default='10', help='Number of epochs to train.')
-parser.add_argument('--lr', default='0.01', help='Specify learnig rate for training.')
+parser.add_argument('--lr', default='0.01', help='Specify learning rate for training.')
 parser.add_argument('--permute_labels', default='0.0', help='Specify if labels are going to be permuted. Float between 0 and 1. If 0, no permutation. If 1 all labels are permuted. Otherwise proportion of labels.')
 parser.add_argument('--binarize_labels', default='-1', help='If positive, Binarize labels. Put label equal to binarize_labels to 1. All the rest put to zero.')
 parser.add_argument('--data_subset', default='1.0', help='Specify if subset of data should be loaded. Float between 0 and 1. If 0, all data, else proportion of data randomly sampled.')

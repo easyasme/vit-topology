@@ -150,7 +150,6 @@ TRANSFORMS_TO_MNIST = transforms.Compose([
 
 def loader(data, batch_size, subset=[], sampling=-1):
     ''' Interface to the dataloader function '''
-    print("Batch size: ", batch_size)
     if data == 'mnist_train':
         return dataloader('mnist', './data', train=True, transform=TRANSFORMS_MNIST, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'mnist_test':
