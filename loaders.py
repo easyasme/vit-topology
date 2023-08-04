@@ -1,9 +1,11 @@
 import torchvision.transforms as transforms
 import torch
 import torchvision
-from torch.utils.data import *
 import random
 import numpy as np
+
+from torch.utils.data import *
+#from datasets import load_dataset
 
 
 ################# Transformers ############################
@@ -13,7 +15,7 @@ TRANSFORMS_TR_GRAY = transforms.Compose([
     transforms.RandomCrop(28, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.5), (0.5))
+    # transforms.Normalize((0.5), (0.5))
 ])
 
 # train transform for color images
@@ -21,7 +23,7 @@ TRANSFORMS_TR_COLOR = transforms.Compose([
     transforms.RandomCrop(28, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TR_COLOR32 = transforms.Compose([
@@ -30,33 +32,33 @@ TRANSFORMS_TR_COLOR32 = transforms.Compose([
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
     transforms.Lambda(lambda x : x.view(1, 32, 32).expand(3, -1, -1)),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 # test transform for grayscale images
 TRANSFORMS_TE_GRAY = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.5), (0.5))
+    # transforms.Normalize((0.5), (0.05))
 ])
 
 # test transform for color images
 TRANSFORMS_TE_COLOR = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TE_COLOR32 = transforms.Compose([
     transforms.Resize(32),
     transforms.ToTensor(),
     transforms.Lambda(lambda x : x.view(1, 32, 32).expand(3, -1, -1)),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TR_CIFAR10 = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TR_CIFAR10_GRAY28 = transforms.Compose([
@@ -65,7 +67,7 @@ TRANSFORMS_TR_CIFAR10_GRAY28 = transforms.Compose([
     transforms.RandomCrop(28, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.5), (0.5))
+    # transforms.Normalize((0.5), (0.5))
 ])
 
 TRANSFORMS_TE_CIFAR10 = transforms.Compose([
@@ -77,14 +79,14 @@ TRANSFORMS_TE_CIFAR10_GRAY28 = transforms.Compose([
     transforms.Grayscale(1),
     transforms.Resize(28),
     transforms.ToTensor(),
-    transforms.Normalize((0.5), (0.5))
+    # transforms.Normalize((0.5), (0.5))
 ])
 
 TRANSFORMS_TR_SVHN = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TR_SVHN_GRAY28 = transforms.Compose([
@@ -93,19 +95,19 @@ TRANSFORMS_TR_SVHN_GRAY28 = transforms.Compose([
     transforms.RandomCrop(28, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.5), (0.5))
+    # transforms.Normalize((0.5), (0.5))
 ])
 
 TRANSFORMS_TE_SVHN = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_TE_SVHN_GRAY28 = transforms.Compose([
     transforms.Grayscale(1),
     transforms.Resize(28),
     transforms.ToTensor(),
-    transforms.Normalize((0.5), (0.5))
+    # transforms.Normalize((0.5), (0.5))
 ])
 
 TRANSFORMS_TR_IMAGENET = transforms.Compose([
@@ -113,34 +115,144 @@ TRANSFORMS_TR_IMAGENET = transforms.Compose([
     transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))       
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))       
 ])
 
 TRANSFORMS_TE_IMAGENET = transforms.Compose([
     transforms.Resize(32),
     transforms.ToTensor(),
-    transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+    # transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
 ])
 
 TRANSFORMS_MNIST_ADV = transforms.Compose([
     transforms.Grayscale(1),
     transforms.ToTensor(),
-    transforms.Normalize((0.1307), (0.3081))])
+    # transforms.Normalize((0.1307), (0.3081))
+])
 
 TRANSFORMS_MNIST = transforms.Compose([
     transforms.ToTensor(),
-    transforms.Normalize((0.1307), (0.3081))])
+    # transforms.Normalize((0.1307), (0.3081))
+])
 
 TRANSFORMS_TO_MNIST = transforms.Compose([
     transforms.Resize(28),
     transforms.ToTensor(),
-    transforms.Normalize((0.1307), (0.3081))
+    # transforms.Normalize((0.1307), (0.3081))
 ])
+
+def calc_mean_std(dataloader):
+    pop_mean = []
+    pop_std = []
+    
+    for _, data in enumerate(dataloader):
+        print("Data: ", data)
+
+        numpy_image = data.numpy()
+        
+        batch_mean = np.mean(numpy_image, axis=(0,2,3))
+        batch_std = np.std(numpy_image, axis=(0,2,3), ddof=1)
+        
+        pop_mean.append(batch_mean / 255)
+        pop_std.append(batch_std / 255)
+
+    pop_mean = np.array(pop_mean).mean(axis=0)
+    pop_std = np.array(pop_std).mean(axis=0)
+    
+    return pop_mean, pop_std
+
+# def get_transforms(data, train=True, color=False, crop=28):
+#     dataloader = 
+
+#     mean, std = calc_mean_std(dataloader)
+
+#     TRANSFORMS_TR_GRAY = transforms.Compose([
+#     transforms.RandomCrop(28, padding=4),
+#     transforms.RandomHorizontalFlip(),
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.5), (0.5))
+# ])
+
+# # train transform for color images
+# TRANSFORMS_TR_COLOR = transforms.Compose([
+#     transforms.RandomCrop(28, padding=4),
+#     transforms.RandomHorizontalFlip(),
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+# ])
+
+# # test transform for grayscale images
+# TRANSFORMS_TE_GRAY = transforms.Compose([
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.5), (0.05))
+# ])
+
+# # test transform for color images
+# TRANSFORMS_TE_COLOR = transforms.Compose([
+#     transforms.ToTensor(),
+#     transforms.Normalize((0.4914, 0.4822, 0.4465), (0.2023, 0.1994, 0.2010))
+# ])
+
+    # if train:
+    #     if not color:
+    #         transform.append(transforms.Grayscale(1))
+    #         transform.append(transforms.Resize(crop))
+    #         transform.append(transforms.RandomCrop(crop, padding=4))
+    #         transform.append(transforms.RandomHorizontalFlip())
+    #     else:
+
+    # else:
+    #     if not color:
+
+    #     else:
+
+    # return transform
 
 ##############################################################
 
+def get_dataset(data, path, train, transform):
+    ''' Return loader for torchvision data. If data in [mnist, cifar] torchvision.datasets has built-in loaders else load from ImageFolder '''
+
+    if data == 'mnist':
+        dataset = torchvision.datasets.MNIST(path, train=train, download=True, transform=transform)
+    elif data == 'cifar10':
+        dataset = torchvision.datasets.CIFAR10(path, train=train, download=True, transform=transform)
+    elif data == 'svhn':
+        dataset = torchvision.datasets.SVHN(path, split=train, download=True, transform=transform)
+    elif data == 'fashion_mnist':
+        dataset = torchvision.datasets.FashionMNIST(path, train=train, download=True, transform=transform)
+    else:
+        dataset = torchvision.datasets.ImageFolder(path, transform=transform)
+
+    return dataset
+
+def dataloader(data, path, train, transform, batch_size, num_workers, subset=[], sampling=-1):
+    dataset = get_dataset(data, path, train, transform)
+    print("Transform before: ", transform)
+        
+    if subset:
+        dataset = torch.utils.data.Subset(dataset, subset)
+
+    if sampling == -1:
+        sampler = SequentialSampler(dataset)
+    elif sampling == -2:
+        sampler = RandomSampler(dataset)
+    else:
+        sampler = BinarySampler(dataset, sampling)
+
+    data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers, drop_last=True)
+
+    mean, std = calc_mean_std(data_loader)
+    print("Data Mean: ", mean)
+    print("Data SD: ", std, "\n")
+    transform.transforms.insert(-1, transforms.Normalize(mean, std))
+    print("Transform after: ", transform, "\n")
+
+    return data_loader
+
 def loader(data, batch_size, subset=[], sampling=-1):
     ''' Interface to the dataloader function '''
+
     if data == 'mnist_train':
         return dataloader('mnist', './data', train=True, transform=TRANSFORMS_MNIST, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
     elif data == 'mnist_test':
@@ -193,38 +305,12 @@ def loader(data, batch_size, subset=[], sampling=-1):
     elif data == 'imagenet_test':
         return dataloader('tinyimagenet', '/data/data1/datasets/tiny-imagenet-200/val/images/',
                                  train=False, transform=TRANSFORMS_TE_IMAGENET, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
-
-    
-def get_dataset(data, path, train, transform):
-    ''' Return loader for torchvision data. If data in [mnist, cifar] torchvision.datasets has built-in loaders else load from ImageFolder '''
-    if data == 'mnist':
-        dataset = torchvision.datasets.MNIST(path, train=train, download=True, transform=transform)
-    elif data == 'cifar10':
-        dataset = torchvision.datasets.CIFAR10(path, train=train, download=True, transform=transform)
-    elif data == 'svhn':
-        dataset = torchvision.datasets.SVHN(path, split=train, download=True, transform=transform)
-    elif data == 'fashion_mnist':
-        dataset = torchvision.datasets.FashionMNIST(path, train=train, download=True, transform=transform)
-    else:
-        dataset = torchvision.datasets.ImageFolder(path, transform=transform)
-
-    return dataset
-
-
-def dataloader(data, path, train, transform, batch_size, num_workers, subset=[], sampling=-1):
-    dataset = get_dataset(data, path, train, transform)
-        
-    if subset:
-        dataset = torch.utils.data.Subset(dataset, subset)
-
-    if sampling == -1:
-        sampler = SequentialSampler(dataset)
-    elif sampling == -2:
-        sampler = RandomSampler(dataset)
-    else:
-        sampler = BinarySampler(dataset, sampling)
-
-    return torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers, drop_last=True)
+    elif data == 'imagenet_256_train':
+        return dataloader('evanarlian/imagenet_1k_resized_256', '/data/data1/datasets/imagenet_256/train/',
+                                 train=True, transform=TRANSFORMS_TR_IMAGENET, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
+    elif data == 'imagenet_256_test':
+        return dataloader('evanarlian/imagenet_1k_resized_256', '/data/data1/datasets/imagenet_256/val/images/',
+                                 train=False, transform=TRANSFORMS_TE_IMAGENET, batch_size=batch_size, sampling=sampling, num_workers=2, subset=subset)
 
 
 class BinarySampler(Sampler):

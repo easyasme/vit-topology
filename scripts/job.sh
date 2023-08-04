@@ -1,11 +1,11 @@
 #!/bin/sh
-DATASETS="mnist cifar10_gray28 fashion_mnist svhn_gray28"
-NETS="lenet alexnet conv_x densenet inception resnet vgg"
+DATASETS="mnist" #cifar10_gray28 fashion_mnist svhn_gray28"
+NETS="lenet" #alexnet conv_x densenet inception resnet vgg"
 
-N_EPOCHS=3
-EPOCHS_TEST="1 3"
+N_EPOCHS=50
+EPOCHS_TEST="1 10 20 30 40 50"
 
-UPPER_DIM=2
+UPPER_DIM=3
 
 ## Train and compute topology for each dataset
 for dataset in $DATASETS
