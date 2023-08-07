@@ -146,15 +146,15 @@ def calc_mean_std(dataloader):
     pop_std = []
     
     for _, data in enumerate(dataloader):
-        print("Data: ", data)
-
-        numpy_image = data.numpy()
+        # print("Data: ", data[0])
+        print("Shape: ", data[0].size())
+        image = data[0]
         
-        batch_mean = np.mean(numpy_image, axis=(0,2,3))
-        batch_std = np.std(numpy_image, axis=(0,2,3), ddof=1)
+        batch_mean = image.mean(dim=[0,2,3])
+        batch_std = image.std(dim=[0,2,3])
         
-        pop_mean.append(batch_mean / 255)
-        pop_std.append(batch_std / 255)
+        # pop_mean.append(batch_mean / 255)
+        # pop_std.append(batch_std / 255)
 
     pop_mean = np.array(pop_mean).mean(axis=0)
     pop_std = np.array(pop_std).mean(axis=0)
