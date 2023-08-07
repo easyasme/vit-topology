@@ -6,3 +6,4 @@ data/
 losses/
 *.bin
 *.out
+*.locktest.*

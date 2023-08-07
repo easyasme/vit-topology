@@ -33,6 +33,8 @@ ONAME = args.net + '_' + args.dataset # Meta-name to be used as prefix on all sa
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 
+print("Device: ", device, "\n")
+
 best_acc = 0  # best test accuracy
 start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 
