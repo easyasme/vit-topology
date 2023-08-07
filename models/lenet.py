@@ -6,7 +6,9 @@ import torch.nn.functional as F
 class LeNet_300_100(nn.Module):
     def __init__(self, num_classes, input_size=28):
         super(LeNet_300_100, self).__init__()
+
         self.feat_size = 1024 if input_size==32 else 784 if input_size==28 else -1
+       
         self.fc1 = nn.Linear(self.feat_size, 300)
         self.fc2 = nn.Linear(300, 100)
         self.fc3 = nn.Linear(100, 10)
@@ -29,20 +31,16 @@ class LeNet_300_100(nn.Module):
 
     
 class LeNet(nn.Module):
-    def __init__(self, num_classes, input_size=28):
+    def __init__(self, num_classes, num_channels=1, input_size=28):
         super(LeNet, self).__init__()
+
         self.feat_size = 500 if input_size==32 else 320 if input_size==28 else -1
-        self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
+        
+        self.conv1 = nn.Conv2d(num_channels, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         self.conv2_drop = nn.Dropout2d()
         self.fc1 = nn.Linear(self.feat_size, 50)
         self.fc2 = nn.Linear(50, num_classes)
-
-    # def __getattr__(self, name):
-    #     try:
-    #         return super().__getattr__(name)
-    #     except AttributeError:
-    #         return getattr(self.module, name)
 
     def forward(self, x):
         x1 = F.relu(F.max_pool2d(self.conv1(x), 2))
