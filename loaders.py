@@ -5,8 +5,6 @@ import random
 import numpy as np
 
 from torch.utils.data import *
-#from datasets import load_dataset
-
 
 ################# Transformers ############################
 
@@ -212,6 +210,7 @@ def dataloader(data, path, train, transform, batch_size, num_workers, subset=[],
         
     if subset:
         dataset = torch.utils.data.Subset(dataset, subset)
+    
     if sampling == -1:
         sampler = SequentialSampler(dataset)
     elif sampling == -2:
