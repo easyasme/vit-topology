@@ -10,7 +10,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.backends.cudnn as cudnn
 
-parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
+parser = argparse.ArgumentParser(description='PyTorch Training')
 parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
@@ -23,7 +23,7 @@ parser.add_argument('--permute_labels', default=0, type=float)
 parser.add_argument('--binarize_labels', default=-1, type=int)
 parser.add_argument('--fixed_init', default=0, type=int)
 parser.add_argument('--train_batch_size', default=128, type=int)
-parser.add_argument('--test_batch_size', default=100, type=int) # default was 100
+parser.add_argument('--test_batch_size', default=100, type=int)
 parser.add_argument('--input_size', default=32, type=int)
 args = parser.parse_args()
 
@@ -37,6 +37,7 @@ best_acc = 0  # best test accuracy
 start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 
 ''' Prepare loaders '''
+print('==> Preparing data..')
 train_loader = loader(args.dataset + '_train', batch_size=args.train_batch_size, sampling=args.binarize_labels)
 n_samples = len(train_loader) * args.train_batch_size
 test_loader = loader(args.dataset + '_test', batch_size=args.test_batch_size, sampling=args.binarize_labels)

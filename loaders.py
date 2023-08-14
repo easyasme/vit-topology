@@ -6,7 +6,6 @@ import numpy as np
 import os
 
 from torch.utils.data import *
-from datasets import load_dataset
 
 ################# Transformers ############################
 
@@ -48,14 +47,12 @@ TRANSFORMS_TE_SVHN = transforms.Compose([
 ])
 
 TRANSFORMS_TR_IMAGENET = transforms.Compose([
-    transforms.Resize(256),
-    transforms.RandomCrop(224, padding=4),
+    transforms.RandomCrop(32, padding=4),
     transforms.RandomHorizontalFlip(),
     transforms.ToTensor()
 ])
 
 TRANSFORMS_TE_IMAGENET = transforms.Compose([
-    transforms.Resize(256),
     transforms.ToTensor()
 ])
 
@@ -116,10 +113,6 @@ def get_dataset(data, path, train, transform):
         dataset = torchvision.datasets.FashionMNIST(path, train=train, download=True, transform=transform)
     elif data == 'imagenet':
         dataset = torchvision.datasets.ImageNet(path, split='train' if train else 'val', transform=transform)
-        
-        # dataset = load_dataset("evanarlian/imagenet_1k_resized_256", split='train' if train else 'test', data_dir=path)
-        # dataset.set_format('torch', columns=['image', 'label'])
-        # dataset.set_transform(transform)
     else:
         dataset = torchvision.datasets.ImageFolder(path, transform=transform)
 
