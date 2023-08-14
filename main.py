@@ -12,7 +12,6 @@ parser.add_argument('--n_epochs_train', default='10', help='Number of epochs to 
 parser.add_argument('--lr', default='0.01', help='Specify learning rate for training.')
 parser.add_argument('--permute_labels', default='0.0', help='Specify if labels are going to be permuted. Float between 0 and 1. If 0, no permutation. If 1 all labels are permuted. Otherwise proportion of labels.')
 parser.add_argument('--binarize_labels', default='-1', help='If positive, Binarize labels. Put label equal to binarize_labels to 1. All the rest put to zero.')
-parser.add_argument('--data_subset', default='1.0', help='Specify if subset of data should be loaded. Float between 0 and 1. If 0, all data, else proportion of data randomly sampled.')
 parser.add_argument('--epochs_test', help='Epochs for which you want to build graph. String of positive natural numbers separated by spaces.')
 parser.add_argument('--thresholds', default='0.5 1.0', help='Defining thresholds range in the form \'start step stop \' ')
 parser.add_argument('--filtration', default='nominal')
@@ -39,8 +38,7 @@ def visible_print(message):
 if args.train:
     visible_print('Training network')
     os.system('python ./train.py --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+
-              args.n_epochs_train+' --lr '+args.lr+' --permute_labels '+args.permute_labels+' --subset '+args.data_subset+
-              ' --binarize_labels '+args.binarize_labels)
+              args.n_epochs_train+' --lr '+args.lr+' --permute_labels '+args.permute_labels+' --binarize_labels '+args.binarize_labels)
 
 if args.build_graph:
     visible_print('Building '+args.graph_type+' graph')

@@ -5,7 +5,6 @@ import pickle as pkl
 import h5py 
 
 
-
 def save_checkpoint(checkpoint, path, fname):
     """ Save checkpoint to path with fname """
 

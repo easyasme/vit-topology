@@ -1,9 +1,9 @@
 #!/bin/sh
-DATASETS="mnist" #cifar10_gray28 fashion_mnist svhn_gray28"
-NETS="lenet" #alexnet conv_x densenet inception resnet vgg"
+DATASETS="imagenet" #cifar10_gray28 fashion_mnist svhn_gray28"
+NETS="alexnet" #alexnet conv_x densenet inception resnet vgg"
 
-N_EPOCHS=50
-EPOCHS_TEST="1 5 10 20 30 40 50"
+N_EPOCHS=2
+EPOCHS_TEST="1 2"
 
 UPPER_DIM=2
 

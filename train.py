@@ -25,14 +25,12 @@ parser.add_argument('--fixed_init', default=0, type=int)
 parser.add_argument('--train_batch_size', default=128, type=int)
 parser.add_argument('--test_batch_size', default=100, type=int) # default was 100
 parser.add_argument('--input_size', default=32, type=int)
-parser.add_argument('--subset', default=0, type=float)
 args = parser.parse_args()
 
 SAVE_EPOCHS = list(range(11)) + list(range(10, args.epochs + 1, args.save_every)) # At what epochs to save train/test stats
 ONAME = args.net + '_' + args.dataset # Meta-name to be used as prefix on all savings
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-
 print("Device: ", device, "\n")
 
 best_acc = 0  # best test accuracy
@@ -41,9 +39,8 @@ start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 ''' Prepare loaders '''
 train_loader = loader(args.dataset + '_train', batch_size=args.train_batch_size, sampling=args.binarize_labels)
 n_samples = len(train_loader) * args.train_batch_size
-subset = list(np.random.choice(n_samples, int(args.subset * n_samples)))
-subset_train_loader = loader(args.dataset + '_train', batch_size=args.train_batch_size, subset=subset, sampling=args.binarize_labels)
 test_loader = loader(args.dataset + '_test', batch_size=args.test_batch_size, sampling=args.binarize_labels)
+
 criterion  = get_criterion(args.dataset)
 
 ''' Build models '''
@@ -65,11 +62,7 @@ optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5
 lr_scheduler = ReduceLROnPlateau(optimizer, factor=0.5, mode='max', verbose=True)
 
 ''' Define passer '''
-if not args.subset:
-    passer_train = Passer(net, train_loader, criterion, device)
-else:
-    passer_train = Passer(net, subset_train_loader, criterion, device)
-    
+passer_train = Passer(net, train_loader, criterion, device)
 passer_test = Passer(net, test_loader, criterion, device)
 
 ''' Define manipulator '''
@@ -77,6 +70,7 @@ manipulator = load_manipulator(args.permute_labels, args.binarize_labels)
 
 ''' Make intial pass before any training '''
 loss_te, acc_te = passer_test.run()
+
 save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': 0}, path='./checkpoint/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_0.t7')
 
 losses = []

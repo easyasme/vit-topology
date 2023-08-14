@@ -43,6 +43,8 @@ def get_model(name, dataset):
         net = LeNetExt(n_channels=1, num_classes=10)
     if name=='lenetext' and dataset=='cifar10':
         net = LeNetExt(n_channels=3, num_classes=10)
+    if name=='lenetext' and dataset=='imagenet':
+        net = LeNetExt(n_channels=3, num_classes=10)
     
     if name=='vgg' and dataset in ['cifar10', 'mnist_color32', 'fashion_mnist_color32', 'vgg_cifar10_adversarial', 'svhn']:
         net = VGG('VGG16', num_classes=10)
