@@ -10,7 +10,7 @@ import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.backends.cudnn as cudnn
 
-parser = argparse.ArgumentParser(description='PyTorch Training')
+parser = argparse.ArgumentParser(description='PyTorch CIFAR10 Training')
 parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
@@ -30,7 +30,7 @@ args = parser.parse_args()
 SAVE_EPOCHS = list(range(11)) + list(range(10, args.epochs + 1, args.save_every)) # At what epochs to save train/test stats
 ONAME = args.net + '_' + args.dataset # Meta-name to be used as prefix on all savings
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu' #'cuda' if torch.cuda.is_available() else 'cpu'
 print("Device: ", device, "\n")
 
 best_acc = 0  # best test accuracy

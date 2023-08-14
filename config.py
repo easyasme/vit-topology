@@ -1,3 +1,5 @@
+import numpy as np
+
 # Where to save topology results
 SAVE_PATH = 'results'
 
@@ -13,3 +15,8 @@ NPROC = 8
 
 # Sets upper limit to dimension to compute for persistent homology.
 UPPER_DIM = 2
+
+np.random.seed(1234)
+SUBSETS_LIST = [np.random.randint(0, 1000, size=10) for _ in range(30)]
+
+# print(np.unique(SUBSETS_LIST, axis=0))

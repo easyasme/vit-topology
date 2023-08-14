@@ -1,5 +1,6 @@
 import argparse
 import os
+
 from config import SAVE_PATH
 
 parser = argparse.ArgumentParser()
@@ -37,6 +38,7 @@ def visible_print(message):
     
 if args.train:
     visible_print('Training network')
+    visible_print('Begin train.py')
     os.system('python ./train.py --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+
               args.n_epochs_train+' --lr '+args.lr+' --permute_labels '+args.permute_labels+' --binarize_labels '+args.binarize_labels)
 
