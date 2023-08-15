@@ -114,7 +114,8 @@ def get_dataset(data, path, train, transform):
     elif data == 'fashion_mnist':
         dataset = torchvision.datasets.FashionMNIST(path, train=train, download=True, transform=transform)
     elif data == 'imagenet':
-        dataset = torchvision.datasets.ImageNet(path, split='train' if train else 'val', transform=transform)
+        # dataset = torchvision.datasets.ImageNet(path, split='train' if train else 'val', transform=transform)
+        dataset = CustomImageNet(path, 'data/map_clsloc.txt', subset=subset, transform=transform)
     else:
         dataset = torchvision.datasets.ImageFolder(path, transform=transform)
 
