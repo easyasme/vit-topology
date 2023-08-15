@@ -30,7 +30,7 @@ args = parser.parse_args()
 SAVE_EPOCHS = list(range(11)) + list(range(10, args.epochs + 1, args.save_every)) # At what epochs to save train/test stats
 ONAME = args.net + '_' + args.dataset # Meta-name to be used as prefix on all savings
 
-device = 'cpu' #'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Device: ", device, "\n")
 
 best_acc = 0  # best test accuracy

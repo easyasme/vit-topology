@@ -16,6 +16,7 @@ NPROC = 8
 # Sets upper limit to dimension to compute for persistent homology.
 UPPER_DIM = 2
 
+# Create 30 random lists of 10 class labels each for subsetting imagenet data
 np.random.seed(1234)
 SUBSETS_LIST = [np.random.randint(0, 1000, size=10) for _ in range(30)]
 
