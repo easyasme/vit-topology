@@ -18,6 +18,6 @@ UPPER_DIM = 2
 
 # Create 30 random lists of 10 class labels each for subsetting imagenet data
 np.random.seed(1234)
-SUBSETS_LIST = [np.random.randint(0, 1000, size=10) for _ in range(30)]
+SUBSETS_LIST = [np.random.randint(1, 1000 + 1, size=10) for _ in range(30)]
 
 # print(np.unique(SUBSETS_LIST, axis=0))
