@@ -4,8 +4,10 @@ import torchvision
 import random
 import numpy as np
 import os
+import glob
 
 from torch.utils.data import *
+from PIL import Image
 
 ################# Transformers ############################
 
@@ -125,10 +127,8 @@ def dataloader(data, path, train, transform, batch_size, num_workers, subset=[],
         
     if sampling == -1:
         sampler = SequentialSampler(dataset)
-    elif sampling == -2:
-        sampler = RandomSampler(dataset)
     else:
-        sampler = BinarySampler(dataset, sampling)
+        sampler = RandomSampler(dataset)
 
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers, drop_last=True)
 
@@ -170,33 +170,37 @@ def loader(data, batch_size, subset=[], sampling=-1):
         return dataloader('fashion_mnist', './data', train=False, transform=TRANSFORMS_TE_GRAY, batch_size=batch_size, sampling=sampling, num_workers=num_workers, subset=subset)
     
     elif data == 'imagenet_train':
-        return dataloader('imagenet', './data', train=True, transform=TRANSFORMS_TR_IMAGENET, batch_size=batch_size, sampling=sampling, num_workers=num_workers, subset=subset)
+        return dataloader('imagenet', './data/train', train=True, transform=TRANSFORMS_TR_IMAGENET, batch_size=batch_size, sampling=sampling, num_workers=num_workers, subset=subset)
     elif data == 'imagenet_test':
-        return dataloader('imagenet', './data', train=False, transform=TRANSFORMS_TE_IMAGENET, batch_size=batch_size, sampling=sampling, num_workers=num_workers, subset=subset)
+        return dataloader('imagenet', './data/val', train=False, transform=TRANSFORMS_TE_IMAGENET, batch_size=batch_size, sampling=sampling, num_workers=num_workers, subset=subset)
 
-class BinarySampler(Sampler):
-    """One-vs-rest sampling where pivot indicates the target class """
+class CustomImageNet(Dataset):
+    def __init__(self, data_path, labels_path, subset=[], transform=None):
+        self.data_path = data_path
+        self.data = []
+        self.label_dict = {}
+        self.transform = transform
 
-    def __init__(self, dataset, pivot):
-        self.dataset = dataset
-        self.pivot_indices = self._get_pivot_indices(pivot)
-        self.nonpivot_indices = self._get_nonpivot_indices()
-        self.indices = self._get_indices()
-    
-    def _get_targets(self):
-        return [x for (_, x) in self.dataset]
+        with open(labels_path, 'r') as f:
+            for line in f:
+                key = line.split()[0]
+                value = int(line.split()[1])
 
-    def _get_pivot_indices(self, pivot):
-        return [i for i, x in enumerate(self._get_targets()) if x==pivot]
+                if value in subset:
+                    self.label_dict[key] = value
 
-    def _get_nonpivot_indices(self):
-        return random.sample(list(set(np.arange(len(self.dataset)))-set(self.pivot_indices)), len(self.pivot_indices))
+        for key in self.label_dict.keys():
+            imgs = glob.glob(os.path.join(self.data_path, key, '*.png'))
+            self.data.append(imgs)
 
-    def _get_indices(self):
-        return self.pivot_indices + self.nonpivot_indices
 
-    def __iter__(self):
-        return (self.indices[i] for i in torch.randperm(len(self.indices)))
-        
     def __len__(self):
-        return len(self.indices)
+        return len(self.data)
+    
+    def __getitem__(self, idx):
+        img = Image.open(os.path.join(self.data_path, self.data[idx]))
+        img = self.transform(img)
+
+        label = 
+        
+        return img, 0
