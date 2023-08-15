@@ -198,9 +198,10 @@ class CustomImageNet(Dataset):
         return len(self.data)
     
     def __getitem__(self, idx):
-        img = Image.open(os.path.join(self.data_path, self.data[idx]))
+        img = Image.open(self.data[idx])
         img = self.transform(img)
 
-        label = 
+        key = self.data[idx].split('/')[-2]
+        label = self.label_dict[key]
         
-        return img, 0
+        return img, label
