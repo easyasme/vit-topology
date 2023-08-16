@@ -7,13 +7,7 @@ from .densenet import *
 from .inception import *
 from .conv_x import * 
 
-num_classes={'mnist':10,
-         'cifar10':10,
-         'cifar10_gray':10, 
-         'mnist_adversarial':10,
-         'imagenet':200,
-         'imagenet_gray':200,
-         'vgg_cifar10_adversarial':10}
+num_classes={'imagenet': 10}
 
 def get_model(name, dataset):
     if name == 'conv_2':
@@ -23,53 +17,29 @@ def get_model(name, dataset):
     if name == 'conv_6':
         net = Conv_6(num_classes=10)
     
-    if name=='lenet_300_100' and dataset in ['mnist', 'cifar10_gray28', 'fashion_mnist', 'svhn_gray28']:
-        net = LeNet_300_100(num_classes=10)
-    if name=='lenet' and dataset in ['mnist', 'cifar10_gray28', 'mnist_adversarial', 'fashion_mnist', 'svhn_gray28']:
-        net = LeNet(num_classes=10)
     if name=='lenet' and dataset == 'imagenet':
-        net = LeNet(num_classes=200)
-    if name=='lenetbin':
-        net = LeNet(num_classes=2)
-    if name=='lenet32bin':
-        net = LeNet(num_classes=2, input_size=32)
-    if name=='lenet32' and dataset in ['mnist', 'cifar10_gray', 'mnist_adversarial', 'svhn']:
-        net = LeNet(num_classes=10, input_size=32)
-    if name=='lenet32bin':
-        net = LeNet(num_classes=2, input_size=32)
-    if name=='lenet32' and dataset == 'imagenet_gray':
-        net = LeNet(num_classes=200, input_size=32)
-    if name=='lenetext' and dataset=='mnist':
-        net = LeNetExt(n_channels=1, num_classes=10)
-    if name=='lenetext' and dataset=='cifar10':
-        net = LeNetExt(n_channels=3, num_classes=10)
+        net = LeNet(num_channels=3, num_classes=10)
+    
+    if name=='lenet32' and dataset == 'imagenet':
+        net = LeNet(num_channels=3, num_classes=10, input_size=32)
+    
     if name=='lenetext' and dataset=='imagenet':
         net = LeNetExt(n_channels=3, num_classes=10)
     
-    if name=='vgg' and dataset in ['cifar10', 'mnist_color32', 'fashion_mnist_color32', 'vgg_cifar10_adversarial', 'svhn']:
-        net = VGG('VGG16', num_classes=10)
     if name=='vgg' and dataset=='imagenet':
-        net = VGG('VGG16', num_classes=200)
+        net = VGG('VGG16', num_classes=10)
     
-    if name=='resnet' and dataset in ['cifar10', 'mnist_color32', 'fashion_mnist_color32', 'svhn']:
-        net = ResNet18(num_classes=10)
     if name=='resnet' and dataset=='imagenet':
-        net = ResNet18(num_classes=200)
-    
-    if name=='densenet' and dataset=='cifar10':
-        net = DenseNet121(num_classes=10)    
+        net = ResNet18(num_classes=10)
+       
     if name=='densenet' and dataset=='imagenet':
-        net = DenseNet121(num_classes=200)
+        net = DenseNet121(num_classes=10)
     
-    if name=='inception' and dataset=='cifar10':
-        net = GoogLeNet(num_classes=10)
     if name=='inception' and dataset=='imagenet':
-        net = GoogLeNet(num_classes=200)
+        net = GoogLeNet(num_classes=10)
     
-    if name=='alexnet' and dataset=='cifar10':
-        net = AlexNet(num_classes=10)
     if name=='alexnet' and dataset=='imagenet':
-        net = AlexNet(num_classes=200)
+        net = AlexNet(num_classes=10)
 
     return net
 

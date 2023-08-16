@@ -3,12 +3,14 @@ import argparse
 from config import NPROC, MAX_EPSILON, UPPER_DIM
 
 parser = argparse.ArgumentParser()
+
 parser.add_argument('--save_path')
 parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--trial', default=0)
 parser.add_argument('--epochs', nargs='+')
 parser.add_argument('--thresholds', nargs='+', type=float)
+
 args = parser.parse_args()
 
 path = os.path.join(args.save_path, args.net + "_" + args.dataset)

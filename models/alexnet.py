@@ -5,10 +5,7 @@ import torch.utils.model_zoo as model_zoo
 
 __all__ = ['AlexNet']
 
-
-model_urls = {
-    'alexnet': 'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth',
-}
+model_urls = {'alexnet': 'https://download.pytorch.org/models/alexnet-owt-4df8aa71.pth'}
 
 class AlexNet(nn.Module):
 
@@ -48,11 +45,13 @@ class AlexNet(nn.Module):
         x = self.features(x)
         x = x.view(x.size(0), 256)
         x = self.classifier(x)
+        
         return x
 
     def forward_features(self, x):
         layers = [2, 5, 7, 9, 12]
         feats = [self.features[:l+1](x) for l in layers] + [self.forward(x)]
+        
         return feats
     
 def test():

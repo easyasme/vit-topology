@@ -31,7 +31,9 @@ class Passer():
                 targets = manipulator(targets)
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
             
-                if optimizer: optimizer.zero_grad()
+                if optimizer: 
+                    optimizer.zero_grad()
+
                 if mask:
                     outputs = self.network(inputs, mask)
                 else:
@@ -55,6 +57,7 @@ class Passer():
     def get_sample(self):
         iterator = iter(self.loader)
         inputs, _ = iterator.next()
+
         return inputs[0:1,...].to(self.device)
     
         
@@ -73,6 +76,7 @@ class Passer():
     def get_predictions(self, manipulator=identity):
         ''' Returns predictions and targets '''
         preds, gts, = [], []
+
         for batch_idx, (inputs, targets) in enumerate(self.loader):
             targets = manipulator(targets)
             inputs, targets = inputs.to(self.device), targets.to(self.device)
@@ -87,6 +91,7 @@ class Passer():
     def get_function(self, forward='selected'):
         ''' Collect function (features) from the self.network.module.forward_features() routine '''
         features = []
+        
         for batch_idx, (inputs, targets) in enumerate(self.loader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             outputs = self.network(inputs)
@@ -106,12 +111,16 @@ class Passer():
         # modified #
         ## NOTICE: only weights are maintained and combined into two dimensions, biases are ignored
         weights = []
+        
         [print("we get data type is {}, size is {}".format(type(f.data),f.size())) for f in self.network.parameters()]
+        
         for index, var in enumerate(self.network.parameters()):
             if index % 2 == 0:
                 f = var.cpu().data.numpy().astype(np.float16) # var as Variable, type(var.data) is Tensor, should be transformed from cuda to cpu(),with type float16
+                
                 weight = np.reshape(f, (f.shape[0], np.prod(f.shape[1:])))
                 print("weight size ==== ", weight.shape)
+                
                 weights.append(weight)
        
         return weights

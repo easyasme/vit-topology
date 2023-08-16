@@ -49,37 +49,22 @@ class LPermutor():
     
         return labels
         
-        
-class LBinarizer():
-    def __init__(self, pivot):
-        self.pivot = pivot
-
-    def run(self, labels):
-        ''' Binarize input. Put pivot to one, rest to zero.'''
-        labels[labels != self.pivot] = 0
-        labels[labels == self.pivot] = 1
-    
-        return labels
-
-    
-def load_manipulator(permute_labels=None, binarize_labels=-1): 
+def load_manipulator(permute_labels=None): 
     ''' Define label manipulator '''
     if permute_labels:
         manipulator = LPermutor(P128, permute_labels).run
-    elif binarize_labels >= 0:
-        manipulator = LBinarizer(binarize_labels).run
     else:
         manipulator = identity
 
     return manipulator
  
     
-if __name__ == '__main__':
-    x = [1, 2, 3, 4, 5, 6, 7, 8, 9]
-    for p in x:
-        x_ = np.copy(x)
-        manipulator = LBinarizer(p).run
-        print(p)
-        print(x_)
-        print(manipulator(x_))
+# if __name__ == '__main__':
+#     x = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+#     for p in x:
+#         x_ = np.copy(x)
+#         manipulator = LBinarizer(p).run
+#         print(p)
+#         print(x_)
+#         print(manipulator(x_))
     

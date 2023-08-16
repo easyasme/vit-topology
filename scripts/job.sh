@@ -10,13 +10,13 @@ UPPER_DIM=2
 ## Train and compute topology for each dataset
 for net in $NETS
 do
-    for dataset in $DATASETS
+    for i in {0..0}
     do
-        python main.py --net "$net" --dataset "$dataset" --trial 0 --lr 0.0005  --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --graph_type functional --train 1 --build_graph 1
+        python main.py --net "$net" --dataset "imagenet" --trial 0 --lr 0.0005  --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --graph_type functional --train 1 --build_graph 1 --iter $i
 
-        for i in $(seq 1 "$UPPER_DIM")
+        for j in $(seq 1 "$UPPER_DIM")
         do
-            python visualize.py --trial 0 --net "$net" --dataset "$dataset" --epochs $(echo $EPOCHS_TEST) --dim $i
+            python visualize.py --trial 0 --net "$net" --dataset "imagenet" --epochs $(echo $EPOCHS_TEST) --dim $j
         done
     done
 done
