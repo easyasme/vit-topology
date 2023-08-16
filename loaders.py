@@ -130,10 +130,9 @@ class CustomImageNet(Dataset):
                     self.label_dict[key] = value
 
         for key in self.label_dict.keys():
-            # print("Images path: ", os.path.join(self.data_path, key, '*.png'))
-            img_paths = glob.glob(os.path.join(self.data_path, key, '*.png'))
-            # print("Image paths: ", imgs)
             label = self.label_dict[key]
+            img_paths = glob.glob(os.path.join(self.data_path, key, '*.png'))
+            
             for img_path in img_paths:
                 img = Image.open(img_path)
                 img = self.transform(img)
@@ -144,10 +143,4 @@ class CustomImageNet(Dataset):
         return len(self.data)
     
     def __getitem__(self, idx):
-        # img, label = self.data[idx]
-        # img = self.transform(img)
-        # print("Image shape: ", img.a)
-        # key = self.data[idx].split('/')[-2]
-        # label = self.label_dict[key]
-        
         return self.data[idx]
