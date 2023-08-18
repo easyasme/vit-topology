@@ -19,16 +19,16 @@ def get_transform(train=True, resize=None, crop=None, hflip=True, vflip=True):
     transform = transforms.Compose([])
 
     if train:
-        if not isinstance(resize, None):
+        if not resize == None:
             transform.transforms.insert(0, transforms.Resize(resize))
-        if not isinstance(crop, None):
+        if not crop == None:
             transform.transforms.insert(1, transforms.RandomCrop(crop))
         if hflip:
             transform.transforms.insert(2, transforms.RandomHorizontalFlip())
         if vflip:
             transform.transforms.insert(3, transforms.RandomVerticalFlip())
     else:
-        if not resize:
+        if not resize == None:
             transform.transforms.insert(0, transforms.Resize(resize))
 
     len_transform = len(transform.transforms)
@@ -40,9 +40,7 @@ def calc_mean_std(dataloader):
     pop_mean = []
     pop_std = []
 
-    print("Data loader size: ", len(dataloader))
     for _, data in enumerate(dataloader):
-        print("Data shape: ", data[0].size())
         image_batch = data[0]
         
         batch_mean = image_batch.mean(dim=[0,2,3])
@@ -59,6 +57,7 @@ def calc_mean_std(dataloader):
 def get_dataset(data, path, train, transform, iter=0):
     ''' Return loader for torchvision data. If data in [mnist, cifar] torchvision.datasets has built-in loaders else load from ImageFolder '''
     if data == 'imagenet':
+        print("\n", "Class Subset: ", SUBSETS_LIST[iter], "\n")
         dataset = CustomImageNet(path, 'data/map_clsloc.txt', subset=SUBSETS_LIST[iter], transform=transform)
     else:
         dataset = torchvision.datasets.ImageFolder(path, transform=transform)
@@ -68,7 +67,7 @@ def get_dataset(data, path, train, transform, iter=0):
 def dataloader(data, path, train, transform, batch_size, num_workers, iter, sampling=-1):
     dataset = get_dataset(data, path, train, transform, iter=iter)
     
-    print("Transform before: ", transform)
+    # print("Transform before: ", transform)
         
     if sampling == -1:
         sampler = RandomSampler(dataset)
@@ -85,7 +84,7 @@ def dataloader(data, path, train, transform, batch_size, num_workers, iter, samp
         len_transform = len(transform.transforms)
         transform.transforms.insert(len_transform, transforms.Normalize(mean, std))
 
-    print("Transform after: ", transform, "\n")
+    # print("Transform after: ", transform, "\n")
 
     return data_loader
 
@@ -102,6 +101,7 @@ def loader(data, batch_size, iter=0, sampling=-1):
     elif data == 'imagenet_test':
         return dataloader('imagenet', './data/val_32', train=False, transform=transforms_te_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter, sampling=sampling)
 
+
 class CustomImageNet(Dataset):
     def __init__(self, data_path, labels_path, subset=[], transform=None):
         self.data_path = data_path
@@ -117,14 +117,13 @@ class CustomImageNet(Dataset):
                 if value in subset:
                     self.label_dict[key] = value
 
-        for key in self.label_dict.keys():
-            label = self.label_dict[key]
+        for i, key in enumerate(self.label_dict.keys()):
             img_paths = glob.glob(os.path.join(self.data_path, key, '*.png'))
             
             for img_path in img_paths:
                 img = Image.open(img_path)
                 img = self.transform(img)
-                self.data.append((img, label))
+                self.data.append((img, i))
 
 
     def __len__(self):

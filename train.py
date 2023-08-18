@@ -39,8 +39,10 @@ best_acc = 0  # best test accuracy
 start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 
 ''' Prepare loaders '''
-print('==> Preparing data..')
+print('==> Preparing data..', "\n")
+print("Preparing train loader", "\n")
 train_loader = loader(args.dataset + '_train', batch_size=args.train_batch_size, iter=args.iter)
+print("Preparing test loader")
 test_loader = loader(args.dataset + '_test', batch_size=args.test_batch_size, iter=args.iter)
 
 n_samples = len(train_loader) * args.train_batch_size

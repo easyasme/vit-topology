@@ -52,15 +52,13 @@ class Passer():
                              % (r, np.mean(losses), losses[-1], np.mean(accuracies)))
 
         return np.asarray(losses), np.mean(accuracies)
-    
 
     def get_sample(self):
         iterator = iter(self.loader)
         inputs, _ = iterator.next()
 
         return inputs[0:1,...].to(self.device)
-    
-        
+
     def run(self, optimizer=None, manipulator=identity, mask=None):
         if optimizer:
             self.network.train()
@@ -72,7 +70,6 @@ class Passer():
                 
                 return self._pass(manipulator=manipulator, mask=mask)
 
-            
     def get_predictions(self, manipulator=identity):
         ''' Returns predictions and targets '''
         preds, gts, = [], []
@@ -87,7 +84,6 @@ class Passer():
             
         return np.concatenate(gts), np.concatenate(preds)
 
-            
     def get_function(self, forward='selected'):
         ''' Collect function (features) from the self.network.module.forward_features() routine '''
         features = []
@@ -97,15 +93,14 @@ class Passer():
             outputs = self.network(inputs)
             
             if forward=='selected':
-                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.forward_features(inputs)])
+                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.module.forward_features(inputs)])
             elif forward=='parametric':
-                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.forward_param_features(inputs)])
+                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.module.forward_param_features(inputs)])
                 
             progress_bar(batch_idx, len(self.loader))
 
         return [np.concatenate(list(zip(*features))[i]) for i in range(len(features[0]))]
 
-    
     def get_structure(self):
         ''' Collect structure (weights) from the self.network.module.forward_weights() routine '''
         # modified #
