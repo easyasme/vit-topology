@@ -20,7 +20,7 @@ def get_transform(train=True, resize=None, crop=None, hflip=True, vflip=True):
 
     if train:
         if not resize == None:
-            transform.transforms.insert(0, transforms.Resize(resize))
+            transform.transforms.insert(0, transforms.Resize(resize, interpolation=Image.BICUBIC))
         if not crop == None:
             transform.transforms.insert(1, transforms.RandomCrop(crop))
         if hflip:
@@ -29,7 +29,7 @@ def get_transform(train=True, resize=None, crop=None, hflip=True, vflip=True):
             transform.transforms.insert(3, transforms.RandomVerticalFlip())
     else:
         if not resize == None:
-            transform.transforms.insert(0, transforms.Resize(resize))
+            transform.transforms.insert(0, transforms.Resize(resize, interpolation=Image.BICUBIC))
 
     len_transform = len(transform.transforms)
     transform.transforms.insert(len_transform, transforms.ToTensor())
@@ -54,7 +54,7 @@ def calc_mean_std(dataloader):
     
     return pop_mean, pop_std
 
-def get_dataset(data, path, train, transform, iter=0):
+def get_dataset(data, path, transform, iter=0):
     ''' Return loader for torchvision data. If data in [mnist, cifar] torchvision.datasets has built-in loaders else load from ImageFolder '''
     if data == 'imagenet':
         print("\n", "Class Subset: ", SUBSETS_LIST[iter], "\n")
@@ -64,8 +64,8 @@ def get_dataset(data, path, train, transform, iter=0):
 
     return dataset
 
-def dataloader(data, path, train, transform, batch_size, num_workers, iter, sampling=-1):
-    dataset = get_dataset(data, path, train, transform, iter=iter)
+def dataloader(data, path, transform, batch_size, num_workers, iter, sampling=-1):
+    dataset = get_dataset(data, path, transform, iter=iter)
     
     # print("Transform before: ", transform)
         
@@ -93,17 +93,17 @@ def loader(data, batch_size, iter=0, sampling=-1):
 
     num_workers = os.cpu_count()
 
-    transforms_tr_imagenet = get_transform(train=True, hflip=True, vflip=True)
-    transforms_te_imagenet = get_transform(train=False, hflip=False, vflip=False)
+    transforms_tr_imagenet = get_transform(train=True, resize=(224, 224), hflip=True, vflip=True)
+    transforms_te_imagenet = get_transform(train=False, resize=(224, 224), hflip=False, vflip=False)
     
     if data == 'imagenet_train':
-        return dataloader('imagenet', './data/train_32', train=True, transform=transforms_tr_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter, sampling=sampling)
+        return dataloader('imagenet', 'data/train', transform=transforms_tr_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter) 
     elif data == 'imagenet_test':
-        return dataloader('imagenet', './data/val_32', train=False, transform=transforms_te_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter, sampling=sampling)
+        return dataloader('imagenet', 'data/val', transform=transforms_te_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter)
 
 
 class CustomImageNet(Dataset):
-    def __init__(self, data_path, labels_path, subset=[], transform=None):
+    def __init__(self, data_path, labels_path, subset=[], transform=None, grayscale=False):
         self.data_path = data_path
         self.data = []
         self.label_dict = {}
@@ -118,13 +118,19 @@ class CustomImageNet(Dataset):
                     self.label_dict[key] = value
 
         for i, key in enumerate(self.label_dict.keys()):
-            img_paths = glob.glob(os.path.join(self.data_path, key, '*.png'))
+            img_paths = glob.glob(os.path.join(self.data_path, key, '*.JPEG'))
             
             for img_path in img_paths:
                 img = Image.open(img_path)
                 img = self.transform(img)
-                self.data.append((img, i))
 
+                if img.size()[0] == 3 and not grayscale:
+                    self.data.append((img, i))
+                elif img.size()[0] == 1 and grayscale:
+                    self.data.append((img, i))
+                # else:
+                    # print("Error: Image channel size is not 3 or 1")
+                    # print("Image path: ", img_path.split('/')[-2], img_path.split('/')[-1], "\n")
 
     def __len__(self):
         return len(self.data)

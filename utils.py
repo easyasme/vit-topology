@@ -126,7 +126,6 @@ def format_time(seconds):
         f = '0ms'
     return f
 
-
 def save_splits(splits, split_size, save_dir, start_layer, epoch, threshold, trial):
     ''' Some description '''
     for i_layer, layer in enumerate(splits):
@@ -138,7 +137,6 @@ def save_splits(splits, split_size, save_dir, start_layer, epoch, threshold, tri
 
             print('Saving ... trl{}, epc{}, threshold{:1.2f}, layer{}, chunk{}, shape {}'.format(trial, epoch, threshold, start_layer+i_layer, i_chunk, chunk.shape))
             np.savetxt(path+'badj_epc{}_t{:1.2f}_trl{}.csv'.format(epoch, threshold, trial), chunk, fmt='%d', delimiter=",")
-
 
 def save_dipha(fname, adj):
     from config import DIPHA_MAGIC_NUMBER, ID
