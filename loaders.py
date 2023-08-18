@@ -19,9 +19,9 @@ def get_transform(train=True, resize=None, crop=None, hflip=True, vflip=True):
     transform = transforms.Compose([])
 
     if train:
-        if not resize:
+        if not isinstance(resize, None):
             transform.transforms.insert(0, transforms.Resize(resize))
-        if not crop:
+        if not isinstance(crop, None):
             transform.transforms.insert(1, transforms.RandomCrop(crop))
         if hflip:
             transform.transforms.insert(2, transforms.RandomHorizontalFlip())
