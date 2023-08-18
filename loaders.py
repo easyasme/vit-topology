@@ -11,48 +11,35 @@ from PIL import Image
 from PIL import PngImagePlugin
 from config import SUBSETS_LIST
 
-LARGE_ENOUGH_NUMBER = 100
+LARGE_ENOUGH_NUMBER = 1000
 PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024**2)
 
-################# Transformers ############################
 
-TRANSFORMS_TR_IMAGENET = transforms.Compose([
-    # transforms.RandomCrop(32,  , padding=4),
-    transforms.RandomHorizontalFlip(),
-    transforms.RandomVerticalFlip(),
-    transforms.ToTensor()
-])
+def get_transform(train=True, resize=None, crop=None, hflip=True, vflip=True):
+    transform = transforms.Compose([])
 
-TRANSFORMS_TE_IMAGENET = transforms.Compose([
-    transforms.ToTensor()
-])
+    if train:
+        if not resize:
+            transform.transforms.insert(0, transforms.Resize(resize))
+        if not crop:
+            transform.transforms.insert(1, transforms.RandomCrop(crop))
+        if hflip:
+            transform.transforms.insert(2, transforms.RandomHorizontalFlip())
+        if vflip:
+            transform.transforms.insert(3, transforms.RandomVerticalFlip())
+    else:
+        if not resize:
+            transform.transforms.insert(0, transforms.Resize(resize))
 
+    len_transform = len(transform.transforms)
+    transform.transforms.insert(len_transform, transforms.ToTensor())
 
-# def get_transform(train=True, resize=None, crop=None, flip=True):
-    # transform = transforms.Compose([])
-
-    # if train:
-        # if not resize:
-        #     transform.transforms.insert(0, transforms.Resize(resize))
-        # if not crop:
-        #     transform.transforms.insert(1, transforms.RandomCrop(crop))
-        # if flip:
-        #     transform.transforms.insert(2, transforms.RandomHorizontalFlip())
-    # else:
-        # if not resize:
-        #     transform.transforms.insert(0, transforms.Resize(resize))
-
-    # len_transform = len(transform.transforms)
-    # transform.transforms.insert(len_transform, transforms.ToTensor())
-
-    # return transform
-
-##############################################################
+    return transform
 
 def calc_mean_std(dataloader):
     pop_mean = []
     pop_std = []
-    print("Data loader: ", dataloader)
+
     print("Data loader size: ", len(dataloader))
     for _, data in enumerate(dataloader):
         print("Data shape: ", data[0].size())
@@ -81,7 +68,7 @@ def get_dataset(data, path, train, transform, iter=0):
 def dataloader(data, path, train, transform, batch_size, num_workers, iter, sampling=-1):
     dataset = get_dataset(data, path, train, transform, iter=iter)
     
-    # print("Transform before: ", transform)
+    print("Transform before: ", transform)
         
     if sampling == -1:
         sampler = RandomSampler(dataset)
@@ -98,7 +85,7 @@ def dataloader(data, path, train, transform, batch_size, num_workers, iter, samp
         len_transform = len(transform.transforms)
         transform.transforms.insert(len_transform, transforms.Normalize(mean, std))
 
-    # print("Transform after: ", transform, "\n")
+    print("Transform after: ", transform, "\n")
 
     return data_loader
 
@@ -106,21 +93,22 @@ def loader(data, batch_size, iter=0, sampling=-1):
     ''' Interface to the dataloader function '''
 
     num_workers = os.cpu_count()
+
+    transforms_tr_imagenet = get_transform(train=True, hflip=True, vflip=True)
+    transforms_te_imagenet = get_transform(train=False, hflip=False, vflip=False)
     
     if data == 'imagenet_train':
-        return dataloader('imagenet', './data/train_32', train=True, transform=TRANSFORMS_TR_IMAGENET, batch_size=batch_size, num_workers=num_workers, iter=iter, sampling=sampling)
+        return dataloader('imagenet', './data/train_32', train=True, transform=transforms_tr_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter, sampling=sampling)
     elif data == 'imagenet_test':
-        return dataloader('imagenet', './data/val_32', train=False, transform=TRANSFORMS_TE_IMAGENET, batch_size=batch_size, num_workers=num_workers, iter=iter, sampling=sampling)
+        return dataloader('imagenet', './data/val_32', train=False, transform=transforms_te_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter, sampling=sampling)
 
 class CustomImageNet(Dataset):
     def __init__(self, data_path, labels_path, subset=[], transform=None):
         self.data_path = data_path
-        # print("Data path: ", self.data_path)
         self.data = []
         self.label_dict = {}
         self.transform = transform
 
-        # print("Labels path: ", labels_path)
         with open(labels_path, 'r') as f:
             for line in f:
                 key = line.split()[0]

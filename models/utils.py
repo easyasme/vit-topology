@@ -43,7 +43,6 @@ def get_model(name, dataset):
 
     return net
 
-
 def get_criterion(dataset):
     criterion = nn.CrossEntropyLoss()
     ''' Prepare criterion '''
@@ -54,7 +53,6 @@ def get_criterion(dataset):
         criterion = F.nll_loss
     ''' 
     return criterion 
-
 
 def init_from_checkpoint(net):
     ''' Initialize from checkpoint'''

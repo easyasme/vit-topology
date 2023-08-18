@@ -1,6 +1,6 @@
 #!/bin/sh
 DATASETS="imagenet" #cifar10_gray28 fashion_mnist svhn_gray28"
-NETS="alexnet" #alexnet conv_x densenet inception resnet vgg"
+NETS="lenet" #alexnet conv_x densenet inception resnet vgg"
 
 N_EPOCHS=2
 EPOCHS_TEST="1 2"

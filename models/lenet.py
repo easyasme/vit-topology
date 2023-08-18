@@ -110,6 +110,5 @@ def test():
     for i, layer in enumerate(net.forward_features(x)):
         print('layer {} has size {}'.format(i, layer.shape))
 
-
 if __name__ == '__main__':
     test()
