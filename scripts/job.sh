@@ -1,9 +1,5 @@
 #!/bin/sh
-<<<<<<< HEAD
 NETS="resnet" #alexnet conv_x densenet inception resnet vgg"
-=======
-NETS="lenet32" #alexnet conv_x densenet inception resnet vgg"
->>>>>>> ee139e5cf631e5e5b77370cc3ca274219e43cfb2
 
 N_EPOCHS=50
 EPOCHS_TEST="1 10 20 30 40 50"

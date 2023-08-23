@@ -11,11 +11,7 @@ ID = 7
 MAX_EPSILON = 0.3
 
 # Number of cores MPI can use
-<<<<<<< HEAD
 NPROC = 8
-=======
-NPROC = 10
->>>>>>> ee139e5cf631e5e5b77370cc3ca274219e43cfb2
 
 # Sets upper limit to dimension to compute for persistent homology.
 UPPER_DIM = 2
