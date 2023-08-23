@@ -14,9 +14,10 @@ class LeNet_300_100(nn.Module):
         self.fc3 = nn.Linear(100, 10)
 
     def forward(self, x):
-        out = F.relu(self.fc1(x.view(-1,self.feat_size)))
+        out = F.relu(self.fc1(x.view(-1, self.feat_size)))
         out = F.relu(self.fc2(out))
         out = F.log_softmax(self.fc3(out), dim=1)
+        
         return out
     
     def forward_features(self, x):
