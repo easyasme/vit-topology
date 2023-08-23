@@ -11,7 +11,7 @@ for net in $NETS
 do
     for i in {0..0}
     do
-        python main.py --net "$net" --dataset "imagenet" --trial 0 --lr 0.0005  --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --graph_type functional --train 1 --build_graph 1 --iter $i
+        python main.py --net "$net" --dataset "imagenet" --trial 0 --lr 0.025  --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --graph_type functional --train 1 --build_graph 1 --iter $i
 
         for j in $(seq 1 "$UPPER_DIM")
         do
