@@ -33,6 +33,7 @@ class BasicBlock(nn.Module):
         out = self.bn2(self.conv2(out))
         out += self.shortcut(x)
         out = F.relu(out)
+        
         return out
 
 
@@ -61,12 +62,14 @@ class Bottleneck(nn.Module):
         out = self.bn3(self.conv3(out))
         out += self.shortcut(x)
         out = F.relu(out)
+        
         return out
 
 
 class ResNet(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10):
         super(ResNet, self).__init__()
+        
         self.in_planes = 64
 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
@@ -83,6 +86,7 @@ class ResNet(nn.Module):
         for stride in strides:
             layers.append(block(self.in_planes, planes, stride))
             self.in_planes = planes * block.expansion
+        
         return nn.Sequential(*layers)
 
     def forward(self, x):
@@ -94,6 +98,7 @@ class ResNet(nn.Module):
         x = F.avg_pool2d(x, 4)
         x = x.view(x.size(0), -1)
         out = self.linear(x)
+        
         return out        
 
     def forward_features(self, x):
@@ -105,6 +110,7 @@ class ResNet(nn.Module):
         x6 = F.avg_pool2d(x5, 4)
         x7 = x6.view(x6.size(0), -1)
         out = self.linear(x7)
+        
         '''return [x1, x2, x3, x4, x5, x6, x7, out]'''
         return [x4, x5, x6, x7, out]        
 

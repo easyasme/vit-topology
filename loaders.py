@@ -93,13 +93,28 @@ def loader(data, batch_size, iter=0, sampling=-1):
 
     num_workers = os.cpu_count()
 
-    transforms_tr_imagenet = get_transform(train=True, resize=(224, 224), hflip=True, vflip=True)
-    transforms_te_imagenet = get_transform(train=False, resize=(224, 224), hflip=False, vflip=False)
+    img_size = 32
+
+    if img_size == 32:
+        train_data_path = 'data/train_32'
+        test_data_path = 'data/val_32'
+        transforms_tr_imagenet = get_transform(train=True, hflip=True, vflip=True)
+        transforms_te_imagenet = get_transform(train=False, hflip=False, vflip=False)
+    elif img_size == 64:
+        train_data_path = 'data/train_64'
+        test_data_path = 'data/val_64'
+        transforms_tr_imagenet = get_transform(train=True, hflip=True, vflip=True)
+        transforms_te_imagenet = get_transform(train=False, hflip=False, vflip=False)
+    else:
+        train_data_path = 'data/train'
+        test_data_path = 'data/val'
+        transforms_tr_imagenet = get_transform(train=True, resize=(img_size, img_size), hflip=True, vflip=True)
+        transforms_te_imagenet = get_transform(train=False, resize=(img_size, img_size), hflip=False, vflip=False)
     
     if data == 'imagenet_train':
-        return dataloader('imagenet', 'data/train', transform=transforms_tr_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter) 
+        return dataloader('imagenet', train_data_path, transform=transforms_tr_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter) 
     elif data == 'imagenet_test':
-        return dataloader('imagenet', 'data/val', transform=transforms_te_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter)
+        return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter)
 
 
 class CustomImageNet(Dataset):
@@ -108,6 +123,11 @@ class CustomImageNet(Dataset):
         self.data = []
         self.label_dict = {}
         self.transform = transform
+
+        if data_path == 'data/train' or data_path == 'data/val':
+            img_format = '*.JPEG'
+        else:
+            img_format = '*.png'
 
         with open(labels_path, 'r') as f:
             for line in f:
@@ -118,7 +138,7 @@ class CustomImageNet(Dataset):
                     self.label_dict[key] = value
 
         for i, key in enumerate(self.label_dict.keys()):
-            img_paths = glob.glob(os.path.join(self.data_path, key, '*.JPEG'))
+            img_paths = glob.glob(os.path.join(data_path, key, img_format))
             
             for img_path in img_paths:
                 img = Image.open(img_path)
