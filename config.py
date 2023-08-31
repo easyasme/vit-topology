@@ -1,4 +1,5 @@
 import numpy as np
+from os import cpu_count
 
 # Where to save topology results
 SAVE_PATH = 'results'

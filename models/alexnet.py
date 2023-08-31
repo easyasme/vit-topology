@@ -43,11 +43,11 @@ class AlexNet(nn.Module):
         self.classifier = nn.Linear(256, num_classes)
 
     def forward(self, x):
-        print("x size : ", x.size())
+        # print("x size : ", x.size())
         x = self.features(x)
-        print("x size : ", x.size())
+        # print("x size : ", x.size())
         x = x.view(-1, 256)
-        print("x size: ", x.size())
+        # print("x size: ", x.size())
         x = self.classifier(x)
         
         return x

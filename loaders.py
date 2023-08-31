@@ -57,7 +57,6 @@ def calc_mean_std(dataloader):
 def get_dataset(data, path, transform, iter=0):
     ''' Return loader for torchvision data. If data in [mnist, cifar] torchvision.datasets has built-in loaders else load from ImageFolder '''
     if data == 'imagenet':
-        print("\n", "Class Subset: ", SUBSETS_LIST[iter], "\n")
         dataset = CustomImageNet(path, 'data/map_clsloc.txt', subset=SUBSETS_LIST[iter], transform=transform)
     else:
         dataset = torchvision.datasets.ImageFolder(path, transform=transform)
@@ -70,9 +69,9 @@ def dataloader(data, path, transform, batch_size, num_workers, iter, sampling=-1
     # print("Transform before: ", transform)
         
     if sampling == -1:
-        sampler = RandomSampler(dataset)
-    else:
         sampler = SequentialSampler(dataset)
+    else:
+        sampler = RandomSampler(dataset)
 
     data_loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=num_workers, drop_last=True)
 
@@ -112,6 +111,7 @@ def loader(data, batch_size, iter=0, sampling=-1):
         transforms_te_imagenet = get_transform(train=False, resize=(img_size, img_size), hflip=False, vflip=False)
     
     if data == 'imagenet_train':
+        print("\n", "Class Subset: ", SUBSETS_LIST[iter], "\n")
         return dataloader('imagenet', train_data_path, transform=transforms_tr_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter) 
     elif data == 'imagenet_test':
         return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter)
@@ -123,7 +123,7 @@ class CustomImageNet(Dataset):
         self.data = []
         self.label_dict = {}
         self.transform = transform
-
+        
         if data_path == 'data/train' or data_path == 'data/val':
             img_format = '*.JPEG'
         else:
@@ -139,7 +139,12 @@ class CustomImageNet(Dataset):
 
         for i, key in enumerate(self.label_dict.keys()):
             img_paths = glob.glob(os.path.join(data_path, key, img_format))
-            
+
+            if i in range(9):
+                print("Label mapping:", key + ' --> ' + str(i))
+            else:
+                print("Label mapping:", key + ' --> ' + str(i), "\n")
+
             for img_path in img_paths:
                 img = Image.open(img_path)
                 img = self.transform(img)
@@ -148,9 +153,6 @@ class CustomImageNet(Dataset):
                     self.data.append((img, i))
                 elif img.size()[0] == 1 and grayscale:
                     self.data.append((img, i))
-                # else:
-                    # print("Error: Image channel size is not 3 or 1")
-                    # print("Image path: ", img_path.split('/')[-2], img_path.split('/')[-1], "\n")
 
     def __len__(self):
         return len(self.data)
