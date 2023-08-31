@@ -1,9 +1,12 @@
 *pyc
 *~
-dipha/
-checkpoint/
-data/
-losses/
 *.bin
 *.out
 *.locktest.*
+checkpoint/
+data/
+dipha/
+losses/
+scripts/
+config.py
+compute_topology.py
