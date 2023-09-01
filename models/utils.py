@@ -38,8 +38,11 @@ def get_model(name, dataset):
     if name=='inception' and dataset=='imagenet':
         net = GoogLeNet(num_classes=10)
     
-    if name=='alexnet' and dataset=='imagenet':
-        net = AlexNet(num_classes=10)
+    if name=='alexnet32' and dataset=='imagenet':
+        net = AlexNet32(num_classes=10)
+
+    if name=='alexnet64' and dataset=='imagenet':
+        net = AlexNet64(num_classes=10)
 
     return net
 

@@ -19,6 +19,7 @@ parser.add_argument('--kl', default=0, type=int)
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--filtration', default='nominal')
 parser.add_argument('--permute_labels', default=0, type=float)
+parser.add_argument('--iter', type=int, default=0)
 
 args = parser.parse_args()
 
@@ -41,7 +42,7 @@ if device == 'cuda':
     net = torch.nn.DataParallel(net)
     cudnn.benchmark = True
 
-print(net)
+# print(net)
 
 ''' Prepare criterion '''
 criterion = nn.CrossEntropyLoss()
@@ -59,7 +60,7 @@ for epoch in args.epochs:
     net.load_state_dict(checkpoint['net'])
     
     ''' Define passer and get activations '''
-    functloader = loader(args.dataset+'_test', batch_size=100)
+    functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter)
     passer = Passer(net, functloader, criterion, device)
     passer_test = Passer(net, functloader, criterion, device)
     passer_test.run(manipulator=manipulator)

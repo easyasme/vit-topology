@@ -64,7 +64,7 @@ if args.resume:
     net, best_acc, start_acc = init_from_checkpoint(net)
   
 ''' Optimization '''
-optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4, amsgrad=True)
+optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
 # optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 lr_scheduler = ReduceLROnPlateau(optimizer, factor=0.5, mode='max', verbose=True)
 

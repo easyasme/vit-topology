@@ -1,15 +1,7 @@
-import torch
-import os
+import numpy as np
 
-train_dir = os.listdir('train/')
-filename = '../../Imagenet32_Scripts/map_clsloc.txt'
+lst = np.arange(1, 1000 + 1)
 
-summand = 0
-for line in open(filename):
-    wn_id = line.split()[0]
-    print('ID: ', wn_id)
+lst2 = np.random.choice(lst, 10, replace=False)
 
-    if wn_id in train_dir:
-        summand += 1
-
-print('true' if summand == 1000 else str(1000 - summand))
+print(lst2)
