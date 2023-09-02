@@ -2,40 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-
-class LeNet_300_100(nn.Module):
-    def __init__(self, num_classes, input_size=28):
-        super(LeNet_300_100, self).__init__()
-
-        self.feat_size = 1024 if input_size==32 else 784 if input_size==28 else -1
-       
-        self.fc1 = nn.Linear(self.feat_size, 300)
-        self.fc2 = nn.Linear(300, 100)
-        self.fc3 = nn.Linear(100, 10)
-
-    def forward(self, x):
-        out = F.relu(self.fc1(x.view(-1, self.feat_size)))
-        out = F.relu(self.fc2(out))
-        out = F.log_softmax(self.fc3(out), dim=1)
-        
-        return out
-    
-    def forward_features(self, x):
-        x1 = F.relu(self.fc1(x.view(-1, self.feat_size)))
-        x2 = F.relu(self.fc2(x1))
-        x3 = F.log_softmax(self.fc3(x2), dim=1)
-
-        return [x1, x2, x3]
-
-    def forward_param_features(self, x):
-        return self.forward_features(x)
-
     
 class LeNet(nn.Module):
-    def __init__(self, num_classes, num_channels=1, input_size=28):
+    def __init__(self, num_classes, num_channels=1, input_size=32):
         super(LeNet, self).__init__()
 
-        self.feat_size = 500 if input_size==32 else 320 if input_size==28 else -1
+        self.feat_size = 500 if input_size==32 else 320 if input_size==64 else -1
         
         self.conv1 = nn.Conv2d(num_channels, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
@@ -46,7 +18,8 @@ class LeNet(nn.Module):
     def forward(self, x):
         x1 = F.relu(F.max_pool2d(self.conv1(x), 2))
         x2 = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x1)), 2))
-        x2 = x2.view(-1, self.feat_size)
+        print("F Size x2: ", x2.size())
+        x2 = x2.view(x2.size(0), -1)
         x3 = F.relu(self.fc1(x2))
         x4 = F.log_softmax(self.fc2(x3), dim=1)
         
@@ -55,6 +28,7 @@ class LeNet(nn.Module):
     def forward_features(self, x):
         x1 = F.relu(F.max_pool2d(self.conv1(x), 2))
         x2 = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x1)), 2))
+        print("FF Size x2: ", x2.size())
         x2 = x2.view(-1, self.feat_size)
         x3 = F.relu(self.fc1(x2))
         x4 = F.log_softmax(self.fc2(x3), dim=1)
@@ -69,6 +43,8 @@ class LeNetExt(nn.Module):
     def __init__(self, n_channels, num_classes):
         super(LeNetExt, self).__init__()
 
+        self.feat_size = 500 if input_size==32 else 320 if input_size==64 else -1
+
         self.conv1 = nn.Conv2d(n_channels, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         self.conv2_drop = nn.Dropout2d()
@@ -80,36 +56,25 @@ class LeNetExt(nn.Module):
     def forward(self, x):
         out = F.relu(F.max_pool2d(self.conv1(x), 2))
         out = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(out)), 2))
-        print("Size out: ", out.size())
-        out = out.view(-1, out.size(0))
+        print("F Size out: ", out.size())
+        out = out.view(out.size(0), -1)
         out = F.relu(self.fc1(out))
         out = F.relu(self.fc2(out))
         out = F.relu(self.fc3(out))
         '''out = F.dropout(out, training=self.training)'''
         out = F.log_softmax(self.fc4(out), dim=1)
+
         return out
     
     def forward_features(self, x):
         x1 = F.relu(F.max_pool2d(self.conv1(x), 2))
         x2 = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x1)), 2))
-        print("Size x2: ", x2.size())
-        x2 = x2.view(-1, x2.size(0))
+        print("FF Size x2: ", x2.size())
+        x2 = x2.view(x2.size(0), -1)
         x3 = F.relu(self.fc1(x2))
         x4 = F.relu(self.fc2(x3))
         x5 = F.relu(self.fc3(x4))
         x6 = F.log_softmax(self.fc4(x5), dim=1)
+
         return [x1, x2, x3, x4, x5, x6]
-
-    
-def test():
-    net = LeNet(num_classes=10)
-    print(net)
-    x = torch.randn(1,1,28,28)
-    y = net(x)
-    print(y.size())
-    
-    for i, layer in enumerate(net.forward_features(x)):
-        print('layer {} has size {}'.format(i, layer.shape))
-
-if __name__ == '__main__':
-    test()
+        
