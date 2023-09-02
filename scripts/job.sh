@@ -1,12 +1,12 @@
 #!/bin/sh
-NETS="lenet64" # conv_x densenet inception resnet vgg"
+NETS="lenetext64" # conv_x densenet inception resnet vgg"
 
-N_EPOCHS=1
-EPOCHS_TEST="1"
+N_EPOCHS=50
+EPOCHS_TEST="1 20 30 40 50"
 
-UPPER_DIM=2
+UPPER_DIM=3
 
-## Train and compute topology for each dataset
+## Train and compute topology for each dataset then create graphs
 for net in $NETS
 do
     for i in $(seq 1 1)

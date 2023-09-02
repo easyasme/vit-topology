@@ -21,8 +21,10 @@ def get_model(name, dataset):
         net = LeNet(num_channels=3, num_classes=10)
     if name=='lenet64' and dataset == 'imagenet':
         net = LeNet(num_channels=3, num_classes=10, input_size=64)
-    if name=='lenetext' and dataset=='imagenet':
+    if name=='lenetext32' and dataset=='imagenet':
         net = LeNetExt(n_channels=3, num_classes=10)
+    if name=='lenetext64' and dataset=='imagenet':
+        net = LeNetExt(n_channels=3, num_classes=10, input_size=64)
     
 
     if name=='vgg' and dataset=='imagenet':

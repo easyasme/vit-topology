@@ -14,7 +14,7 @@ MAX_EPSILON = 0.3
 NPROC = 8
 
 # Sets upper limit to dimension to compute for persistent homology.
-UPPER_DIM = 2
+UPPER_DIM = 3
 
 # Size in pixels of square images
 IMG_SIZE = 64

@@ -104,6 +104,7 @@ class ResNet(nn.Module):
         x4 = self.layer3(x3)
         x5 = self.layer4(x4)
         x6 = F.avg_pool2d(x5, 4)
+        print("FF Size x6: ", x6.size())
         x7 = x6.view(x6.size(0), -1)
         out = self.linear(x7)
         
