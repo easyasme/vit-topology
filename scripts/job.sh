@@ -1,8 +1,8 @@
 #!/bin/sh
-NETS="alexnet64" # conv_x densenet inception resnet vgg"
+NETS="lenet64" # conv_x densenet inception resnet vgg"
 
-N_EPOCHS=50
-EPOCHS_TEST="1 20 30 40 50"
+N_EPOCHS=1
+EPOCHS_TEST="1"
 
 UPPER_DIM=2
 
@@ -15,8 +15,9 @@ do
 
         for j in $(seq 1 "$UPPER_DIM")
         do
+            echo "Betti $j"
             python visualize.py --trial 0 --net "$net" --dataset "imagenet" --epochs $(echo $EPOCHS_TEST) --dim $j
-            print
+            echo
         done
     done
 done
