@@ -51,7 +51,7 @@ criterion = nn.CrossEntropyLoss()
 manipulator = load_manipulator(args.permute_labels)
     
 for epoch in args.epochs:
-    print('==> Loading checkpoint for epoch {}...'.format(epoch), "\n")
+    print("\n", '==> Loading checkpoint for epoch {}...'.format(epoch), "\n")
 
     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
     
@@ -60,7 +60,7 @@ for epoch in args.epochs:
     net.load_state_dict(checkpoint['net'])
     
     ''' Define passer and get activations '''
-    functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter)
+    functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, verbose=False)
     passer = Passer(net, functloader, criterion, device)
     passer_test = Passer(net, functloader, criterion, device)
     passer_test.run(manipulator=manipulator)

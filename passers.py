@@ -10,7 +10,7 @@ def get_accuracy(predictions, targets):
     total = targets.size(0)
     correct = predicted.eq(targets).sum().item()
 
-    return 100.*correct/total
+    return 100. * (correct / total)
 
 
 class Passer():
@@ -42,7 +42,7 @@ class Passer():
                 loss = self.criterion(outputs, targets)
                 losses.append(loss.item())
 
-                if optimizer:
+                if optimizer is not None:
                     loss.backward()
                     optimizer.step()
 
@@ -66,8 +66,8 @@ class Passer():
             return self._pass(optimizer, manipulator=manipulator, mask=mask)
         else:
             self.network.eval()
+
             with torch.no_grad():
-                
                 return self._pass(manipulator=manipulator, mask=mask)
 
     def get_predictions(self, manipulator=identity):

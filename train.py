@@ -41,9 +41,9 @@ start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 ''' Prepare loaders '''
 print('==> Preparing data..', "\n")
 print("Preparing train loader")
-train_loader = loader(args.dataset + '_train', batch_size=args.train_batch_size, iter=args.iter)
+train_loader = loader(args.dataset + '_train', batch_size=args.train_batch_size, iter=args.iter, verbose=True)
 print("Preparing test loader", "\n")
-test_loader = loader(args.dataset + '_test', batch_size=args.test_batch_size, iter=args.iter)
+test_loader = loader(args.dataset + '_test', batch_size=args.test_batch_size, iter=args.iter, verbose=True)
 
 n_samples = len(train_loader) * args.train_batch_size
 
@@ -81,6 +81,7 @@ loss_te, acc_te = passer_test.run()
 save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': 0}, path='./checkpoint/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_0.t7')
 
 print("Begin training", "\n")
+
 losses = []
 for epoch in range(start_epoch, start_epoch + args.epochs):
     print('Epoch {}'.format(epoch))

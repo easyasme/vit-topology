@@ -1,8 +1,8 @@
 #!/bin/sh
 NETS="alexnet64" # conv_x densenet inception resnet vgg"
 
-N_EPOCHS=5
-EPOCHS_TEST="1 2 3 4 5"
+N_EPOCHS=50
+EPOCHS_TEST="1 20 30 40 50"
 
 UPPER_DIM=2
 
