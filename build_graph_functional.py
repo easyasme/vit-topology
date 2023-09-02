@@ -34,7 +34,7 @@ if not os.path.exists(SAVE_DIR):
     os.makedirs(SAVE_DIR)    
 
 # Build models
-print('==> Building model..')
+print('==> Building model..', "\n")
 net = get_model(args.net, args.dataset)
 net = net.to(device)
     
@@ -51,7 +51,7 @@ criterion = nn.CrossEntropyLoss()
 manipulator = load_manipulator(args.permute_labels)
     
 for epoch in args.epochs:
-    print('==> Loading checkpoint for epoch {}...'.format(epoch))
+    print('==> Loading checkpoint for epoch {}...'.format(epoch), "\n")
 
     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
     

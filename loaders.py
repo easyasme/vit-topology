@@ -11,8 +11,8 @@ from PIL import Image
 from PIL import PngImagePlugin
 from config import SUBSETS_LIST, IMG_SIZE
 
-LARGE_ENOUGH_NUMBER = 1000
-PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024**2)
+# LARGE_ENOUGH_NUMBER = 1000
+# PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024**2)
 
 
 def get_transform(train=True, resize=None, crop=None, hflip=True, vflip=True):
@@ -57,7 +57,6 @@ def calc_mean_std(dataloader):
 def get_dataset(data, path, transform, iter=0):
     ''' Return loader for torchvision data. If data in [mnist, cifar] torchvision.datasets has built-in loaders else load from ImageFolder '''
     if data == 'imagenet':
-        print("Subset list length: ", len(SUBSETS_LIST[iter]))
         dataset = CustomImageNet(path, 'data/map_clsloc.txt', subset=SUBSETS_LIST[iter], transform=transform)
     else:
         dataset = torchvision.datasets.ImageFolder(path, transform=transform)
@@ -135,12 +134,10 @@ class CustomImageNet(Dataset):
                 value = int(line.split()[1])
 
                 if value in subset:
-                    print("\n", "Value in map: ", value)
                     self.label_dict[key] = value
 
         for i, key in enumerate(self.label_dict.keys()):
             img_paths = glob.glob(os.path.join(data_path, key, img_format))
-            print("i: ", i)
 
             if i in range(9):
                 print("Label mapping:", key + ' --> ' + str(i))
