@@ -16,7 +16,7 @@ NPROC = 8
 # Sets upper limit to dimension to compute for persistent homology.
 UPPER_DIM = 3
 
-# Size in pixels of square images
+# Size in pixels of square images: 32pxs, 64pxs, or 256pxs.
 IMG_SIZE = 64
 
 # Create 30 random lists of 10 class labels each for subsetting imagenet data

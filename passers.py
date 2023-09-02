@@ -72,7 +72,7 @@ class Passer():
 
     def get_predictions(self, manipulator=identity):
         ''' Returns predictions and targets '''
-        preds, gts, = [], []
+        preds, gts = [], []
 
         for batch_idx, (inputs, targets) in enumerate(self.loader):
             targets = manipulator(targets)

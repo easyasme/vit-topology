@@ -33,7 +33,9 @@ def get_model(name, dataset):
     
 
     if name=='resnet' and dataset=='imagenet':
-        net = ResNet18(num_classes=10)
+        print("Fetching ResNet")
+        print("Input size: ", IMG_SIZE)
+        net = ResNet18(num_classes=10, input_size=IMG_SIZE)
 
 
     if name=='densenet' and dataset=='imagenet':
