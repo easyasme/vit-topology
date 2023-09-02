@@ -1,12 +1,11 @@
 import torch 
 import torch.nn as nn
-import torch.utils.model_zoo as model_zoo
 
 
 class AlexNet(nn.Module):
 
     def __init__(self, num_classes=1000, input_size=32):
-        super(AlexNet32, self).__init__()
+        super(AlexNet, self).__init__()
         
         self.feat_size = 256 if input_size==32 else (256 * 2 * 2) if input_size==64 else -1
 

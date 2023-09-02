@@ -7,6 +7,7 @@ from .densenet import *
 from .inception import *
 from .conv_x import * 
 
+from config import IMG_SIZE
 
 def get_model(name, dataset):
     if name == 'conv_2':
@@ -17,14 +18,14 @@ def get_model(name, dataset):
         net = Conv_6(num_classes=10)
     
 
-    if name=='lenet32' and dataset == 'imagenet':
-        net = LeNet(num_channels=3, num_classes=10)
-    if name=='lenet64' and dataset == 'imagenet':
-        net = LeNet(num_channels=3, num_classes=10, input_size=64)
-    if name=='lenetext32' and dataset=='imagenet':
-        net = LeNetExt(n_channels=3, num_classes=10)
-    if name=='lenetext64' and dataset=='imagenet':
-        net = LeNetExt(n_channels=3, num_classes=10, input_size=64)
+    if name=='lenet' and dataset == 'imagenet':
+        print("Fetching LeNet")
+        print("Input size: ", IMG_SIZE)
+        net = LeNet(num_channels=3, num_classes=10, input_size=IMG_SIZE)
+    if name=='lenetext' and dataset=='imagenet':
+        print("Fetching LeNetExt")
+        print("Input size: ", IMG_SIZE)
+        net = LeNetExt(n_channels=3, num_classes=10, input_size=IMG_SIZE)
     
 
     if name=='vgg' and dataset=='imagenet':
@@ -43,10 +44,10 @@ def get_model(name, dataset):
         net = GoogLeNet(num_classes=10)
     
 
-    if name=='alexnet32' and dataset=='imagenet':
-        net = AlexNet(num_classes=10)
-    if name=='alexnet64' and dataset=='imagenet':
-        net = AlexNet(num_classes=10, input_size=64)
+    if name=='alexnet' and dataset=='imagenet':
+        print("Fetching AlexNet")
+        print("Input size: ", IMG_SIZE)
+        net = AlexNet(num_classes=10, input_size=IMG_SIZE)
 
 
     return net
