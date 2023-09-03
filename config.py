@@ -17,7 +17,7 @@ NPROC = 8
 UPPER_DIM = 3
 
 # Size in pixels of square images: 32pxs, 64pxs, or 256pxs.
-IMG_SIZE = 64
+IMG_SIZE = 32
 
 # Create 30 random lists of 10 class labels each for subsetting imagenet data
 np.random.seed(1234)

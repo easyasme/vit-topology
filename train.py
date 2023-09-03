@@ -30,7 +30,7 @@ parser.add_argument('--iter', default=0, type=int)
 args = parser.parse_args()
 
 SAVE_EPOCHS = list(range(11)) + list(range(10, args.epochs + 1, args.save_every)) # At what epochs to save train/test stats
-ONAME = args.net + '_' + args.dataset # Meta-name to be used as prefix on all savings
+ONAME = args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) # Meta-name to be used as prefix on all savings
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Device: ", device, "\n")

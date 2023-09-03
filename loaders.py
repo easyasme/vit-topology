@@ -110,7 +110,7 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1):
         transforms_te_imagenet = get_transform(train=False, resize=(img_size, img_size), hflip=False, vflip=False)
     
     if data == 'imagenet_train':
-        print("\n", "Class Subset: ", SUBSETS_LIST[iter], "\n")
+        print("\n", "Class Subset: ", SUBSETS_LIST[iter], "(" + str(iter) + ")", "\n")
         return dataloader('imagenet', train_data_path, transform=transforms_tr_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter, verbose=verbose) 
     elif data == 'imagenet_test':
         return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, num_workers=num_workers, iter=iter, verbose=verbose)
@@ -121,6 +121,7 @@ class CustomImageNet(Dataset):
         self.data_path = data_path
         self.data = []
         self.label_dict = {}
+        self.name_dict = {}
         self.transform = transform
         self.verbose = verbose
         
@@ -133,17 +134,19 @@ class CustomImageNet(Dataset):
             for line in f:
                 key = line.split()[0]
                 value = int(line.split()[1])
-
+                name = line.split()[2]
+                
                 if value in subset:
+                    self.name_dict[key] = name
                     self.label_dict[key] = value
 
         for i, key in enumerate(self.label_dict.keys()):
             img_paths = glob.glob(os.path.join(data_path, key, img_format))
 
             if i in range(9) and self.verbose:
-                print("Label mapping:", key + ' --> ' + str(i))
+                print("Label mapping:", key + ' --> ' + str(i), " " + self.name_dict[key])
             elif self.verbose:
-                print("Label mapping:", key + ' --> ' + str(i), "\n")
+                print("Label mapping:", key + ' --> ' + str(i), " " + self.name_dict[key], "\n")
 
             for img_path in img_paths:
                 img = Image.open(img_path)

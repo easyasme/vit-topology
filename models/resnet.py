@@ -64,7 +64,7 @@ class ResNet(nn.Module):
     def __init__(self, block, num_blocks, num_classes=10, input_size=32):
         super(ResNet, self).__init__()
 
-        self.feat_size = 512 if input_size==32 else (2048 * 2 * 2) if input_size==64 else -1
+        self.feat_size = 512 if input_size==32 else (512 * 2 * 2) if input_size==64 else -1
 
         self.in_planes = 64
 
@@ -73,11 +73,11 @@ class ResNet(nn.Module):
         self.layer1 = self._make_layer(block, 64, num_blocks[0], stride=1)
         self.layer2 = self._make_layer(block, 128, num_blocks[1], stride=2)
         self.layer3 = self._make_layer(block, 256, num_blocks[2], stride=2)
-        self.layer4 = self._make_layer(block, self.feat_size, num_blocks[3], stride=2)
+        self.layer4 = self._make_layer(block, 512, num_blocks[3], stride=2)
         self.linear = nn.Linear(self.feat_size * block.expansion, num_classes)
 
     def _make_layer(self, block, planes, num_blocks, stride):
-        strides = [stride] + [1]*(num_blocks-1)
+        strides = [stride] + [1] * (num_blocks - 1)
         
         layers = []
         for stride in strides:
@@ -93,9 +93,9 @@ class ResNet(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
         x = F.avg_pool2d(x, 4)
-        print("F Size x: ", x.size())
+        # print("F Size x: ", x.size())
         x = x.view(x.size(0), -1)
-        print("F Size x: ", x.size())
+        # print("F Size x: ", x.size())
         out = self.linear(x)
         
         return out        
@@ -107,7 +107,7 @@ class ResNet(nn.Module):
         x4 = self.layer3(x3)
         x5 = self.layer4(x4)
         x6 = F.avg_pool2d(x5, 4)
-        print("FF Size x6: ", x6.size())
+        # print("FF Size x6: ", x6.size())
         x7 = x6.view(x6.size(0), -1)
         out = self.linear(x7)
         
@@ -119,14 +119,14 @@ class ResNet(nn.Module):
 def ResNet18(num_classes=10, input_size=32):
     return ResNet(BasicBlock, [2,2,2,2], num_classes=num_classes, input_size=input_size)
 
-def ResNet34(num_classes=10):
-    return ResNet(BasicBlock, [3,4,6,3], num_classes=num_classes)
+def ResNet34(num_classes=10, input_size=32):
+    return ResNet(BasicBlock, [3,4,6,3], num_classes=num_classes, input_size=input_size)
 
-def ResNet50(num_classes=10):
-    return ResNet(Bottleneck, [3,4,6,3], num_classes=num_classes)
+def ResNet50(num_classes=10, input_size=32):
+    return ResNet(Bottleneck, [3,4,6,3], num_classes=num_classes, input_size=input_size)
 
-def ResNet101(num_classes=10):
-    return ResNet(Bottleneck, [3,4,23,3], num_classes=num_classes)
+def ResNet101(num_classes=10, input_size=32):
+    return ResNet(Bottleneck, [3,4,23,3], num_classes=num_classes, input_size=input_size)
 
-def ResNet152(num_classes=10):
-    return ResNet(Bottleneck, [3,8,36,3], num_classes=num_classes)
+def ResNet152(num_classes=10, input_size=32):
+    return ResNet(Bottleneck, [3,8,36,3], num_classes=num_classes, input_size=input_size)
