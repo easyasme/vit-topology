@@ -9,6 +9,7 @@ import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.backends.cudnn as cudnn
+from numpy import inf
 
 parser = argparse.ArgumentParser(description='PyTorch Training')
 
@@ -31,6 +32,12 @@ args = parser.parse_args()
 
 SAVE_EPOCHS = list(range(11)) + list(range(10, args.epochs + 1, args.save_every)) # At what epochs to save train/test stats
 ONAME = args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) # Meta-name to be used as prefix on all savings
+
+# summary_path = "./summary"
+# if not os.path.isdir(summary_path):
+#         os.makedirs(summary_path)
+
+# summary_file = summary_path + "/" + ONAME + ".txt"
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 print("Device: ", device, "\n")
@@ -83,11 +90,21 @@ save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': 0}
 print("Begin training", "\n")
 
 losses = []
+# best_acc_tr = -inf
+# best_acc_te = -inf
 for epoch in range(start_epoch, start_epoch + args.epochs):
     print('Epoch {}'.format(epoch))
 
     loss_tr, acc_tr = passer_train.run(optimizer, manipulator=manipulator)
     loss_te, acc_te = passer_test.run()
+
+    # if acc_tr > best_acc_tr:
+    #     best_acc_tr = acc_tr
+
+    #     with open(summary_file, 'w') as f:
+    #         lines = ["Epoch: " + str(epoch) + "\n", "Train acc: " + str(best_acc_tr) + "\n"]
+    #         f.writelines(lines)
+
    
     losses.append({'loss_tr':loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te':acc_te})
     lr_scheduler.step(acc_te)

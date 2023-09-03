@@ -1,5 +1,5 @@
 #!/bin/sh
-NETS="lenet" # conv_x densenet inception resnet vgg lenet lenetext"
+NETS="lenet" # lenetext alexnet resnet"
 
 TRIALS=1 # number of experiments that correspond to subsets of data; max is 29
 
