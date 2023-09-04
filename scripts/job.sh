@@ -1,6 +1,9 @@
 #!/bin/sh
 NETS="lenet" # lenetext alexnet resnet"
 
+TRAIN=0 # train model; if 0, load model from checkpoint
+BUILD_GRAPH=0 # build graph; if 0, load graph from binary file
+
 TRIALS=1 # number of experiments that correspond to subsets of data; max is 29
 
 N_EPOCHS=50
@@ -13,8 +16,8 @@ for net in $NETS
 do
     for i in $(seq 0 "$TRIALS")
     do
-        python main.py --net "$net" --dataset "imagenet" --trial 0 --lr 0.005  --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --graph_type functional --train 1 --build_graph 1 --iter $i
-        
+        python main.py --net "$net" --dataset "imagenet" --trial 0 --lr 0.005  --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --graph_type functional --train "$TRAIN" --build_graph "$BUILD_GRAPH" --iter $i
+
         echo
         printf -- '-%.0s' $(seq 50)
         echo "\nVisualize Persistence Diagrams"

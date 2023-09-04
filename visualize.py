@@ -38,9 +38,9 @@ for epc in args.epochs:
         # plot curve
         plt.xlabel('$\epsilon$')
         plt.ylabel('Number of Cavities (N)')
-        plt.plot(x, betti, label='epc_' + str(epc))
+        plt.plot(x, betti, label='Epoch ' + str(epc))
         plt.legend()
-        plt.title('Betti' + "{}".format(args.dim))
+        plt.title('Betti ' + "{}".format(args.dim))
 
         # compute life and midlife
         life = pd2life(birth, death)
