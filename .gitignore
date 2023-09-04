@@ -7,5 +7,5 @@ checkpoint/
 data/
 dipha/
 losses/
+results/
 # scripts/
-config.py

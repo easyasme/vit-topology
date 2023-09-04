@@ -47,4 +47,4 @@ if args.build_graph:
     os.system('python ./build_graph_functional.py --save_path '+SAVE_PATH+' --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+args.epochs_test+' --filtration '+args.filtration+' --split '+args.split+' --kl '+args.kl+' --permute_labels '+args.permute_labels+' --iter '+str(args.iter))
 
 visible_print('Computing topology')
-os.system('python ./compute_topology.py --save_path '+SAVE_PATH+' --net '+args.net+' --dataset '+args.dataset+' --epochs '+args.epochs_test+' --trial '+args.trial)
+os.system('python ./compute_topology.py --save_path '+SAVE_PATH+' --net '+args.net+' --dataset '+args.dataset+' --epochs '+args.epochs_test+' --trial '+args.trial+' --iter '+str(args.iter))

@@ -3,10 +3,10 @@ NETS="lenet" # lenetext alexnet resnet"
 
 TRIALS=1 # number of experiments that correspond to subsets of data; max is 29
 
-N_EPOCHS=1
-EPOCHS_TEST="1" # points where functional graph will be buit
+N_EPOCHS=50
+EPOCHS_TEST="1 10 20 30 40 50" # points where functional graph will be buit
 
-UPPER_DIM=3 # must match config.py as well
+UPPER_DIM=2 # must match config.py as well
 
 ## Train and compute topology for each dataset then create graphs
 for net in $NETS
@@ -24,7 +24,7 @@ do
         for j in $(seq 1 "$UPPER_DIM")
         do
             echo "\nBetti $j"
-            python visualize.py --trial 0 --net "$net" --dataset "imagenet" --epochs $(echo $EPOCHS_TEST) --dim $j
+            python visualize.py --trial 0 --net "$net" --dataset "imagenet" --epochs $(echo $EPOCHS_TEST) --dim $j --iter $i
         done
     done
 done

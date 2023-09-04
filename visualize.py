@@ -5,15 +5,18 @@ import argparse
 import os
 from config import SAVE_PATH, MAX_EPSILON
 
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--trial', default=0)
 parser.add_argument('--epochs', nargs='+', type=int)
 parser.add_argument('--dim', default=1, type=int)
+parser.add_argument('--iter', type=int, default=0)
+
 args = parser.parse_args()
 
-directory = os.path.join(SAVE_PATH, args.net + '_' + args.dataset)
+directory = os.path.join(SAVE_PATH, args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter))
 bin_dir = os.path.join(directory, 'bin/')
 
 trial = 0
@@ -34,10 +37,10 @@ for epc in args.epochs:
 
         # plot curve
         plt.xlabel('$\epsilon$')
-        plt.ylabel('#cavities')
+        plt.ylabel('Number of Cavities (N)')
         plt.plot(x, betti, label='epc_' + str(epc))
         plt.legend()
-        plt.title('betti_{}'.format(args.dim))
+        plt.title('Betti' + "{}".format(args.dim))
 
         # compute life and midlife
         life = pd2life(birth, death)
@@ -53,4 +56,4 @@ if not os.path.exists(directory + "/images"):
     os.makedirs(directory + "/images")
 
 if not EMPTY == len(args.epochs):
-    plt.savefig(directory + "/images/" + args.net + "_" + args.dataset + "_epoch_" + str(epc) + "_b" + str(args.dim) + ".png")
+    plt.savefig(directory + "/images/" + args.net + "_" + args.dataset + "_" + "ss" + str(args.iter) + "_epoch_" + str(epc) + "_b" + str(args.dim) + ".png")

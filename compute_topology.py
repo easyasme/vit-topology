@@ -12,10 +12,11 @@ parser.add_argument('--dataset')
 parser.add_argument('--trial', default=0)
 parser.add_argument('--epochs', nargs='+')
 parser.add_argument('--thresholds', nargs='+', type=float)
+parser.add_argument('--iter', type=int, default=0)
 
 args = parser.parse_args()
 
-path = os.path.join(args.save_path, args.net + "_" + args.dataset)
+path = os.path.join(args.save_path, args.net + "_" + args.dataset + '_' + 'ss' + str(args.iter))
 path = os.path.join(path, "bin/")
 
 for e in args.epochs:

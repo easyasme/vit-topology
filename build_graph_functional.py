@@ -7,6 +7,7 @@ from loaders import *
 from graph import *
 from labels import load_manipulator
 
+
 parser = argparse.ArgumentParser(description='PyTorch Training')
 
 parser.add_argument('--net')
@@ -26,7 +27,7 @@ args = parser.parse_args()
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
 ''' Meta-name to be used as prefix on all savings'''
-SAVE_DIR = os.path.join(args.save_path, args.net + '_' + args.dataset + '/bin/')
+SAVE_DIR = os.path.join(args.save_path, args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) + '/bin/')
 START_LAYER = 3 if args.net in ['vgg', 'resnet'] else 0 
 
 ''' If save directory doesn't exist create '''
@@ -55,7 +56,7 @@ for epoch in args.epochs:
 
     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
     
-    checkpoint = torch.load('./checkpoint/'+ args.net + '_' + args.dataset + '/ckpt_trial_' + str(args.trial) + '_epoch_' + str(epoch)+'.t7')
+    checkpoint = torch.load('./checkpoint/'+ args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) + '/ckpt_trial_' + str(args.trial) + '_epoch_' + str(epoch)+'.t7')
     
     net.load_state_dict(checkpoint['net'])
     
