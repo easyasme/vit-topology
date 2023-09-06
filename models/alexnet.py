@@ -24,19 +24,19 @@ class AlexNet(nn.Module):
             nn.ReLU(inplace=True),
             nn.MaxPool2d(kernel_size=2, stride=2),
          )   
-        '''
-        nn.MaxPool2d(kernel_size=2, stride=2),
         
-        self.classifier = nn.Sequential(
-            nn.Dropout(),
-            nn.Linear(self.feat_size, 4096),
-            nn.ReLU(inplace=True),
-            nn.Dropout(),
-            nn.Linear(4096, 4096),
-            nn.ReLU(inplace=True),
-            nn.Linear(4096, num_classes),
-        )
-        '''
+        # nn.MaxPool2d(kernel_size=2, stride=2),
+        
+        # self.classifier = nn.Sequential(
+        #     nn.Dropout(),
+        #     nn.Linear(self.feat_size, 4096),
+        #     nn.ReLU(inplace=True),
+        #     nn.Dropout(),
+        #     nn.Linear(4096, 4096),
+        #     nn.ReLU(inplace=True),
+        #     nn.Linear(4096, num_classes),
+        # )
+        
         self.classifier = nn.Linear(self.feat_size, num_classes)
 
     def forward(self, x):

@@ -28,10 +28,12 @@ parser.add_argument('--train_batch_size', default=128, type=int)
 parser.add_argument('--test_batch_size', default=100, type=int)
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--iter', default=0, type=int)
+parser.add_argument('--save_epochs', nargs='+', type=int)
 
 args = parser.parse_args()
 
-SAVE_EPOCHS = list(range(11)) + list(range(10, args.epochs + 1, args.save_every)) # At what epochs to save train/test stats
+SAVE_EPOCHS = list(args.save_epochs) #[int(n) for n in args.epochs_test.split(' ')] #list(range(11)) + list(range(10, args.epochs + 1, args.save_every)) # At what epochs to save train/test stats
+
 ONAME = args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) # Meta-name to be used as prefix on all savings
 
 summary_path = SAVE_PATH + "/summary/"
@@ -114,7 +116,7 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
                  "Test epoch: " + str(best_epoch_te) + "\n", "Test acc: " + str(best_acc_te) + "\n"]
         f.writelines(lines)
 
-    losses.append({'loss_tr':loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te':acc_te})
+    losses.append({'loss_tr': loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te': acc_te})
     lr_scheduler.step(acc_te)
 
     if epoch in SAVE_EPOCHS:

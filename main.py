@@ -7,6 +7,7 @@ parser = argparse.ArgumentParser()
 
 parser.add_argument('--train', default=1, type=int)
 parser.add_argument('--build_graph', default=1, type=int)
+parser.add_argument('--comp_topo', default=1, type=int)
 parser.add_argument('--net', help='Specify deep network architecture (e.g. lenet, alexnet, resnet, inception, vgg, etc)')
 parser.add_argument('--dataset', help='Specify dataset (e.g. mnist, cifar10, imagenet)')
 parser.add_argument('--trial', default=0, help='Specify trial number. Used to differentiate btw multiple trainings of same setup.')
@@ -28,7 +29,6 @@ parser.add_argument('--iter', type=int, default=0)
 
 args = parser.parse_args()
 
-
 def visible_print(message):
     ''' Visible print'''
     print('')
@@ -37,14 +37,14 @@ def visible_print(message):
     print(50*'-')
     print('')
 
-    
 if args.train:
     visible_print('Training network')
-    os.system('python ./train.py --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+args.n_epochs_train+' --lr '+args.lr+' --permute_labels '+args.permute_labels+' --iter '+str(args.iter))
+    os.system('python ./train.py --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+args.n_epochs_train+' --lr '+args.lr+' --permute_labels '+args.permute_labels+' --iter '+str(args.iter)+' --save_epochs '+args.epochs_test)
 
 if args.build_graph:
     visible_print('Building '+args.graph_type+' graph')
     os.system('python ./build_graph_functional.py --save_path '+SAVE_PATH+' --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+args.epochs_test+' --filtration '+args.filtration+' --split '+args.split+' --kl '+args.kl+' --permute_labels '+args.permute_labels+' --iter '+str(args.iter))
 
-visible_print('Computing topology')
-os.system('python ./compute_topology.py --save_path '+SAVE_PATH+' --net '+args.net+' --dataset '+args.dataset+' --epochs '+args.epochs_test+' --trial '+args.trial+' --iter '+str(args.iter))
+if args.comp_topo:
+    visible_print('Computing topology')
+    os.system('python ./compute_topology.py --save_path '+SAVE_PATH+' --net '+args.net+' --dataset '+args.dataset+' --epochs '+args.epochs_test+' --trial '+args.trial+' --iter '+str(args.iter))
