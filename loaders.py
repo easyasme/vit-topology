@@ -83,7 +83,7 @@ def dataloader(data, path, transform, batch_size, num_workers, iter, verbose, sa
         len_transform = len(transform.transforms)
         transform.transforms.insert(len_transform, transforms.Normalize(mean, std))
 
-    # print("Transform after: ", transform, "\n")
+    print("Transform after: ", transform, "\n")
 
     return data_loader
 

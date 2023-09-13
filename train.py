@@ -32,11 +32,11 @@ parser.add_argument('--save_epochs', nargs='+', type=int)
 
 args = parser.parse_args()
 
-SAVE_EPOCHS = list(args.save_epochs) #[int(n) for n in args.epochs_test.split(' ')] #list(range(11)) + list(range(10, args.epochs + 1, args.save_every)) # At what epochs to save train/test stats
+SAVE_EPOCHS = list(args.save_epochs) # At what epochs to save train/test stats
 
 ONAME = args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) # Meta-name to be used as prefix on all savings
 
-summary_path = SAVE_PATH + "/summary/"
+summary_path = SAVE_PATH + '/' + args.net +  "/summary/"
 if not os.path.isdir(summary_path):
         os.makedirs(summary_path)
 
@@ -88,7 +88,7 @@ manipulator = load_manipulator(args.permute_labels)
 ''' Make intial pass before any training '''
 loss_te, acc_te = passer_test.run()
 
-save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': 0}, path='./checkpoint/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_0.t7')
+save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': 0}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_0.t7')
 
 print("Begin training", "\n")
 
@@ -120,7 +120,7 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
     lr_scheduler.step(acc_te)
 
     if epoch in SAVE_EPOCHS:
-        save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path='./checkpoint/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_' + str(epoch) + '.t7')
+        save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_' + str(epoch) + '.t7')
 
 '''Save losses'''
-save_losses(losses, path='./losses/' + ONAME + '/', fname='stats_trial_' + str(args.trial) + '.pkl')
+save_losses(losses, path='./losses/' + args.net + '/' + ONAME + '/', fname='stats_trial_' + str(args.trial) + '.pkl')

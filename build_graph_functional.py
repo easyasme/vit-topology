@@ -56,7 +56,7 @@ for epoch in args.epochs:
 
     assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
     
-    checkpoint = torch.load('./checkpoint/'+ args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) + '/ckpt_trial_' + str(args.trial) + '_epoch_' + str(epoch)+'.t7')
+    checkpoint = torch.load('./checkpoint/'+ args.net + '/' + args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) + '/ckpt_trial_' + str(args.trial) + '_epoch_' + str(epoch)+'.t7')
     
     net.load_state_dict(checkpoint['net'])
     
