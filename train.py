@@ -11,6 +11,8 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.backends.cudnn as cudnn
 from numpy import inf
 from config import SAVE_PATH
+import os
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='PyTorch Training')
 
@@ -116,7 +118,7 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
                  "Test epoch: " + str(best_epoch_te) + "\n", "Test acc: " + str(best_acc_te) + "\n"]
         f.writelines(lines)
 
-    losses.append({'loss_tr': loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te': acc_te})
+    losses.append({'loss_tr': loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te': acc_te, 'epoch': int(epoch)})
     lr_scheduler.step(acc_te)
 
     if epoch in SAVE_EPOCHS:
@@ -124,3 +126,29 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
 
 '''Save losses'''
 save_losses(losses, path='./losses/' + args.net + '/' + ONAME + '/', fname='stats_trial_' + str(args.trial) + '.pkl')
+
+'''Make plots'''
+X = [loss['epoch'] for loss in losses]
+directory = os.path.join(summary_path, ONAME)
+
+'''Create plots of accuracies'''
+plt.xlabel('Epoch (N)')
+plt.ylabel('Accuracy')
+test_acc = [loss['acc_te']/100. for loss in losses]
+train_acc = [loss['acc_tr']/100. for loss in losses]
+plt.plot(X, test_acc, label='Test')
+plt.plot(X, train_acc, label='Train')
+plt.legend()
+plt.title('Accuracy v. Epoch')
+plt.savefig(directory + "_acc.png")
+
+# '''Create plots of losses'''
+# plt.xlabel('Epoch (N)')
+# plt.ylabel('Loss')
+# test_loss = [loss['loss_te'] for loss in losses]
+# train_loss = [loss['loss_tr'] for loss in losses]
+# plt.plot(X, test_loss, label='Test')
+# plt.plot(X, train_loss, label='Train')
+# plt.legend()
+# plt.title('Loss v. Epoch')
+# plt.savefig(directory + "_loss.png")
