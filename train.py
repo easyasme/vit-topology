@@ -13,6 +13,7 @@ from numpy import inf
 from config import SAVE_PATH
 import os
 import matplotlib.pyplot as plt
+import gc
 
 parser = argparse.ArgumentParser(description='PyTorch Training')
 
@@ -36,7 +37,7 @@ args = parser.parse_args()
 
 SAVE_EPOCHS = list(args.save_epochs) # At what epochs to save train/test stats
 
-ONAME = args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) # Meta-name to be used as prefix on all savings
+ONAME = args.net + '_' + args.dataset + '_ss' + str(args.iter) # Meta-name to be used as prefix on all savings
 
 summary_path = SAVE_PATH + '/' + args.net +  "/summary/"
 if not os.path.isdir(summary_path):
@@ -124,6 +125,8 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
     if epoch in SAVE_EPOCHS:
         save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_' + str(epoch) + '.t7')
 
+    gc.collect()
+
 '''Save losses'''
 save_losses(losses, path='./losses/' + args.net + '/' + ONAME + '/', fname='stats_trial_' + str(args.trial) + '.pkl')
 
@@ -142,13 +145,15 @@ plt.legend()
 plt.title('Accuracy v. Epoch')
 plt.savefig(directory + "_acc.png")
 
-# '''Create plots of losses'''
-# plt.xlabel('Epoch (N)')
-# plt.ylabel('Loss')
-# test_loss = [loss['loss_te'] for loss in losses]
-# train_loss = [loss['loss_tr'] for loss in losses]
-# plt.plot(X, test_loss, label='Test')
-# plt.plot(X, train_loss, label='Train')
-# plt.legend()
-# plt.title('Loss v. Epoch')
-# plt.savefig(directory + "_loss.png")
+'''Create plots of losses'''
+plt.xlabel('Epoch (N)')
+plt.ylabel('Loss')
+test_loss = [np.mean(loss['loss_te']) for loss in losses]
+train_loss = [np.mean(loss['loss_tr']) for loss in losses]
+plt.plot(X, test_loss, label='Avg. Test')
+plt.plot(X, train_loss, label='Avg. Train')
+plt.legend()
+plt.title('Average Loss v. Epoch')
+plt.savefig(directory + "_loss.png")
+
+gc.collect()

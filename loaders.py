@@ -94,18 +94,18 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1):
     img_size = IMG_SIZE
 
     if img_size == 32:
-        train_data_path = 'data/train_32'
-        test_data_path = 'data/val_32'
+        train_data_path = '/home/trogdent/imagenet_data/train_32'
+        test_data_path = '/home/trogdent/imagenet_data/val_32'
         transforms_tr_imagenet = get_transform(train=True, hflip=True, vflip=True)
         transforms_te_imagenet = get_transform(train=False, hflip=False, vflip=False)
     elif img_size == 64:
-        train_data_path = 'data/train_64'
-        test_data_path = 'data/val_64'
+        train_data_path = '/home/trogdent/imagenet_data/train_64'
+        test_data_path = '/home/trogdent/imagenet_data/val_64'
         transforms_tr_imagenet = get_transform(train=True, hflip=True, vflip=True)
         transforms_te_imagenet = get_transform(train=False, hflip=False, vflip=False)
     else:
-        train_data_path = 'data/train'
-        test_data_path = 'data/val'
+        train_data_path = '/home/trogdent/imagenet_data/train'
+        test_data_path = '/home/trogdent/imagenet_data/val'
         transforms_tr_imagenet = get_transform(train=True, resize=(img_size, img_size), hflip=True, vflip=True)
         transforms_te_imagenet = get_transform(train=False, resize=(img_size, img_size), hflip=False, vflip=False)
     
@@ -125,7 +125,7 @@ class CustomImageNet(Dataset):
         self.transform = transform
         self.verbose = verbose
         
-        if data_path == 'data/train' or data_path == 'data/val':
+        if data_path == '../../../imagenet_data/train' or data_path == '../../../imagenet_data/val':
             img_format = '*.JPEG'
         else:
             img_format = '*.png'
