@@ -31,11 +31,9 @@ parser.add_argument('--train_batch_size', default=128, type=int)
 parser.add_argument('--test_batch_size', default=100, type=int)
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--iter', default=0, type=int)
-parser.add_argument('--save_epochs', nargs='+', type=int)
+parser.add_argument('--chkpt_epochs', nargs='+', type=int)
 
 args = parser.parse_args()
-
-SAVE_EPOCHS = list(args.save_epochs) # At what epochs to save train/test stats
 
 ONAME = args.net + '_' + args.dataset + '_ss' + str(args.iter) # Meta-name to be used as prefix on all savings
 
@@ -122,7 +120,7 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
     losses.append({'loss_tr': loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te': acc_te, 'epoch': int(epoch)})
     lr_scheduler.step(acc_te)
 
-    if epoch in SAVE_EPOCHS:
+    if epoch in args.chkpt_epochs:
         save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_' + str(epoch) + '.t7')
 
     gc.collect()
@@ -166,5 +164,3 @@ plt.legend()
 plt.title('Average Loss v. Epoch')
 plt.savefig(directory + "_loss.png")
 plt.clf()
-
-gc.collect()

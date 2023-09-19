@@ -39,11 +39,11 @@ def visible_print(message):
 
 if args.train:
     visible_print('Training network')
-    os.system('python ./train.py --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+args.n_epochs_train+' --lr '+args.lr+' --permute_labels '+args.permute_labels+' --iter '+str(args.iter)+' --save_epochs '+args.epochs_test)
+    os.system('python ./train.py --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+args.n_epochs_train+' --lr '+args.lr+' --iter '+str(args.iter)+' --chkpt_epochs '+args.epochs_test)
 
 if args.build_graph:
     visible_print('Building '+args.graph_type+' graph')
-    os.system('python ./build_graph_functional.py --save_path '+SAVE_PATH+'/'+args.net+'/'+' --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+args.epochs_test+' --filtration '+args.filtration+' --split '+args.split+' --kl '+args.kl+' --permute_labels '+args.permute_labels+' --iter '+str(args.iter))
+    os.system('python ./build_graph_functional.py --save_path '+SAVE_PATH+'/'+args.net+'/'+' --net '+args.net+' --dataset '+args.dataset+' --trial '+args.trial+' --epochs '+args.epochs_test+' --filtration '+args.filtration+' --split '+args.split+' --kl '+args.kl+' --iter '+str(args.iter))
 
 if args.comp_topo:
     visible_print('Computing topology')
