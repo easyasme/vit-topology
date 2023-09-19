@@ -5,6 +5,7 @@ import os
 
 PKL_FILE = '/stats_trial_0.pkl'
 NET = 'lenetext'
+NET_NAME = 'LeNetExt'
 
 path = 'losses/' + NET + '/'
 save_path = './results/' + NET + '/acc_stats/'
@@ -62,7 +63,7 @@ plt.fill_between(X, mean_acc_tr - std_acc_tr, mean_acc_tr + std_acc_tr, alpha=0.
 plt.plot(X, mean_acc_te, label='Avg. Test')
 plt.plot(X, mean_acc_tr, label='Avg. Train')
 plt.legend()
-plt.title('Average Accuracy over Datasets')
+plt.title('Average ' + NET_NAME + ' Accuracy over Datasets')
 plt.savefig(save_path + "avg_acc.png")
 plt.clf()
 
