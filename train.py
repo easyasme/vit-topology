@@ -7,13 +7,15 @@ from labels import *
 from models.utils import get_model, get_criterion, init_from_checkpoint
 import torch
 import torch.optim as optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 import torch.backends.cudnn as cudnn
 from numpy import inf
 from config import SAVE_PATH
 import os
 import matplotlib.pyplot as plt
 import gc
+from adabelief_pytorch import AdaBelief
+
 
 parser = argparse.ArgumentParser(description='PyTorch Training')
 
@@ -27,8 +29,8 @@ parser.add_argument('--resume_epoch', default=20, type=int, help='resume from ep
 parser.add_argument('--save_every', default=1, type=int)
 parser.add_argument('--permute_labels', default=0, type=float)
 parser.add_argument('--fixed_init', default=0, type=int)
-parser.add_argument('--train_batch_size', default=128, type=int)
-parser.add_argument('--test_batch_size', default=100, type=int)
+parser.add_argument('--train_batch_size', default=32, type=int)
+parser.add_argument('--test_batch_size', default=32, type=int)
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--chkpt_epochs', nargs='+', type=int)
@@ -75,8 +77,12 @@ if args.resume:
     net, best_acc, start_acc = init_from_checkpoint(net)
   
 ''' Optimization '''
+# optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-16, betas=(0.9, 0.999), weight_decouple=True, rectify=True)
 optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
 # optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+
+''' Learning rate scheduler '''
+# lr_scheduler = StepLR(optimizer, step_size=80, gamma=1e-6)
 lr_scheduler = ReduceLROnPlateau(optimizer, factor=0.5, mode='max', verbose=True)
 
 ''' Define passer '''

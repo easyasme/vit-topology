@@ -141,7 +141,9 @@ def save_splits(splits, split_size, save_dir, start_layer, epoch, threshold, tri
 def save_dipha(fname, adj):
     from config import DIPHA_MAGIC_NUMBER, ID
     ''' Write adjacency to binary. To use as DIPHA input for persistence homology '''
+    
     output_file = open(fname, 'wb')
+    
     np.array(DIPHA_MAGIC_NUMBER, dtype=np.int64).tofile(output_file)
     np.array(ID, dtype=np.int64).tofile(output_file)
     np.array(adj.shape[0], dtype=np.int64).tofile(output_file)

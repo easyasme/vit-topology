@@ -90,7 +90,7 @@ class Passer():
         
         for batch_idx, (inputs, targets) in enumerate(self.loader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
-            outputs = self.network(inputs)
+            # outputs = self.network(inputs)
             
             if forward=='selected':
                 features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.module.forward_features(inputs)])

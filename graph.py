@@ -180,6 +180,7 @@ def build_density_adjacency(adj, density_t):
     ''' Binarize matrix '''
     total_edges = np.prod(adj.shape)
     t, t_decr = 1, 0.001
+    
     while True:
         ''' Decrease threshold until density is met '''
         edges = np.sum(adj > t)

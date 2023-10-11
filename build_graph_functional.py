@@ -44,6 +44,9 @@ if device == 'cuda':
     cudnn.benchmark = True
 
 # print(net)
+    
+''' Prepare test data loader '''
+functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, verbose=False)
 
 ''' Prepare criterion '''
 criterion = nn.CrossEntropyLoss()
@@ -61,16 +64,15 @@ for epoch in args.epochs:
     net.load_state_dict(checkpoint['net'])
     
     ''' Define passer and get activations '''
-    functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, verbose=False)
     passer = Passer(net, functloader, criterion, device)
-    passer_test = Passer(net, functloader, criterion, device)
-    passer_test.run(manipulator=manipulator)
+    # passer_test = Passer(net, functloader, criterion, device)
+    # passer_test.run(manipulator=manipulator)
     activs = passer.get_function()
     activs = signal_concat(activs)
     adj = adjacency(activs)
     
-    print('The dimension of the adjacency matrix is {}'.format(adj.shape))
+    # print('The dimension of the adjacency matrix is {}'.format(adj.shape))
     print('Adj mean {}, min {}, max {}'.format(np.mean(adj), np.min(adj), np.max(adj)))
 
-    ''' Write adjacency to binary. To use as DIPHA input for persistence homology '''
+    # ''' Write adjacency to binary. To use as DIPHA input for persistence homology '''
     save_dipha(SAVE_DIR + 'adj_epc{}_trl{}.bin'.format(epoch, args.trial), 1 - adj)
