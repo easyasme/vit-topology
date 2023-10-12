@@ -6,16 +6,19 @@ import numpy as np
 import os
 import glob
 import numpy as np
+import matplotlib.pyplot as plt
+import cv2
 
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler, random_split
-from PIL import Image
+from PIL import Image #, ImageFile
 from PIL import PngImagePlugin
 from config import SUBSETS_LIST, IMG_SIZE
 
 
-# uncomment these lines to allow large images to be loaded
+# uncomment these lines to allow large images and truncated images to be loaded
 LARGE_ENOUGH_NUMBER = 1000
 PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024**2)
+# ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # file where mappings from class codes to class names are stored
 CODES_TO_NAMES_FILE = './results/codes_to_names.txt'
@@ -87,31 +90,37 @@ def dataloader(data, path=None, transform=None, batch_size=1, iter=0, verbose=Fa
     dataset = get_dataset(data, path, transform, iter=iter, verbose=verbose)
 
     if data.split('_')[0] == 'dummy':
-        train, test = random_split(dataset, [.7, .3])
+        dummy_transform = dataset.__gettransform__()
+
+        proportions = [.7, .3]
+        lengths = [int(p * len(dataset)) for p in proportions]
+        lengths[-1] = len(dataset) - sum(lengths[:-1])
+
+        train, test = random_split(dataset, lengths)
 
         if data.split('_')[1] == 'train':
-            dataset = train
+            dataset = DummyDataset(train.dataset, transform=dummy_transform)
         else:
-            dataset = test
-    
-    print("Transform before: ", dataset.__gettransform__(), "\n")
+            dataset = DummyDataset(test.dataset, transform=dummy_transform)
 
     if sampling == -1:
         sampler = RandomSampler(dataset)
     else:
         sampler = SequentialSampler(dataset)
 
-    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=1, drop_last=True, worker_init_fn=seed_worker)
+    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=2, drop_last=True,  worker_init_fn=seed_worker)
+
+    # print("Transform before: ", dataset.__gettransform__(), "\n")
 
     if not isinstance(transform.transforms[-1], torchvision.transforms.transforms.Normalize):
         mean, std = calc_mean_std(data_loader)
         # print("Data Mean: ", mean)
         # print("Data SD: ", std, "\n")
         
-        len_transform = len(transform.transforms)
-        transform.transforms.insert(len_transform, transforms.Normalize(mean, std))
+        len_transform = len(dataset.__gettransform__().transforms)
+        dataset.__gettransform__().transforms.insert(len_transform, transforms.Normalize(mean, std))
 
-    print("Transform after: ", dataset.__gettransform__(), "\n")
+    # print("Transform after: ", dataset.__gettransform__(), "\n")
 
     return data_loader
 
@@ -119,13 +128,13 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1):
     ''' Interface to the dataloader function '''
 
     if IMG_SIZE == 32:
-        train_data_path = '/home/trogdent/imagenet_data/train_32'
-        test_data_path = '/home/trogdent/imagenet_data/val_32'
+        train_data_path = './data/train_32'
+        test_data_path = './data/val_32'
         transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
         transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
     elif IMG_SIZE == 64:
-        train_data_path = '/home/trogdent/imagenet_data/train_64'
-        test_data_path = '/home/trogdent/imagenet_data/val_64'
+        train_data_path = './data/train_64'
+        test_data_path = './data/val_64'
         transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
         transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
     else:
@@ -149,7 +158,7 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1):
 
 class CustomImageNet(Dataset):
 
-    def __init__(self, data_path, labels_path, verbose, subset=[], transform=None, grayscale=False, iter=0):
+    def __init__(self, data_path, labels_path, verbose, subset=[], transform=None, grayscale=False, iter=0, num_samples=20000):
         super(CustomImageNet, self).__init__()
         
         self.data_path = data_path
@@ -159,7 +168,7 @@ class CustomImageNet(Dataset):
         self.transform = transform
         self.verbose = verbose
         
-        if data_path == '../../../imagenet_data/train' or data_path == '../../../imagenet_data/val':
+        if data_path == './data/train' or data_path == './data/val':
             img_format = '*.JPEG'
         else:
             img_format = '*.png'
@@ -188,39 +197,51 @@ class CustomImageNet(Dataset):
             with open(CODES_TO_NAMES_FILE, 'a') as f:
                 f.writelines(lines)
 
+            counter = 0
             for img_path in img_paths:
-                img = Image.open(img_path)
-                img = self.transform(img)
+                try:
+                    img = Image.open(img_path)
+                    img.load()
+                except OSError:
+                    print("Cannot open: {}".format(img_path))
+                    continue
 
-                if img.size()[0] == 3 and not grayscale:
+                if counter > num_samples:
+                    break
+
+                if img.mode == 'RGB' and not grayscale:
                     self.data.append((img, i))
-                elif img.size()[0] == 1 and grayscale:
+                elif img.mode == 'L' and grayscale:
                     self.data.append((img, i))
+
+                counter += 1
 
     def __len__(self):
         return len(self.data)
     
     def __getitem__(self, idx):
+        img = self.data[idx][0]
+        label = self.data[idx][1]
 
-        return self.data[idx]
+        img = self.transform(img)
+        label = torch.tensor(label, dtype=torch.long)
+
+        return (img, label)
 
     def __gettransform__(self):
         return self.transform    
 
 class DummyDataset(Dataset):
     
-    def __init__(self, transform=None, num_samples=10000):
+    def __init__(self, data=None, transform=None, num_samples=10000):
         super(DummyDataset, self).__init__()
 
-        self.data = []
+        self.data = data if data else []
         self.transform = transform
         self.num_samples = num_samples
     
-        for _ in range(num_samples):
-            img = np.random.rand(3, 3)
-            img, label = self.get_label(img)
-            
-            self.data.append((img, label))
+        if data is None:
+            self.generate_data(num_samples)
     
     def __len__(self):
         return self.num_samples
@@ -235,6 +256,13 @@ class DummyDataset(Dataset):
 
     def __gettransform__(self):
         return self.transform
+
+    def generate_data(self, num_samples):
+        for _ in range(num_samples):
+            img = np.random.rand(3, 3)
+            img, label = self.get_label(img)
+                
+            self.data.append((img, label))
 
     def get_label(self, img):
         rand_int = np.random.randint(low=0, high=3)

@@ -77,8 +77,8 @@ if args.resume:
     net, best_acc, start_acc = init_from_checkpoint(net)
   
 ''' Optimization '''
-# optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-16, betas=(0.9, 0.999), weight_decouple=True, rectify=True)
-optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
+optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-8, betas=(0.9, 0.999), weight_decouple=True, rectify=True)
+# optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
 # optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
 ''' Learning rate scheduler '''
