@@ -161,8 +161,8 @@ def read_results_part(path, epcs, parts, trl, dim, persistence=0.04):
                         persistence=persistence) for epc in epcs] for part in parts]
 
 
-def read_results(path, epc, trl, max_epsilon=0.4, dim=1, persistence=0.01):
-    return read_pd(path + 'adj_epc{}_trl{}_{}.bin.out'.format(epc, trl, max_epsilon), dimension=dim, persistence=persistence)
+def read_results(path, dim=1, persistence=0.01):
+    return read_pd(path, dimension=dim, persistence=persistence)
 
 
 '''
@@ -207,7 +207,7 @@ def get_data(root, nets, datasets, trials, epcs):
                     for trial in trials:
                         if os.path.exists(directory + 'adj_epc' + str(epc) + '_trl{}_0.4.bin.out'.format(trial)):
                             # read data
-                            data = read_results(directory, epc, trl=trial, dim=1, persistence=0.02)
+                            data = read_results(directory, dim=1, persistence=0.02)
                             if len(data) > 0:
                                 x_ref = np.linspace(0.05, 0.4, 200)
                                 # read generalization gap

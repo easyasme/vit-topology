@@ -1,16 +1,17 @@
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.io import savemat
+# import matplotlib.pyplot as plt
+# from scipy.io import savemat
 import argparse
-from sklearn.decomposition import PCA
-import h5py
-import os
+# from sklearn.decomposition import PCA
+# import h5py
+# import os
 import pickle as pkl
 import scipy.stats
-from sklearn import preprocessing 
+# from sklearn import preprocessing 
 import time
-import pymetis
-import itertools    
+# import pymetis
+import itertools
+# from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 
 def correlation(x, y):
     return np.corrcoef(x,y)[0,1]
@@ -156,6 +157,9 @@ def signal_dimension_adjusting(signals, sz_chunk):
     return sp
 
 def signal_concat(signals):
+    # size of signals is the number of data points by output dimension of model
+    # print(np.array([np.transpose(x.reshape(x.shape[0], -1)) for x in signals]).shape)
+    print(np.concatenate([np.transpose(x.reshape(x.shape[0], -1)) for x in signals], axis=0).shape)
     return np.concatenate([np.transpose(x.reshape(x.shape[0], -1)) for x in signals], axis=0)
 
 def adjacency_set_correlation(splits):            
@@ -178,6 +182,7 @@ def adjacency_correlation_distribution(splits, metric):
 
 def build_density_adjacency(adj, density_t):
     ''' Binarize matrix '''
+    
     total_edges = np.prod(adj.shape)
     t, t_decr = 1, 0.001
     
@@ -193,8 +198,6 @@ def build_density_adjacency(adj, density_t):
         t = t-t_decr
         
     return t
-
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
 
 def get_discriminative_nodes(X, Y, ratio):
     X = X.astype(np.float64)

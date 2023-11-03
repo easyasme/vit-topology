@@ -5,21 +5,16 @@ from models.utils import get_model
 from passers import Passer
 from loaders import *
 from graph import *
-from labels import load_manipulator
+import os
 
-
-parser = argparse.ArgumentParser(description='PyTorch Training')
+parser = argparse.ArgumentParser()
 
 parser.add_argument('--net')
 parser.add_argument('--dataset')
-parser.add_argument('--save_path')
-parser.add_argument('--trial', default=0, type=int)
-parser.add_argument('--epochs', nargs='+', type=int)
-parser.add_argument('--split', default=0, type=int)
-parser.add_argument('--kl', default=0, type=int)
+parser.add_argument('--save_path', default='./results', type=str)
+parser.add_argument('--epochs', default='1 5 10 15 20', nargs='+', type=str)
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--filtration', default='nominal')
-parser.add_argument('--permute_labels', default=0, type=float)
 parser.add_argument('--iter', type=int, default=0)
 
 args = parser.parse_args()
@@ -28,6 +23,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
     
 ''' Meta-name to be used as prefix on all savings'''
 SAVE_DIR = os.path.join(args.save_path, args.net + '_' + args.dataset + '_' + 'ss' + str(args.iter) + '/bin/')
+
 START_LAYER = 3 if args.net in ['vgg', 'resnet'] else 0 
 
 ''' If save directory doesn't exist create '''
@@ -42,8 +38,6 @@ net = net.to(device)
 if device == 'cuda':
     net = torch.nn.DataParallel(net)
     cudnn.benchmark = True
-
-# print(net)
     
 ''' Prepare test data loader '''
 functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, verbose=False)
@@ -51,9 +45,6 @@ functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, verbo
 ''' Prepare criterion '''
 criterion = nn.CrossEntropyLoss()
 
-''' Define label manipulator '''
-manipulator = load_manipulator(args.permute_labels)
-    
 for epoch in args.epochs:
     print("\n", '==> Loading checkpoint for epoch {}...'.format(epoch), "\n")
 
@@ -65,13 +56,11 @@ for epoch in args.epochs:
     
     ''' Define passer and get activations '''
     passer = Passer(net, functloader, criterion, device)
-    # passer_test = Passer(net, functloader, criterion, device)
-    # passer_test.run(manipulator=manipulator)
     activs = passer.get_function()
     activs = signal_concat(activs)
     adj = adjacency(activs)
-    
-    # print('The dimension of the adjacency matrix is {}'.format(adj.shape))
+
+    print('The dimension of the adjacency matrix is {}'.format(adj.shape))
     print('Adj mean {}, min {}, max {}'.format(np.mean(adj), np.min(adj), np.max(adj)))
 
     # ''' Write adjacency to binary. To use as DIPHA input for persistence homology '''

@@ -1,9 +1,10 @@
 import matplotlib.pyplot as plt
 import scipy.ndimage
 from bettis import *
+from graph import *
 import argparse
 import os
-from config import SAVE_PATH, MAX_EPSILON
+from config import SAVE_PATH, MAX_EPSILON, UPPER_DIM
 
 
 parser = argparse.ArgumentParser()
@@ -27,36 +28,43 @@ img_path = directory + "/images/" + args.net + "_" + args.dataset + "_" + "ss" +
 trial = 0
 
 EMPTY = 0
-
 for epc in args.epochs:
-    if not os.path.exists(img_path):
+    # if not os.path.exists(img_path):
         #  read persistent diagram from persistent homology output
-        birth, death = read_results(bin_dir, epc, trl=args.trial, max_epsilon=MAX_EPSILON, dim=args.dim, persistence=0.02)
 
-        if len(birth) > 0:
-            #  compute betti curve from persistent diagram
-            x, betti = pd2betti(birth, death)
+    out_file = bin_dir + 'adj_epc{}_trl{}_{}_dim{}.bin.out'.format(epc, args.trial, MAX_EPSILON, UPPER_DIM)
 
-            #  filter curve for improved visualization
-            filter_size = int(len(betti) / 10)
-            betti = scipy.ndimage.uniform_filter1d(betti, size=filter_size, mode='constant')
+    if os.path.exists(out_file):
+        print('Reading results for subset {} epoch {}'.format(args.iter, epc) + '\n')
+        birth, death = read_results(out_file, dim=args.dim, persistence=0.02)
+    else:
+        continue
 
-            # plot curve
-            plt.xlabel('$\epsilon$')
-            plt.ylabel('Number of Cavities (N)')
-            plt.plot(x, betti, label='Epoch ' + str(epc))
-            plt.legend()
-            plt.title('Betti ' + "{}".format(args.dim))
+    if len(birth) > 0:
+        #  compute betti curve from persistent diagram
+        x, betti = pd2betti(birth, death)
 
-            # compute life and midlife
-            life = pd2life(birth, death)
-            midlife = pd2midlife(birth, death)
-            print('EPC = {}, LIFE = {}, MIDLIFE = {}'.format(epc, life, midlife))
-        else:
-            EMPTY += 1
-            print('The persistence diagram is empty!')
+        adj = read_adjacency(out_file)
+        edge_t = [build_density_adjacency(adj, t) for t in args.thresholds]
 
-# plt.show()
+        #  filter curve for improved visualization
+        filter_size = int(len(betti) / 10)
+        betti = scipy.ndimage.uniform_filter1d(betti, size=filter_size, mode='constant')
+
+        # plot curve
+        plt.xlabel('$\epsilon$')
+        plt.ylabel('Number of Cavities (N)')
+        plt.plot(x, betti, label='Epoch ' + str(epc))
+        plt.legend()
+        plt.title('Betti ' + "{}".format(args.dim))
+
+        # compute life and midlife
+        life = pd2life(birth, death)
+        midlife = pd2midlife(birth, death)
+        print('EPC = {}, LIFE = {}, MIDLIFE = {}'.format(epc, life, midlife))
+    else:
+        EMPTY += 1
+        print('The persistence diagram is empty!')
 
 
 if not EMPTY == len(args.epochs):

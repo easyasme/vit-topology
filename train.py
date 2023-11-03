@@ -22,18 +22,14 @@ parser = argparse.ArgumentParser(description='PyTorch Training')
 parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
-parser.add_argument('--trial', default=0, type=int)
 parser.add_argument('--epochs', default=50, type=int)
 parser.add_argument('--resume', default=0, type=int, help='resume from checkpoint')
 parser.add_argument('--resume_epoch', default=20, type=int, help='resume from epoch')
-parser.add_argument('--save_every', default=1, type=int)
-parser.add_argument('--permute_labels', default=0, type=float)
-parser.add_argument('--fixed_init', default=0, type=int)
 parser.add_argument('--train_batch_size', default=32, type=int)
 parser.add_argument('--test_batch_size', default=32, type=int)
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--iter', default=0, type=int)
-parser.add_argument('--chkpt_epochs', nargs='+', type=int)
+parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[1, 5, 10, 20])
 
 args = parser.parse_args()
 
@@ -45,7 +41,7 @@ if not os.path.isdir(summary_path):
 
 summary_file = summary_path + ONAME + ".txt"
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu' if torch.cuda.is_available() else 'cpu'
 print("Device: ", device, "\n")
 
 best_acc = 0  # best test accuracy
@@ -60,7 +56,7 @@ test_loader = loader(args.dataset + '_test', batch_size=args.test_batch_size, it
 
 n_samples = len(train_loader) * args.train_batch_size
 
-criterion  = get_criterion(args.dataset)
+criterion = get_criterion(args.dataset)
 
 ''' Build models '''
 print('==> Building model..', "\n")
@@ -89,13 +85,10 @@ lr_scheduler = ReduceLROnPlateau(optimizer, factor=0.5, mode='max', verbose=True
 passer_train = Passer(net, train_loader, criterion, device)
 passer_test = Passer(net, test_loader, criterion, device)
 
-''' Define manipulator '''
-manipulator = load_manipulator(args.permute_labels)
-
 ''' Make intial pass before any training '''
 loss_te, acc_te = passer_test.run()
 
-save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': 0}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_0.t7')
+save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': 0}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_epoch_0.t7')
 
 print("Begin training", "\n")
 
@@ -107,7 +100,7 @@ best_epoch_te = 0
 for epoch in range(start_epoch, start_epoch + args.epochs):
     print('Epoch {}'.format(epoch))
 
-    loss_tr, acc_tr = passer_train.run(optimizer, manipulator=manipulator)
+    loss_tr, acc_tr = passer_train.run(optimizer)
     loss_te, acc_te = passer_test.run()
 
     if acc_tr > best_acc_tr:
@@ -126,13 +119,13 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
     losses.append({'loss_tr': loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te': acc_te, 'epoch': int(epoch)})
     lr_scheduler.step(acc_te)
 
-    if epoch in args.chkpt_epochs:
-        save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_trial_' + str(args.trial) + '_epoch_' + str(epoch) + '.t7')
+    if epoch in vars(args)['chkpt_epochs']:
+        save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_epoch_{}.t7'.format(epoch))
 
     gc.collect()
 
 '''Save losses'''
-save_losses(losses, path='./losses/' + args.net + '/' + ONAME + '/', fname='stats_trial_' + str(args.trial) + '.pkl')
+save_losses(losses, path='./losses/' + args.net + '/' + ONAME + '/', fname='stats.pkl')
 
 '''Make plots'''
 X = [loss['epoch'] for loss in losses]

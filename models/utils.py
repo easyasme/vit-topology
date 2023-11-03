@@ -6,6 +6,7 @@ from .alexnet import *
 from .densenet import *
 from .inception import *
 from .conv_x import * 
+from .fcnet import *
 
 from config import IMG_SIZE
 
@@ -16,8 +17,10 @@ def get_model(name, dataset):
         net = Conv_4(num_classes=10)
     if name == 'conv_6':
         net = Conv_6(num_classes=10)
-    
 
+    if name == 'fcnet':
+        net = FCNet(input_size=3, num_classes=3)
+    
     if name=='lenet' and dataset == 'imagenet':
         print("Fetching LeNet")
         print("Input size: ", IMG_SIZE)

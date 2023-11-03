@@ -7,7 +7,6 @@ import os
 import glob
 import numpy as np
 import matplotlib.pyplot as plt
-import cv2
 
 from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler, random_split
 from PIL import Image #, ImageFile
@@ -112,13 +111,13 @@ def dataloader(data, path=None, transform=None, batch_size=1, iter=0, verbose=Fa
 
     # print("Transform before: ", dataset.__gettransform__(), "\n")
 
-    if not isinstance(transform.transforms[-1], torchvision.transforms.transforms.Normalize):
-        mean, std = calc_mean_std(data_loader)
-        # print("Data Mean: ", mean)
-        # print("Data SD: ", std, "\n")
+    #if not isinstance(transform.transforms[-1], torchvision.transforms.transforms.Normalize):
+        # mean, std = calc_mean_std(data_loader)
+        # # print("Data Mean: ", mean)
+        # # print("Data SD: ", std, "\n")
         
-        len_transform = len(dataset.__gettransform__().transforms)
-        dataset.__gettransform__().transforms.insert(len_transform, transforms.Normalize(mean, std))
+        # len_transform = len(dataset.__gettransform__().transforms)
+        # dataset.__gettransform__().transforms.insert(len_transform, transforms.Normalize(mean, std))
 
     # print("Transform after: ", dataset.__gettransform__(), "\n")
 
@@ -128,13 +127,13 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1):
     ''' Interface to the dataloader function '''
 
     if IMG_SIZE == 32:
-        train_data_path = './data/train_32'
-        test_data_path = './data/val_32'
+        train_data_path = '/home/trogdent/imagenet_data/train_32'
+        test_data_path = '/home/trogdent/imagenet_data/val_32'
         transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
         transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
     elif IMG_SIZE == 64:
-        train_data_path = './data/train_64'
-        test_data_path = './data/val_64'
+        train_data_path = '/home/trogdent/imagenet_data/train_64'
+        test_data_path = '/home/trogdent/imagenet_data/val_64'
         transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
         transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
     else:
@@ -153,7 +152,7 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1):
         if data == 'dummy_train':
             return dataloader('dummy_train', transform=dummy_transform, batch_size=batch_size)
         elif data == 'dummy_test':
-            return dataloader('dummy_test', tranform=dummy_transform, batch_size=batch_size)
+            return dataloader('dummy_test', transform=dummy_transform, batch_size=batch_size)
 
 
 class CustomImageNet(Dataset):
@@ -168,7 +167,7 @@ class CustomImageNet(Dataset):
         self.transform = transform
         self.verbose = verbose
         
-        if data_path == './data/train' or data_path == './data/val':
+        if data_path == '/home/trogdent/imagenet_data/train' or data_path == '/home/trogdent/imagenet_data/val':
             img_format = '*.JPEG'
         else:
             img_format = '*.png'
@@ -249,8 +248,8 @@ class DummyDataset(Dataset):
     def __getitem__(self, idx):
         img, label = self.data[idx]
 
-        img = self.transform(img)
-        label = self.transform(label) # this is a hack to make the label a tensor; the transform is simply ToTensor()
+        img = img
+        label = label # this is a hack to make the label a tensor; the transform is simply ToTensor()
         
         return img, label
 
@@ -259,7 +258,7 @@ class DummyDataset(Dataset):
 
     def generate_data(self, num_samples):
         for _ in range(num_samples):
-            img = np.random.rand(3, 3)
+            img = np.random.rand(3, 3).astype(np.float32)
             img, label = self.get_label(img)
                 
             self.data.append((img, label))
@@ -269,7 +268,8 @@ class DummyDataset(Dataset):
         
         img[rand_int, rand_int] = 0.
         
-        label = np.zeros(shape=3, dtype=int)
-        label[rand_int] = 1
+        label = rand_int
+        # label = np.zeros(shape=3, dtype=int)
+        # label[rand_int] = 1.
 
         return img, label

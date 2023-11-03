@@ -9,9 +9,9 @@
             "type": "python",
             "request": "launch",
             "program": "${file}",
-            "args": ["--net", "lenet", "--dataset", "cifar10_gray28", "--trial", "0", "--lr", "0.0005",  "--n_epochs_train", "50", "--epochs_test", "'1 5 10 20 30 40 50'", "--graph_type", "functional", "--train", "1", "--build_graph", "1"],
+            "args": ["--net", "lenet", "--dataset", "imagenet", "--trial", "0"],
             "console": "integratedTerminal",
-            "justMyCode": true
+            "justMyCode": false
         }
     ]
 }
