@@ -16,6 +16,7 @@ class LeNet(nn.Module):
         self.fc2 = nn.Linear(50, num_classes)
 
     def forward(self, x):
+        # print("x size: ", x.size())
         x1 = F.relu(F.max_pool2d(self.conv1(x), 2))
         x2 = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x1)), 2))
         # print("F Size x2: ", x2.size())

@@ -30,24 +30,35 @@ def get_color_distortion(s=0.125): # s is the strength of color distortion.
 
     return color_distort
 
-def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True, blur=True):
+def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True, blur=True, resize=False):
     transform = transforms.Compose([])
 
     if train:
         if crop:
-            transform.transforms.insert(0, transforms.RandomResizedCrop(size=(IMG_SIZE, IMG_SIZE), \
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, transforms.RandomResizedCrop(size=(IMG_SIZE, IMG_SIZE), \
                                                                         interpolation=Image.BICUBIC))
         if hflip:
-            transform.transforms.insert(1, transforms.RandomHorizontalFlip())
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, transforms.RandomHorizontalFlip())
         if color_dis:
-            transform.transforms.insert(2, get_color_distortion())
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, get_color_distortion())
         # if blur:
         #     transform.transforms.insert(3, transforms.GaussianBlur(kernel_size=IMG_SIZE//20*2+1, sigma=(0.1, 2.0)))
         if vflip:
-            transform.transforms.insert(3, transforms.RandomVerticalFlip())
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, transforms.RandomVerticalFlip())
+        if resize:
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, transforms.Resize((32, 32), interpolation=Image.BICUBIC))
+    else:
+        if resize:
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, transforms.Resize((32, 32), interpolation=Image.BICUBIC))
 
-    len_transform = len(transform.transforms)
-    transform.transforms.insert(len_transform, transforms.ToTensor())
+    len_trans = len(transform.transforms)
+    transform.transforms.insert(len_trans, transforms.ToTensor())
 
     return transform
 
@@ -69,10 +80,12 @@ def calc_mean_std(dataloader):
     
     return pop_mean, pop_std
 
-def get_dataset(data, path, transform, verbose, iter=0):
+def get_dataset(data, path, transform, verbose, train=False, iter=0):
     ''' Return loader for torchvision data. If data in [mnist, cifar] torchvision.datasets has built-in loaders else load from ImageFolder '''
     if data == 'imagenet':
         dataset = CustomImageNet(path, 'data/map_clsloc.txt', subset=SUBSETS_LIST[iter], transform=transform, verbose=verbose, iter=iter)
+    elif data == 'mnist':
+        dataset = CustomMNIST(train=train, transform=transform)
     elif data.split('_')[0] == 'dummy':
         dataset = DummyDataset(transform=transform)
     else:
@@ -85,8 +98,9 @@ def seed_worker(worker_id):
     np.random.seed(worker_seed)
     random.seed(worker_seed)
 
-def dataloader(data, path=None, transform=None, batch_size=1, iter=0, verbose=False, sampling=-1):
-    dataset = get_dataset(data, path, transform, iter=iter, verbose=verbose)
+def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=0, verbose=False, sampling=-1, \
+               normalize=True):
+    dataset = get_dataset(data, path, transform, train=train, iter=iter, verbose=verbose)
 
     if data.split('_')[0] == 'dummy':
         dummy_transform = dataset.__gettransform__()
@@ -109,17 +123,15 @@ def dataloader(data, path=None, transform=None, batch_size=1, iter=0, verbose=Fa
 
     data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=2, drop_last=True,  worker_init_fn=seed_worker)
 
-    # print("Transform before: ", dataset.__gettransform__(), "\n")
+    print("Transform before: ", dataset.__gettransform__(), "\n")
 
-    #if not isinstance(transform.transforms[-1], torchvision.transforms.transforms.Normalize):
-        # mean, std = calc_mean_std(data_loader)
-        # # print("Data Mean: ", mean)
-        # # print("Data SD: ", std, "\n")
+    if normalize and not isinstance(transform.transforms[-1], torchvision.transforms.transforms.Normalize):
+        mean, std = calc_mean_std(data_loader)
         
-        # len_transform = len(dataset.__gettransform__().transforms)
-        # dataset.__gettransform__().transforms.insert(len_transform, transforms.Normalize(mean, std))
+        len_transform = len(dataset.__gettransform__().transforms)
+        dataset.__gettransform__().transforms.insert(len_transform, transforms.Normalize(mean, std))
 
-    # print("Transform after: ", dataset.__gettransform__(), "\n")
+    print("Transform after: ", dataset.__gettransform__(), "\n")
 
     return data_loader
 
@@ -136,6 +148,9 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1):
         test_data_path = '/home/trogdent/imagenet_data/val_64'
         transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
         transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
+    elif IMG_SIZE == 28:
+        transforms_tr_mnist = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=True)
+        transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=True)
     else:
         train_data_path = '/home/trogdent/imagenet_data/train'
         test_data_path = '/home/trogdent/imagenet_data/val'
@@ -146,6 +161,10 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1):
         return dataloader('imagenet', train_data_path, transform=transforms_tr_imagenet, batch_size=batch_size, iter=iter, verbose=verbose) 
     elif data == 'imagenet_test':
         return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, iter=iter, verbose=verbose)
+    elif data == 'mnist_train':
+        return dataloader('mnist', train=True, transform=transforms_tr_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True)
+    elif data == 'mnist_test':
+        return dataloader('mnist', train=False, transform=transforms_te_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True)
     else:
         dummy_transform = get_transform(train=False)
 
@@ -229,6 +248,27 @@ class CustomImageNet(Dataset):
 
     def __gettransform__(self):
         return self.transform    
+
+class CustomMNIST(Dataset):
+    def __init__(self, path='./data/mnist', train=True, transform=None):
+        super(CustomMNIST).__init__()
+
+        download = False if os.path.exists(path) else True
+        os.makedirs(path, exist_ok=True)
+
+        self.data = torchvision.datasets.MNIST(path, train=train, download=download, transform=transform)
+
+    def __len__(self):
+        return self.data.__len__()
+    
+    def __getitem__(self, idx):
+        return self.data.__getitem__(idx)
+    
+    def __gettransform__(self):
+        if hasattr(self.data, 'transform'):
+            return getattr(self.data, 'transform')
+        else:
+            raise AttributeError("CustomMNIST has no attribute 'transform'")
 
 class DummyDataset(Dataset):
     

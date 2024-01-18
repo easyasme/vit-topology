@@ -21,6 +21,10 @@ def get_model(name, dataset):
     if name == 'fcnet':
         net = FCNet(input_size=3, num_classes=3)
     
+    if name=='lenet' and dataset == 'mnist':
+        print("Fetching LeNet")
+        print("Input size: ", 32)
+        net = LeNet(num_channels=1, num_classes=10)
     if name=='lenet' and dataset == 'imagenet':
         print("Fetching LeNet")
         print("Input size: ", IMG_SIZE)
@@ -29,7 +33,6 @@ def get_model(name, dataset):
         print("Fetching LeNetExt")
         print("Input size: ", IMG_SIZE)
         net = LeNetExt(n_channels=3, num_classes=10, input_size=IMG_SIZE)
-    
 
     if name=='vgg' and dataset=='imagenet':
         net = VGG('VGG16', num_classes=10)
