@@ -1,21 +1,22 @@
 from __future__ import print_function
+
 import argparse
+import gc
+import os
+
+import matplotlib.pyplot as plt
+import torch
+import torch.backends.cudnn as cudnn
+import torch.optim as optim
+from adabelief_pytorch import AdaBelief
+from numpy import inf
+from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
+
+from config import SAVE_PATH
+from loaders import *
+from models.utils import get_criterion, get_model, init_from_checkpoint
 from passers import Passer
 from savers import save_checkpoint, save_losses
-from loaders import *
-from labels import *
-from models.utils import get_model, get_criterion, init_from_checkpoint
-import torch
-import torch.optim as optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
-import torch.backends.cudnn as cudnn
-from numpy import inf
-from config import SAVE_PATH
-import os
-import matplotlib.pyplot as plt
-import gc
-from adabelief_pytorch import AdaBelief
-
 
 parser = argparse.ArgumentParser(description='PyTorch Training')
 
@@ -29,7 +30,7 @@ parser.add_argument('--train_batch_size', default=32, type=int)
 parser.add_argument('--test_batch_size', default=32, type=int)
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--iter', default=0, type=int)
-parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[1, 5, 10, 20])
+parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
 
 args = parser.parse_args()
 
@@ -41,7 +42,7 @@ if not os.path.isdir(summary_path):
 
 summary_file = summary_path + ONAME + ".txt"
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("Device: ", device, "\n")
 
 best_acc = 0  # best test accuracy
@@ -61,7 +62,6 @@ criterion = get_criterion(args.dataset)
 ''' Build models '''
 print('==> Building model..', "\n")
 net = get_model(args.net, args.dataset)
-# print(net)
 net = net.to(device)
    
 if device == 'cuda':
@@ -73,7 +73,7 @@ if args.resume:
     net, best_acc, start_acc = init_from_checkpoint(net)
   
 ''' Optimization '''
-optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-8, betas=(0.9, 0.999), weight_decouple=True, rectify=True)
+optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-8, betas=(0.9, 0.999), weight_decay=1e-2, weight_decouple=True, rectify=False, fixed_decay=False, amsgrad=False)
 # optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
 # optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
@@ -88,7 +88,9 @@ passer_test = Passer(net, test_loader, criterion, device)
 ''' Make intial pass before any training '''
 loss_te, acc_te = passer_test.run()
 
-save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': 0}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_epoch_0.t7')
+save_checkpoint(checkpoint = {'net':net.state_dict(),
+                              'acc': acc_te, 'epoch': 0},
+                               path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_epoch_0.pt')
 
 print("Begin training", "\n")
 
@@ -111,16 +113,16 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
         best_acc_te = acc_te
         best_epoch_te = epoch
 
-    with open(summary_file, 'w') as f:
-        lines = ["Train epoch: " + str(best_epoch_tr) + "\n", "Train acc: " + str(best_acc_tr) + "\n",
+    lines = ["Train epoch: " + str(best_epoch_tr) + "\n", "Train acc: " + str(best_acc_tr) + "\n",
                  "Test epoch: " + str(best_epoch_te) + "\n", "Test acc: " + str(best_acc_te) + "\n"]
+    with open(summary_file, 'w') as f:
         f.writelines(lines)
 
     losses.append({'loss_tr': loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te': acc_te, 'epoch': int(epoch)})
     lr_scheduler.step(acc_te)
 
     if epoch in vars(args)['chkpt_epochs']:
-        save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_epoch_{}.t7'.format(epoch))
+        save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname=f"ckpt_epoch_{epoch}.pt")
 
     gc.collect()
 

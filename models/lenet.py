@@ -62,7 +62,7 @@ class LeNetExt(nn.Module):
         out = F.relu(self.fc1(out))
         out = F.relu(self.fc2(out))
         out = F.relu(self.fc3(out))
-        '''out = F.dropout(out, training=self.training)'''
+        # out = F.dropout(out, training=self.training)
         out = F.log_softmax(self.fc4(out), dim=1)
 
         return out

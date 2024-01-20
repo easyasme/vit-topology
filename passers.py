@@ -1,7 +1,6 @@
 from utils import progress_bar
 import torch
 import numpy as np
-from labels import identity
 
 
 def get_accuracy(predictions, targets):
@@ -21,14 +20,13 @@ class Passer():
         self.loader = loader
         self.repeat = repeat
 
-    def _pass(self, optimizer=None, manipulator=identity, mask=None):
+    def _pass(self, optimizer=None, mask=None):
         ''' Main data passing routing '''
         losses, features, total, correct = [], [], 0, 0
         accuracies = []
         
         for r in range(1, self.repeat + 1):
             for batch_idx, (inputs, targets) in enumerate(self.loader):
-                targets = manipulator(targets)
                 inputs, targets = inputs.to(self.device), targets.to(self.device)
             
                 if optimizer: 
@@ -59,23 +57,22 @@ class Passer():
 
         return inputs[0:1,...].to(self.device)
 
-    def run(self, optimizer=None, manipulator=identity, mask=None):
+    def run(self, optimizer=None, mask=None):
         if optimizer:
             self.network.train()
 
-            return self._pass(optimizer, manipulator=manipulator, mask=mask)
+            return self._pass(optimizer, mask=mask)
         else:
             self.network.eval()
 
             with torch.no_grad():
-                return self._pass(manipulator=manipulator, mask=mask)
+                return self._pass(mask=mask)
 
-    def get_predictions(self, manipulator=identity):
+    def get_predictions(self):
         ''' Returns predictions and targets '''
         preds, gts = [], []
 
         for batch_idx, (inputs, targets) in enumerate(self.loader):
-            targets = manipulator(targets)
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             outputs = self.network(inputs)
                 
@@ -100,9 +97,9 @@ class Passer():
             # batch size and the second dimension is the number of neurons in the layer.
 
             if forward=='selected':
-                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.module.forward_features(inputs)])
+                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.forward_features(inputs)])
             elif forward=='parametric':
-                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.module.forward_param_features(inputs)])
+                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.forward_param_features(inputs)])
                 
             progress_bar(batch_idx, len(self.loader))
 

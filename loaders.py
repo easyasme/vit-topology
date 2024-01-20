@@ -1,18 +1,22 @@
-import torchvision.transforms as transforms
+import glob
+import os
+import random
+from typing import TypeVar, Sequence, List
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torchvision
-import random
-import numpy as np
-import os
-import glob
-import numpy as np
-import matplotlib.pyplot as plt
-
-from torch.utils.data import Dataset, DataLoader, RandomSampler, SequentialSampler, random_split
-from PIL import Image #, ImageFile
+import torchvision.transforms as transforms
+from PIL import Image  # , ImageFile
 from PIL import PngImagePlugin
-from config import SUBSETS_LIST, IMG_SIZE
+from torch.utils.data import (DataLoader, Dataset, RandomSampler,
+                              SequentialSampler, Subset, random_split)
 
+
+from config import IMG_SIZE, SUBSETS_LIST
+
+T_co = TypeVar('T_co', covariant=True)
 
 # uncomment these lines to allow large images and truncated images to be loaded
 LARGE_ENOUGH_NUMBER = 1000
@@ -44,8 +48,6 @@ def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True
         if color_dis:
             len_trans = len(transform.transforms)
             transform.transforms.insert(len_trans, get_color_distortion())
-        # if blur:
-        #     transform.transforms.insert(3, transforms.GaussianBlur(kernel_size=IMG_SIZE//20*2+1, sigma=(0.1, 2.0)))
         if vflip:
             len_trans = len(transform.transforms)
             transform.transforms.insert(len_trans, transforms.RandomVerticalFlip())
@@ -99,7 +101,7 @@ def seed_worker(worker_id):
     random.seed(worker_seed)
 
 def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=0, verbose=False, sampling=-1, \
-               normalize=True):
+               normalize=True, subset=None):
     dataset = get_dataset(data, path, transform, train=train, iter=iter, verbose=verbose)
 
     if data.split('_')[0] == 'dummy':
@@ -121,6 +123,9 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
     else:
         sampler = SequentialSampler(dataset)
 
+    if subset is not None:
+        dataset = CustomSubset(dataset, subset)
+
     data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=2, drop_last=True,  worker_init_fn=seed_worker)
 
     print("Transform before: ", dataset.__gettransform__(), "\n")
@@ -135,43 +140,41 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
 
     return data_loader
 
-def loader(data, batch_size, verbose, iter=0, sampling=-1):
+def loader(data, batch_size, verbose, iter=0, sampling=-1, subset=None):
     ''' Interface to the dataloader function '''
 
+    # set data paths for different image sizes (32, 64, 256)
     if IMG_SIZE == 32:
         train_data_path = '/home/trogdent/imagenet_data/train_32'
         test_data_path = '/home/trogdent/imagenet_data/val_32'
-        transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
-        transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
     elif IMG_SIZE == 64:
         train_data_path = '/home/trogdent/imagenet_data/train_64'
         test_data_path = '/home/trogdent/imagenet_data/val_64'
-        transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
-        transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
-    elif IMG_SIZE == 28:
-        transforms_tr_mnist = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=True)
-        transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=True)
     else:
         train_data_path = '/home/trogdent/imagenet_data/train'
         test_data_path = '/home/trogdent/imagenet_data/val'
-        transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
-        transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
     
+    # return dataloader for different datasets and train/test splits
     if data == 'imagenet_train':
-        return dataloader('imagenet', train_data_path, transform=transforms_tr_imagenet, batch_size=batch_size, iter=iter, verbose=verbose) 
+        transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
+        return dataloader('imagenet', train_data_path, transform=transforms_tr_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset) 
     elif data == 'imagenet_test':
-        return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, iter=iter, verbose=verbose)
+        transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
+        return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset)
     elif data == 'mnist_train':
-        return dataloader('mnist', train=True, transform=transforms_tr_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True)
+        transforms_tr_mnist = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=True)
+        return dataloader('mnist', train=True, transform=transforms_tr_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True, subset=subset)
     elif data == 'mnist_test':
-        return dataloader('mnist', train=False, transform=transforms_te_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True)
-    else:
+        transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=True)
+        return dataloader('mnist', train=False, transform=transforms_te_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True, subset=subset)
+    elif data == 'dummy_train':
         dummy_transform = get_transform(train=False)
-
-        if data == 'dummy_train':
-            return dataloader('dummy_train', transform=dummy_transform, batch_size=batch_size)
-        elif data == 'dummy_test':
-            return dataloader('dummy_test', transform=dummy_transform, batch_size=batch_size)
+        return dataloader('dummy_train', transform=dummy_transform, batch_size=batch_size, subset=subset)
+    elif data == 'dummy_test':
+        dummy_transform = get_transform(train=False)
+        return dataloader('dummy_test', transform=dummy_transform, batch_size=batch_size, subset=subset)
+    else:
+        raise ValueError(f"Invalid dataset: {data}")
 
 
 class CustomImageNet(Dataset):
@@ -313,3 +316,37 @@ class DummyDataset(Dataset):
         # label[rand_int] = 1.
 
         return img, label
+    
+class CustomSubset(Dataset[T_co]):
+    r"""
+    Subset of a dataset at specified indices.
+
+    Args:
+        dataset (Dataset): The whole Dataset
+        indices (sequence): Indices in the whole set selected for subset
+    """
+    dataset: Dataset[T_co]
+    indices: Sequence[int]
+
+    def __init__(self, dataset: Dataset[T_co], indices: Sequence[int]) -> None:
+        self.dataset = dataset
+        self.indices = indices
+
+    def __getitem__(self, idx):
+        if isinstance(idx, list):
+            return self.dataset[[self.indices[i] for i in idx]]
+        return self.dataset[self.indices[idx]]
+
+    def __getitems__(self, indices: List[int]) -> List[T_co]:
+        # add batched sampling support when parent dataset supports it.
+        # see torch.utils.data._utils.fetch._MapDatasetFetcher
+        if callable(getattr(self.dataset, "__getitems__", None)):
+            return self.dataset.__getitems__([self.indices[idx] for idx in indices])  # type: ignore[attr-defined]
+        else:
+            return [self.dataset[self.indices[idx]] for idx in indices]
+
+    def __len__(self):
+        return len(self.indices)
+    
+    def __gettransform__(self):
+        return self.dataset.__gettransform__()

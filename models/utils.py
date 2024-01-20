@@ -13,50 +13,53 @@ from config import IMG_SIZE
 def get_model(name, dataset):
     if name == 'conv_2':
         net = Conv_2(num_classes=10)
-    if name == 'conv_4':
+    elif name == 'conv_4':
         net = Conv_4(num_classes=10)
-    if name == 'conv_6':
+    elif name == 'conv_6':
         net = Conv_6(num_classes=10)
 
-    if name == 'fcnet':
+    elif name == 'fcnet':
         net = FCNet(input_size=3, num_classes=3)
     
-    if name=='lenet' and dataset == 'mnist':
-        print("Fetching LeNet")
-        print("Input size: ", 32)
+    elif name=='lenet' and dataset == 'mnist':
+        print("\n Fetching LeNet")
+        print("Input size: ", 32, '\n')
         net = LeNet(num_channels=1, num_classes=10)
-    if name=='lenet' and dataset == 'imagenet':
-        print("Fetching LeNet")
-        print("Input size: ", IMG_SIZE)
+    elif name=='lenet' and dataset == 'imagenet':
+        print("\n Fetching LeNet")
+        print("Input size: ", IMG_SIZE, '\n')
         net = LeNet(num_channels=3, num_classes=10, input_size=IMG_SIZE)
-    if name=='lenetext' and dataset=='imagenet':
-        print("Fetching LeNetExt")
-        print("Input size: ", IMG_SIZE)
+    
+    elif name=='lenetext' and dataset=='imagenet':
+        print("\n Fetching LeNetExt")
+        print("Input size: ", IMG_SIZE, '\n')
         net = LeNetExt(n_channels=3, num_classes=10, input_size=IMG_SIZE)
+    elif name=='lenetext' and dataset=='mnist':
+        print("\n Fetching LeNetExt")
+        print("Input size: ", 32, '\n')
+        net = LeNetExt(n_channels=1, num_classes=10)
 
-    if name=='vgg' and dataset=='imagenet':
+    elif name=='vgg' and dataset=='imagenet':
         net = VGG('VGG16', num_classes=10)
     
-
-    if name=='resnet' and dataset=='imagenet':
-        print("Fetching ResNet")
-        print("Input size: ", IMG_SIZE)
+    elif name=='resnet' and dataset=='imagenet':
+        print("\n Fetching ResNet")
+        print("Input size: ", IMG_SIZE, '\n')
         net = ResNet18(num_classes=10, input_size=IMG_SIZE)
 
-
-    if name=='densenet' and dataset=='imagenet':
+    elif name=='densenet' and dataset=='imagenet':
         net = DenseNet121(num_classes=10)
     
-
-    if name=='inception' and dataset=='imagenet':
+    elif name=='inception' and dataset=='imagenet':
         net = GoogLeNet(num_classes=10)
     
-
-    if name=='alexnet' and dataset=='imagenet':
-        print("Fetching AlexNet")
-        print("Input size: ", IMG_SIZE)
+    elif name=='alexnet' and dataset=='imagenet':
+        print("\n Fetching AlexNet")
+        print("Input size: ", IMG_SIZE, '\n')
         net = AlexNet(num_classes=10, input_size=IMG_SIZE)
-
+    
+    else:
+        raise ValueError(f"{name} and {dataset} combination not valid")
 
     return net
 

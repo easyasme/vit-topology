@@ -1,20 +1,20 @@
 import numpy as np
-# import matplotlib.pyplot as plt
-# from scipy.io import savemat
+import matplotlib.pyplot as plt
+from scipy.io import savemat
 import argparse
-# from sklearn.decomposition import PCA
-# import h5py
-# import os
+from sklearn.decomposition import PCA
+import h5py
+import os
 import pickle as pkl
 import scipy.stats
-# from sklearn import preprocessing 
+from sklearn import preprocessing 
 import time
-# import pymetis
-import itertools
-# from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+import pymetis
+import itertools    
 
 def correlation(x, y):
     return np.corrcoef(x,y)[0,1]
+
 
 def kl(x, y):
     ''' 
@@ -24,7 +24,9 @@ def kl(x, y):
     
     x[x==0]=0.00001
     y[y==0]=0.00001
+    
     return scipy.stats.entropy(x, y)
+
 
 def js(x, y):
     '''
@@ -33,6 +35,7 @@ def js(x, y):
     '''
 
     return 0.5*kl(x,y) + 0.5*kl(y,x)
+
 
 def corrpdf(signals):
     '''
@@ -51,10 +54,12 @@ def corrpdf(signals):
     
     return pdf
 
+
 def adjacency_correlation(signals):
     ''' Faster version of adjacency matrix with correlation metric '''
     signals = np.reshape(signals, (signals.shape[0], -1))
     return np.abs(np.nan_to_num(np.corrcoef(signals)))
+
 
 def adjacency_l2(signal):
     ''' In this case signal is an 1XN array not a time series. 
@@ -63,16 +68,28 @@ def adjacency_l2(signal):
     x = np.tile(signal, (signal.size, 1))
     return np.sqrt((signal - signal.transpose())**2)
 
-def binarize(M, binarize_t):
+
+def partial_binarize(M, binarize_t):
     ''' Binarize matrix. Real subunitary values. '''
-    M[M>binarize_t] = 1
-    M[M<=binarize_t] = 0
+    # M[M>binarize_t] = 1.
+    M[M<=binarize_t] = 0.
     
     return M
+
+def make_flip_matrix(M):
+    ''' Takes in thresholded distance matrix M and returns a matrix of 1s and 0s
+    where non-zero entries in M are 1 in the returned matrix '''
+
+    flipped = np.zeros_like(M)
+    flipped[M != 0] = 1
+    # flipped[M == 0] = 2.
+
+    return flipped
+
     
 def adjacency(signals, metric=None):
     '''
-    Build matrix A  of dimensions nxn where a_{ij} = metric(a_i, a_j).
+    Build matrix A of dimensions nxn where a_{ij} = metric(a_i, a_j).
     signals: nxm matrix where each row (signal[k], k=range(n)) is a signal. 
     metric: a function f(.,.) that takes two 1D ndarrays and outputs a single real number (e.g correlation, KL divergence etc).
     '''
@@ -84,32 +101,35 @@ def adjacency(signals, metric=None):
     if not metric:
         return np.abs(np.nan_to_num(np.corrcoef(signals)))
         
-    n, m = signals.shape
+    n, _ = signals.shape
     A = np.zeros((n, n))
 
-    for i in range(n):
-        for j in range(n):
-            A[i,j] = metric(signals[i], np.transpose(signals[j]))
+    A = [[metric(signals[i], np.transpose(signals[j])) for j in range(n)] for i in range(n)]
 
     ''' Normalize '''
     A = robust_scaler(A)
             
     return np.abs(np.nan_to_num(A))
 
+
 def minmax_scaler(A):
     A = (A - A.min())/A.max()
     return A
 
+
 def standard_scaler(A):
     return  np.abs((A - np.mean(A))/np.std(A))
+
 
 def robust_scaler(A, quantiles=[0.05, 0.95]):
     a = np.quantile(A, quantiles[0])
     b = np.quantile(A, quantiles[1])
     return (A-a)/(b-a)
 
+
 def adj2list(adj):
     return [[i for i,x in enumerate(row) if x == 1] for row in adj]
+
 
 def signal_partition(signals, n_part=100, binarize_t=.5):
     signals = signal_concat(signals)
@@ -127,6 +147,7 @@ def signal_partition(signals, n_part=100, binarize_t=.5):
    
     return node_splits, splits
 
+
 def signal_splitting(signals, sz_chunk):
     splits = []
     
@@ -140,6 +161,7 @@ def signal_splitting(signals, sz_chunk):
             splits.append([np.transpose(s)])
         
     return splits
+
 
 def signal_dimension_adjusting(signals, sz_chunk):
     splits = []
@@ -156,11 +178,10 @@ def signal_dimension_adjusting(signals, sz_chunk):
     sp = [np.concatenate(list(zip(*splits))[i]) for i in range(len(splits[0]))]
     return sp
 
+
 def signal_concat(signals):
-    # size of signals is the number of data points by output dimension of model
-    # print(np.array([np.transpose(x.reshape(x.shape[0], -1)) for x in signals]).shape)
-    print(np.concatenate([np.transpose(x.reshape(x.shape[0], -1)) for x in signals], axis=0).shape)
     return np.concatenate([np.transpose(x.reshape(x.shape[0], -1)) for x in signals], axis=0)
+
 
 def adjacency_set_correlation(splits):            
     set_averages = np.asarray([np.mean(x, axis=0) for x in splits])
@@ -180,12 +201,11 @@ def adjacency_correlation_distribution(splits, metric):
     
     return robust_scaler(A)
 
+
 def build_density_adjacency(adj, density_t):
     ''' Binarize matrix '''
-    
     total_edges = np.prod(adj.shape)
     t, t_decr = 1, 0.001
-    
     while True:
         ''' Decrease threshold until density is met '''
         edges = np.sum(adj > t)
@@ -199,6 +219,9 @@ def build_density_adjacency(adj, density_t):
         
     return t
 
+
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+
 def get_discriminative_nodes(X, Y, ratio):
     X = X.astype(np.float64)
     clf = LinearDiscriminantAnalysis(solver='lsqr', shrinkage=0.001)
@@ -211,9 +234,11 @@ def get_discriminative_nodes(X, Y, ratio):
 
     return np.argsort(np.abs(clf.coef_))[:, -int(ratio*clf.coef_.size):]        
 
+
 def get_index(shape, position):
     ''' '''
     return int(position[0]*shape[2]*shape[3] + position[1]*shape[3] + position[2])
+
 
 def structure_conv2d(in_layer, out_layer, weights, kernel_size, stride, padding):
     ''' 
@@ -265,6 +290,7 @@ def structure_conv2d(in_layer, out_layer, weights, kernel_size, stride, padding)
                     a[x,linear_y] = weights[i,j,q,r]
     return a
 
+
 def structure_maxpool2d(in_layer, out_layer, kernel_size, stride, padding, dilation):
     ''' 
     Build adjacency matrix for a maxpool2d operation between two tensors.
@@ -312,9 +338,11 @@ def structure_maxpool2d(in_layer, out_layer, kernel_size, stride, padding, dilat
 
     return a
 
+
 def structure_linear(weights):
     ''' Adjacency matrix for a linear operation (fully connected layer)'''
     return np.transpose(weights)
+
 
 def get_node_number(model, x):
     ''' Get total number of nodes of model for a specific input '''
@@ -332,11 +360,13 @@ def get_operations(model, view):
     return [layers[i] for i in view]
 
 def get_view(model, x):
-    VIEW_VGG16 = {'ops': [24, 27, 30, 33], 'feats': [23, 26, 29, 32, 33]}
+    VIEW_VGG16 = {'ops': [24, 27, 30, 33],
+                  'feats': [23, 26, 29, 32, 33]}
     tensors = get_features(model, x, VIEW_VGG16['feats'])
     layers = get_operations(model, VIEW_VGG16['ops'])
     
     return layers, tensors
+
 
 def structure_from_view(model, x):
     '''
@@ -374,3 +404,4 @@ def structure_from_view(model, x):
         A[start_in:end_in, start_out:end_out] = a
         
     return A
+

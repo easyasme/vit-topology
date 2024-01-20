@@ -1,3 +1,5 @@
+__author__ = 'cipriancorneanu'
+
 import numpy as np
 import array
 
@@ -45,7 +47,6 @@ def read_betti(fname, dimension, persistence):
     '''
     dims, b_values, d_values = read_bin_out(fname)
     x, betti = pd2betti(b_values, d_values)
-    
     return norm_x_axis(x, betti, np.linspace(0.05, 0.4, 200))
 
 
@@ -63,6 +64,27 @@ def read_pd(fname, dimension, persistence):
     death = [death[x] for x in filter]
 
     return birth, death
+
+
+def betti_nums(pd, thresh=0.):
+    ''' This function assumes that the persistence diagram is in giotto-ph format;
+    thresh: threshold for computing betti nums.'''
+
+    max_dim = int(np.max(pd[:, 2]))
+    betti_nums = np.zeros((max_dim+1,))
+
+    dct = {}
+    for dim in range(max_dim+1):
+        dct[dim] = []
+    for x in pd:
+        dct[int(x[-1])].append(tuple(x[:-1]))
+
+    for dim in range(max_dim+1):
+        for (b, d) in dct[dim]:
+            if (d - b > thresh - b) and (thresh - b >= 0.):
+                betti_nums[dim] += 1
+    
+    return betti_nums
 
 
 def pd2betti(birth, death):
@@ -93,7 +115,6 @@ def betti_max(x, curve):
 
 def pd2betti_max(birth, death):
     x, betti = pd2betti(birth, death)
-    
     return np.max(betti)
 
 
@@ -103,7 +124,6 @@ def epsilon_max(x, curve):
 
 def pd2epsilon_max(birth, death):
     x, betti = pd2betti(birth, death)
-    
     return x[np.argmax(betti)]
 
 
@@ -152,7 +172,6 @@ def plot(axes, data, epochs, i_epochs, N):
 def norm_x_axis(x, curve, x_ref):
     x_axis = np.array([curve[np.argmin([np.abs(a - b) for b in x])] for a in x_ref])
     # print("{}s".format(time.time()-start))
-    
     return x_axis
 
 
@@ -161,8 +180,8 @@ def read_results_part(path, epcs, parts, trl, dim, persistence=0.04):
                         persistence=persistence) for epc in epcs] for part in parts]
 
 
-def read_results(path, dim=1, persistence=0.01):
-    return read_pd(path, dimension=dim, persistence=persistence)
+def read_results(path, epc, trl, max_epsilon=0.4, dim=1, persistence=0.01):
+    return read_pd(path + 'adj_epc{}_trl{}_{}.bin.out'.format(epc, trl, max_epsilon), dimension=dim, persistence=persistence)
 
 
 '''
@@ -207,7 +226,7 @@ def get_data(root, nets, datasets, trials, epcs):
                     for trial in trials:
                         if os.path.exists(directory + 'adj_epc' + str(epc) + '_trl{}_0.4.bin.out'.format(trial)):
                             # read data
-                            data = read_results(directory, dim=1, persistence=0.02)
+                            data = read_results(directory, epc, trl=trial, dim=1, persistence=0.02)
                             if len(data) > 0:
                                 x_ref = np.linspace(0.05, 0.4, 200)
                                 # read generalization gap
@@ -235,7 +254,6 @@ def get_data(root, nets, datasets, trials, epcs):
 
 def extend(item, t_summary, key):
     item[key] = t_summary(item['pd'][0], item['pd'][1])
-    
     return item
 
 
