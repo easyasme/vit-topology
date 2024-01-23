@@ -31,7 +31,7 @@ parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--verbose', default=0, type=int)
 
 args = parser.parse_args()
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
 
 print("Device:", device, "\n")
 

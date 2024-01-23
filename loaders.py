@@ -123,7 +123,7 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
     else:
         sampler = SequentialSampler(dataset)
 
-    if subset is not None:
+    if subset is not None and data != 'mnist':
         dataset = CustomSubset(dataset, subset)
 
     data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=2, drop_last=True,  worker_init_fn=seed_worker)
@@ -266,7 +266,7 @@ class CustomMNIST(Dataset):
     
     def __getitem__(self, idx):
         return self.data.__getitem__(idx)
-    
+
     def __gettransform__(self):
         if hasattr(self.data, 'transform'):
             return getattr(self.data, 'transform')
@@ -343,7 +343,8 @@ class CustomSubset(Dataset[T_co]):
         if callable(getattr(self.dataset, "__getitems__", None)):
             return self.dataset.__getitems__([self.indices[idx] for idx in indices])  # type: ignore[attr-defined]
         else:
-            return [self.dataset[self.indices[idx]] for idx in indices]
+            max_idx = len(self.dataset) - 1
+            return [self.dataset[self.indices[idx]] for idx in indices if idx <= max_idx]
 
     def __len__(self):
         return len(self.indices)
