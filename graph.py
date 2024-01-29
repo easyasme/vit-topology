@@ -71,8 +71,8 @@ def adjacency_l2(signal):
 
 def partial_binarize(M, binarize_t):
     ''' Binarize matrix. Real subunitary values. '''
-    # M[M>binarize_t] = 1.
-    M[M<=binarize_t] = 0.
+    # M[M>binarize_t] = 1
+    M[M<=binarize_t] = 0
     
     return M
 
@@ -82,7 +82,7 @@ def make_flip_matrix(M):
 
     flipped = np.zeros_like(M)
     flipped[M != 0] = 1
-    # flipped[M == 0] = 2.
+    # flipped[M == 0] = 2
 
     return flipped
 

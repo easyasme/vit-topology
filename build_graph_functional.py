@@ -31,7 +31,7 @@ parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--verbose', default=0, type=int)
 
 args = parser.parse_args()
-device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 print("Device:", device, "\n")
 
@@ -112,11 +112,11 @@ for epoch in vars(args)['chkpt_epochs']:
         flip = make_flip_matrix(binadj) # make flip matrix
         binadj = flip - binadj # flip adj matrix
         
-        np.fill_diagonal(binadj, 0.) # remove self-loops for distance matrix format
         binadj = coo_matrix(binadj) # convert to sparse matrix
+        binadj.eliminate_zeros()
 
         if args.verbose:
-            print('\n', 'The dimension of the COO adjacency matrix is {}'.format(binadj.shape))
+            print('\n', 'The dimension of the COO adjacency matrix is {}'.format(binadj.data.shape))
             print('Binadj mean {}, min {}, max {}'.format(np.mean(binadj), np.min(binadj), np.max(binadj)))
 
         comp_time = time.time()

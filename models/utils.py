@@ -10,6 +10,7 @@ from .fcnet import *
 
 from config import IMG_SIZE
 
+
 def get_model(name, dataset):
     if name == 'conv_2':
         net = Conv_2(num_classes=10)
@@ -27,12 +28,12 @@ def get_model(name, dataset):
         net = LeNet(num_channels=1, num_classes=10)
     elif name=='lenet' and dataset == 'imagenet':
         print("\n Fetching LeNet")
-        print("Input size: ", IMG_SIZE, '\n')
+        print("Input size:", IMG_SIZE)
         net = LeNet(num_channels=3, num_classes=10, input_size=IMG_SIZE)
     
     elif name=='lenetext' and dataset=='imagenet':
         print("\n Fetching LeNetExt")
-        print("Input size: ", IMG_SIZE, '\n')
+        print("Input size:", IMG_SIZE)
         net = LeNetExt(n_channels=3, num_classes=10, input_size=IMG_SIZE)
     elif name=='lenetext' and dataset=='mnist':
         print("\n Fetching LeNetExt")
@@ -44,7 +45,7 @@ def get_model(name, dataset):
     
     elif name=='resnet' and dataset=='imagenet':
         print("\n Fetching ResNet")
-        print("Input size: ", IMG_SIZE, '\n')
+        print("Input size:", IMG_SIZE)
         net = ResNet18(num_classes=10, input_size=IMG_SIZE)
 
     elif name=='densenet' and dataset=='imagenet':
@@ -55,12 +56,13 @@ def get_model(name, dataset):
     
     elif name=='alexnet' and dataset=='imagenet':
         print("\n Fetching AlexNet")
-        print("Input size: ", IMG_SIZE, '\n')
+        print("Input size:", IMG_SIZE)
         net = AlexNet(num_classes=10, input_size=IMG_SIZE)
     
     else:
         raise ValueError(f"{name} and {dataset} combination not valid")
 
+    print("Trainable Params:", sum(p.numel() for p in net.parameters() if p.requires_grad), '\n')
     return net
 
 def get_criterion(dataset):
