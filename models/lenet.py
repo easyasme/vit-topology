@@ -7,7 +7,7 @@ class LeNet(nn.Module):
     def __init__(self, num_classes, num_channels=1, input_size=32):
         super(LeNet, self).__init__()
 
-        self.feat_size = (20 * 5 * 5) if input_size==32 else (20 * 13 * 13) if input_size==64 else -1
+        self.feat_size = (20 * 5 * 5) if input_size==32 else (20 * 13 * 13) if input_size==64 else (20 * 4 * 4) if input_size==28 else -1
         
         self.conv1 = nn.Conv2d(num_channels, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)

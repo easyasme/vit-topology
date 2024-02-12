@@ -81,10 +81,11 @@ class Passer():
             
         return np.concatenate(gts), np.concatenate(preds)
 
+    @torch.no_grad()
     def get_function(self, forward='selected'):
         ''' Collect function (features) from the self.network.module.forward_features() routine '''
         features = []
-        
+
         for batch_idx, (inputs, targets) in enumerate(self.loader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             
@@ -97,9 +98,9 @@ class Passer():
             # batch size and the second dimension is the number of neurons in the layer.
 
             if forward=='selected':
-                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.forward_features(inputs)])
+                features.append([f.cpu().data.numpy().astype(np.float64) for f in self.network.forward_features(inputs)])
             elif forward=='parametric':
-                features.append([f.cpu().data.numpy().astype(np.float16) for f in self.network.forward_param_features(inputs)])
+                features.append([f.cpu().data.numpy().astype(np.float64) for f in self.network.forward_param_features(inputs)])
                 
             progress_bar(batch_idx, len(self.loader))
 

@@ -1,15 +1,11 @@
 from __future__ import print_function
 
-import pickle
 import time
 
-import matplotlib.pyplot as plt
-import torch.backends.cudnn as cudnn
 from gph import ripser_parallel
 from gtda.homology._utils import _postprocess_diagrams
 from gtda.plotting import plot_diagram
-from matplotlib import cm
-from scipy.sparse import coo_matrix
+from scipy.sparse import coo_matrix, tril
 
 from bettis import betti_nums
 from config import UPPER_DIM
@@ -25,17 +21,24 @@ parser.add_argument('--dataset')
 parser.add_argument('--save_dir')
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
 parser.add_argument('--input_size', default=32, type=int)
-parser.add_argument('--thresholds', default='0.5 1.0', help='Defining thresholds range in the form \'start stop\' ')
+parser.add_argument('--thresholds', default='0 1.0', help='Defining thresholds range in the form \'start stop\' ')
 parser.add_argument('--eps_thresh', default=1., type=float)
 parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--verbose', default=0, type=int)
 
 args = parser.parse_args()
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-print("Device:", device, "\n")
+device_list = []
+if torch.cuda.device_count() > 1:
+    print("Using", torch.cuda.device_count(), "GPUs")
+    device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
+else:
+    print("Using single GPU")
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device_list.append(device)
 
-START_LAYER = 3 if args.net in ['vgg', 'resnet'] else 0
+for i, device in enumerate(device_list):
+    print(f"Device {i}: {device}")
 
 SAVE_DIR = args.save_dir
 if not os.path.exists(SAVE_DIR):
@@ -58,15 +61,11 @@ if not os.path.exists(CURVES_DIR):
     os.makedirs(CURVES_DIR)
 
 # Build models
-print('==> Building model..')
+print('\n ==> Building model..')
 net = get_model(args.net, args.dataset)
-net = net.to(device)
+net = net.to(device_list[0])
     
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
-
-print('\n', net, '\n')
+# print('\n', net, '\n')
 
 ''' Prepare criterion '''
 criterion = nn.CrossEntropyLoss()
@@ -76,54 +75,94 @@ functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, subse
 
 start = float(args.thresholds.split(' ')[0])
 stop = float(args.thresholds.split(' ')[1])
-thresholds = np.linspace(start=start, stop=stop, num=10)
+thresholds = np.linspace(start=start, stop=stop, num=10, dtype=np.float64)
 
 eps_thresh = np.linspace(start=0., stop=args.eps_thresh, num=10)
 
+total_time = 0.
 ''' Load checkpoint and get activations '''
 for epoch in vars(args)['chkpt_epochs']:
-    print('\n'+'==> Loading checkpoint for epoch {}...'.format(epoch)+'\n')
+    print(f'\n==> Loading checkpoint for epoch {epoch}...\n')
     
-    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+    assert os.path.isdir('../../dnn-topology/checkpoint'), 'Error: no checkpoint directory found!'
     
-    checkpoint = torch.load('./checkpoint/' + args.net + '/' + args.net + '_' + args.dataset + '_ss' + str(args.iter) + '/' +'ckpt_epoch_' + str(epoch)+'.pt', map_location=device)
+    checkpoint = torch.load('../../dnn-topology/checkpoint/' + args.net + '_' + args.dataset + '/' +'ckpt_epoch_' + str(epoch)+'.pt', map_location=device_list[0])
     
     net.load_state_dict(checkpoint['net'])
 
     ''' Define passer and get activations '''
-    passer = Passer(net, functloader, criterion, device)
+    passer = Passer(net, functloader, criterion, device_list[0])
     activs = passer.get_function()
     activs = signal_concat(activs)
-    adj = adjacency(activs)
+    print(f'\n Activs shape: {activs.shape} \n')
+    adj = adjacency(activs, device=device_list[0])
 
     num_nodes = adj.shape[0] if adj.shape[0] != 0 else 1
 
     if args.verbose:
-        print('\n', 'The dimension of the adjacency matrix is {}'.format(adj.shape))
-        print('Adj mean {}, min {}, max {}'.format(np.mean(adj), np.min(adj), np.max(adj)), '\n')
+        print(f'\n The dimension of the corrcoef matrix is {adj.size()[0], adj.size()[-1]} \n')
+        print(f'Adj mean {adj.mean():.4f}, min {adj.min():.4f}, max {adj.max():.4f} \n')
 
     betti_nums_list = []
     betti_nums_list_3d = []
     for j, t in enumerate(thresholds):
-        print('\n', 'Epoch:', epoch, '| Threshold:', t, '\n')
+        print(f'\n Epoch: {epoch} | Threshold: {t:.3f} \n')
 
-        binadj = partial_binarize(np.copy(adj), t) # partially binarize adj matrix
+        # print(f'Activs dtype {activs.dtype}')
+        # print(f'Adj dtype {adj.dtype}')
         
-        flip = make_flip_matrix(binadj) # make flip matrix
-        binadj = flip - binadj # flip adj matrix
+        binadj = partial_binarize(adj.detach().clone(), t, device=device_list[-1])
+        flip = make_flip_matrix(binadj.detach(), device=device_list[-1])
         
-        binadj = coo_matrix(binadj) # convert to sparse matrix
-        binadj.eliminate_zeros()
+        # print(f'Binadj dtype {binadj.dtype}, flip dtype {flip.dtype}')
+
+        # print(f'Binadj before flip {binadj}')
+        # print(f'Flip matrix {flip}')
+
+        binadj *= -1 # flip binadj to reflect closeness
+        binadj += flip # flip binadj to reflect closeness
+
+        # print(f'Binadj dtype {binadj.dtype}')
+        
+        # print(f'Binadj after flip {binadj}')
+
+        # if sum(binadj.diagonal()) != 0:
+        #     print(f'Binadj diagonal sum: {sum(binadj.diagonal())}')
+            
+
+        # indices = binadj.nonzero().cpu().numpy()
+        # i = list(zip(*indices))
+        # vals = binadj[i].flatten().cpu().numpy()
+        # binadj = torch.sparse_coo_tensor(i, vals, binadj.shape, device=device_list[-1], dtype=torch.half)
+
+        binadj = binadj.numpy(force=True)
+        binadj = np.where(binadj==0, None, binadj)
+        np.fill_diagonal(binadj, 0)
+        
+        binadj = coo_matrix(binadj) # convert to sparse COO format matrix
+
+        # binadj = tril(binadj.cpu(), format="coo") # convert to sparse COO format matrix
+        
+        # np.fill_diagonal(binadj, 0)
+        # print(list(zip(*binadj.nonzero())))
 
         if args.verbose:
-            print('\n', 'The dimension of the COO adjacency matrix is {}'.format(binadj.data.shape))
-            print('Binadj mean {}, min {}, max {}'.format(np.mean(binadj), np.min(binadj), np.max(binadj)))
+            print(f'\n The dimension of the COO distance matrix is {binadj.data.shape}\n')
+            print(f'Binadj mean {np.nanmean(binadj.data):.4f}, min {np.nanmin(binadj.data):.4f}, max {np.nanmax(binadj.data):.4f}')
+        
+        # torch.cuda.empty_cache()
+        # del binadj, flip
 
+        # break
         comp_time = time.time()
         dgm = ripser_parallel(binadj, metric="precomputed", maxdim=UPPER_DIM, n_threads=-1, collapse_edges=True)
         comp_time = time.time() - comp_time
+
+        torch.cuda.empty_cache()
+        del binadj #, flip
         
-        print(f'\n Computation time: {comp_time/60:.3f} minutes \n')
+        total_time += comp_time
+        print(f'\n Computation time: {comp_time/60:.5f} minutes \n')
 
         dgm_gtda = _postprocess_diagrams([dgm["dgms"]], "ripser", range(UPPER_DIM + 1), np.inf, True)[0]
 
@@ -139,53 +178,13 @@ for epoch in vars(args)['chkpt_epochs']:
 
             dgm_fig = plot_diagram(dgm_gtda)
             dgm_fig.write_image(dgm_img_path)
+    
+    torch.cuda.empty_cache()
 
     betti_nums_list = np.array(betti_nums_list)
     betti_nums_list_3d = np.array(betti_nums_list_3d)
     
     # Plot betti numbers per dimension at current eps. thresh.
-    for i in range(0, UPPER_DIM+1):
-        bn_img_path = CURVES_DIR + "/epoch_{}_dim_{}_bn_{}".format(epoch, UPPER_DIM, i) + ".png"
-        
-        fig = plt.figure()
-        
-        color = 'b' if i == 1 else 'r' if i == 2 else 'g' if i == 3 else 'y'
+    make_plots(betti_nums_list, betti_nums_list_3d, epoch, num_nodes, thresholds, args.eps_thresh, IMG_DIR, THREED_IMG_DIR, start, stop)
 
-        plt.plot(thresholds, betti_nums_list[:, i] / num_nodes, label='Betti {}'.format(i), color=color)
-
-        max_idx = np.argmax(betti_nums_list[:, i] / num_nodes)
-        max_val = betti_nums_list[max_idx, i] / num_nodes
-        plt.vlines(x=thresholds[max_idx], ymin=0, ymax=max_val, color='orange', linestyle='dashed', label='Max loc. {:.3f}'.format(thresholds[max_idx]))
-        plt.hlines(y=max_val, xmin=start, xmax=stop, color='orange', linestyle='dashed', label='Max val. {:.3f}'.format(max_val))
-
-        plt.xlabel('Thresholds')
-        plt.ylabel('Betti Numbers')
-        plt.ylim(0, 1.1 * max_val)
-        plt.grid()
-        plt.title(f"Epoch {epoch}")
-        plt.legend()
-        
-        fig.savefig(bn_img_path)
-        
-        plt.close(fig)
-
-    # 3D plots of betti numbers per dimension
-    for i in range(0, UPPER_DIM+1):
-        bn3d_img_path = THREED_IMG_DIR + "/epoch_{}_dim_{}_bn_{}_3d".format(epoch, UPPER_DIM, i) + ".pkl"
-
-        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
-
-        X, Y = np.meshgrid(eps_thresh, thresholds)
-        Z = betti_nums_list_3d[:,:,i] / num_nodes
-        ax.plot_surface(X, Y, Z, cmap=cm.Spectral, alpha=0.5)
-
-        ax.set_xlabel('Eps. Thresholds')
-        ax.set_ylabel('Thresholds')
-        ax.set_zlabel('Betti Numbers per Node')
-        ax.set_label(f"Betti {i}")
-        ax.set_title(f"Epoch {epoch}")
-
-        with open(bn3d_img_path, 'wb') as f:
-            pickle.dump(fig, f)
-
-        plt.close(fig)
+print(f'\n Total computation time: {total_time/60:.5f} minutes \n')

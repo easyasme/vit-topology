@@ -1,11 +1,17 @@
 import os
+import os.path
+import pickle
 import sys
 import time
+
+import matplotlib.pyplot as plt
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.init as init
-import numpy as np
-import os.path
+from matplotlib import cm
+
+from config import UPPER_DIM
 
 
 def get_mean_and_std(dataset):
@@ -126,14 +132,50 @@ def format_time(seconds):
         f = '0ms'
     return f
 
-def save_splits(splits, split_size, save_dir, start_layer, epoch, threshold, trial):
-    ''' Some description '''
-    for i_layer, layer in enumerate(splits):
-        for i_chunk, chunk in enumerate(layer):
-            path = save_dir + '/{}/layer{}_chunk{}/'.format(split_size, start_layer + i_layer, i_chunk)
-        
-            if not os.path.exists(path):
-                os.makedirs(path)
+def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thresh, img_dir, threeD_img_dir, start, stop):
+    for i in range(0, UPPER_DIM+1):
+        bn_img_path = img_dir + "/epoch_{}_dim_{}_bn_{}".format(epoch, UPPER_DIM, i) + ".png"
+            
+        fig = plt.figure()
+            
+        color = 'b' if i == 1 else 'r' if i == 2 else 'g' if i == 3 else 'y'
+        y_max = .14 if i == 1 else .03 if i == 2 else .01 if i == 3 else 1
 
-            print('Saving ... trl{}, epc{}, threshold{:1.2f}, layer{}, chunk{}, shape {}'.format(trial, epoch, threshold, start_layer+i_layer, i_chunk, chunk.shape))
-            np.savetxt(path+'badj_epc{}_t{:1.2f}_trl{}.csv'.format(epoch, threshold, trial), chunk, fmt='%d', delimiter=",")
+        plt.plot(thresholds, betti_nums[:, i] / num_nodes, label='Betti {}'.format(i), color=color)
+
+        max_idx = np.argmax(betti_nums[:, i] / num_nodes)
+        max_val = betti_nums[max_idx, i] / num_nodes
+        plt.vlines(x=thresholds[max_idx], ymin=0, ymax=max_val, color='orange', linestyle='dashed', label='Max loc. {:.3f}'.format(thresholds[max_idx]))
+        plt.hlines(y=max_val, xmin=start, xmax=stop, color='orange', linestyle='dashed', label='Max val. {:.3f}'.format(max_val))
+
+        plt.xlabel('Thresholds')
+        plt.ylabel('Betti Numbers')
+        plt.ylim(0, y_max)
+        plt.grid()
+        plt.title('Epoch {}'.format(epoch))
+        plt.legend()
+            
+        fig.savefig(bn_img_path)
+            
+        plt.clf()
+        plt.close(fig)
+
+    for i in range(0, UPPER_DIM+1):
+        bn3d_img_path = threeD_img_dir + "/epoch_{}_dim_{}_bn_{}_3d".format(epoch, UPPER_DIM, i) + ".pkl"
+
+        fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
+
+        X, Y = np.meshgrid(eps_thresh, thresholds)
+        Z = betti_nums_3d[:,:,i] / num_nodes
+        ax.plot_surface(X, Y, Z, cmap=cm.Spectral, alpha=0.8 , label=f"Betti {i}")
+
+        ax.set_xlabel('Eps Thresholds')
+        ax.set_ylabel('Thresholds')
+        ax.set_zlabel('Betti Numbers')
+        ax.set_title('Epoch {}'.format(epoch))
+
+        with open(bn3d_img_path, 'wb') as f:
+            pickle.dump(fig, f)
+
+        plt.clf()
+        plt.close(fig)

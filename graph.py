@@ -1,16 +1,19 @@
-import numpy as np
-import matplotlib.pyplot as plt
-from scipy.io import savemat
 import argparse
-from sklearn.decomposition import PCA
-import h5py
+import itertools
 import os
 import pickle as pkl
-import scipy.stats
-from sklearn import preprocessing 
 import time
+
+import h5py
+import matplotlib.pyplot as plt
+import numpy as np
 import pymetis
-import itertools    
+import scipy.stats
+import torch
+from scipy.io import savemat
+from sklearn import preprocessing
+from sklearn.decomposition import PCA
+
 
 def correlation(x, y):
     return np.corrcoef(x,y)[0,1]
@@ -68,26 +71,25 @@ def adjacency_l2(signal):
     x = np.tile(signal, (signal.size, 1))
     return np.sqrt((signal - signal.transpose())**2)
 
-
-def partial_binarize(M, binarize_t):
+@torch.no_grad()
+def partial_binarize(M, binarize_t, device):
     ''' Binarize matrix. Real subunitary values. '''
-    # M[M>binarize_t] = 1
-    M[M<=binarize_t] = 0
     
-    return M
+    M[M<=binarize_t] = 0
 
-def make_flip_matrix(M):
+    return M.to(device)
+
+@torch.no_grad()
+def make_flip_matrix(M, device):
     ''' Takes in thresholded distance matrix M and returns a matrix of 1s and 0s
     where non-zero entries in M are 1 in the returned matrix '''
 
-    flipped = np.zeros_like(M)
-    flipped[M != 0] = 1
-    # flipped[M == 0] = 2
-
-    return flipped
-
+    flipped = (M!=0).astype(torch.float32)
     
-def adjacency(signals, metric=None):
+    return flipped.to(device)
+
+@torch.no_grad()
+def adjacency(signals, device, metric=None):
     '''
     Build matrix A of dimensions nxn where a_{ij} = metric(a_i, a_j).
     signals: nxm matrix where each row (signal[k], k=range(n)) is a signal. 
@@ -96,20 +98,23 @@ def adjacency(signals, metric=None):
     
     ''' Get input dimensions '''
     signals = np.reshape(signals, (signals.shape[0], -1))
+    signals = torch.tensor(signals, device=device, dtype=torch.float64).detach()
 
     ''' If no metric provided fast-compute correlation  '''
     if not metric:
-        return np.abs(np.nan_to_num(np.corrcoef(signals)))
+        return torch.abs(torch.nan_to_num(torch.corrcoef(signals))).detach().to(device)
         
     n, _ = signals.shape
-    A = np.zeros((n, n))
+    # A = torch.zeros((n, n))
 
-    A = [[metric(signals[i], np.transpose(signals[j])) for j in range(n)] for i in range(n)]
+    A = [[metric(signals[i], torch.transpose(signals[j])) for j in range(n)] for i in range(n)]
 
     ''' Normalize '''
     A = robust_scaler(A)
-            
-    return np.abs(np.nan_to_num(A))
+    
+    print("End adjacency...\n")
+
+    return torch.abs(torch.nan_to_num(A)).detach().to(device)
 
 
 def minmax_scaler(A):
@@ -120,10 +125,11 @@ def minmax_scaler(A):
 def standard_scaler(A):
     return  np.abs((A - np.mean(A))/np.std(A))
 
-
+@torch.no_grad()
 def robust_scaler(A, quantiles=[0.05, 0.95]):
     a = np.quantile(A, quantiles[0])
     b = np.quantile(A, quantiles[1])
+    
     return (A-a)/(b-a)
 
 
@@ -210,7 +216,7 @@ def build_density_adjacency(adj, density_t):
         ''' Decrease threshold until density is met '''
         edges = np.sum(adj > t)
         density = edges/total_edges
-        '''print('Threhold: {}; Density:{}'.format(t, density))'''
+        '''print('Threshold: {}; Density:{}'.format(t, density))'''
         
         if density > density_t:
             break
@@ -220,7 +226,9 @@ def build_density_adjacency(adj, density_t):
     return t
 
 
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, QuadraticDiscriminantAnalysis
+from sklearn.discriminant_analysis import (LinearDiscriminantAnalysis,
+                                           QuadraticDiscriminantAnalysis)
+
 
 def get_discriminative_nodes(X, Y, ratio):
     X = X.astype(np.float64)

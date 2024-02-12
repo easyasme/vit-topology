@@ -21,7 +21,6 @@ T_co = TypeVar('T_co', covariant=True)
 # uncomment these lines to allow large images and truncated images to be loaded
 LARGE_ENOUGH_NUMBER = 1000
 PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024**2)
-# ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 # file where mappings from class codes to class names are stored
 CODES_TO_NAMES_FILE = './results/codes_to_names.txt'
@@ -34,7 +33,7 @@ def get_color_distortion(s=0.125): # s is the strength of color distortion.
 
     return color_distort
 
-def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True, blur=True, resize=False):
+def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True, blur=True, resize=None):
     transform = transforms.Compose([])
 
     if train:
@@ -51,13 +50,13 @@ def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True
         if vflip:
             len_trans = len(transform.transforms)
             transform.transforms.insert(len_trans, transforms.RandomVerticalFlip())
-        if resize:
+        if resize is not None:
             len_trans = len(transform.transforms)
-            transform.transforms.insert(len_trans, transforms.Resize((32, 32), interpolation=Image.BICUBIC))
+            transform.transforms.insert(len_trans, transforms.Resize((resize, resize), interpolation=Image.BICUBIC))
     else:
-        if resize:
+        if resize is not None:
             len_trans = len(transform.transforms)
-            transform.transforms.insert(len_trans, transforms.Resize((32, 32), interpolation=Image.BICUBIC))
+            transform.transforms.insert(len_trans, transforms.Resize((resize, resize), interpolation=Image.BICUBIC))
 
     len_trans = len(transform.transforms)
     transform.transforms.insert(len_trans, transforms.ToTensor())
@@ -162,10 +161,10 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1, subset=None):
         transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
         return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset)
     elif data == 'mnist_train':
-        transforms_tr_mnist = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=True)
+        transforms_tr_mnist = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28)
         return dataloader('mnist', train=True, transform=transforms_tr_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True, subset=subset)
     elif data == 'mnist_test':
-        transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=True)
+        transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28)
         return dataloader('mnist', train=False, transform=transforms_te_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True, subset=subset)
     elif data == 'dummy_train':
         dummy_transform = get_transform(train=False)

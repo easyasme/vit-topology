@@ -24,8 +24,8 @@ def get_model(name, dataset):
     
     elif name=='lenet' and dataset == 'mnist':
         print("\n Fetching LeNet")
-        print("Input size: ", 32, '\n')
-        net = LeNet(num_channels=1, num_classes=10)
+        print("Input size: ", 28, '\n')
+        net = LeNet(num_channels=1, num_classes=10, input_size=28)
     elif name=='lenet' and dataset == 'imagenet':
         print("\n Fetching LeNet")
         print("Input size:", IMG_SIZE)
