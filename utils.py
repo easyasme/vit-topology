@@ -133,14 +133,14 @@ def format_time(seconds):
     return f
 
 def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thresh, curves_dir, threeD_img_dir, start, stop):
+    color = {0: 'mediumseagreen', 1: 'b', 2: 'r', 3: 'g', 4: 'c', 5: 'k', 6: 'm', 7: 'w'}
+
     for i in range(0, UPPER_DIM+1):
         bn_img_path = curves_dir + "/epoch_{}_dim_{}_bn_{}".format(epoch, UPPER_DIM, i) + ".png"
             
         fig = plt.figure()
-            
-        color = 'b' if i == 1 else 'r' if i == 2 else 'g' if i == 3 else 'y'
 
-        plt.plot(thresholds, betti_nums[:, i] / num_nodes, label='Betti {}'.format(i), color=color)
+        plt.plot(thresholds, betti_nums[:, i] / num_nodes, label='Betti {}'.format(i), color=color[i])
 
         max_idx = np.argmax(betti_nums[:, i] / num_nodes)
         max_val = betti_nums[max_idx, i] / num_nodes
@@ -149,7 +149,7 @@ def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thre
 
         plt.xlabel('Thresholds')
         plt.ylabel('Betti Numbers')
-        plt.ylim(0, max_val*1.05)
+        plt.ylim(0, 1.05* max_val)
         plt.grid()
         plt.title('Epoch {}'.format(epoch))
         plt.legend()

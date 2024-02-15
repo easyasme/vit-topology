@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser(description='PyTorch Training')
 parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
+parser.add_argument('--optimizer', default='adabelief', type=str, help='optimizer')
 parser.add_argument('--epochs', default=50, type=int)
 parser.add_argument('--resume', default=0, type=int, help='resume from checkpoint')
 parser.add_argument('--resume_epoch', default=20, type=int, help='resume from epoch')
@@ -73,12 +74,14 @@ if args.resume:
     net, best_acc, start_acc = init_from_checkpoint(net)
   
 ''' Optimization '''
-optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-8, betas=(0.9, 0.999), weight_decay=1e-2, weight_decouple=True, rectify=False, fixed_decay=False, amsgrad=False)
-# optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
-# optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
+if args.optimizer == 'adabelief':
+    optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-8, betas=(0.9, 0.999), weight_decay=1e-2, weight_decouple=True, rectify=False, fixed_decay=False, amsgrad=False)
+elif args.optimizer == 'adam':
+    optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
+else:
+    optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
 ''' Learning rate scheduler '''
-# lr_scheduler = StepLR(optimizer, step_size=80, gamma=1e-6)
 lr_scheduler = ReduceLROnPlateau(optimizer, factor=0.5, mode='max', verbose=True)
 
 ''' Define passer '''
