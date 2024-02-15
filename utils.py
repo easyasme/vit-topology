@@ -22,7 +22,7 @@ def get_mean_and_std(dataset):
 
     print('==> Computing mean and std..')
 
-    for inputs, targets in dataloader:
+    for inputs, _ in dataloader:
         for i in range(3):
             mean[i] += inputs[:,i,:,:].mean()
             std[i] += inputs[:,i,:,:].std()
@@ -132,14 +132,13 @@ def format_time(seconds):
         f = '0ms'
     return f
 
-def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thresh, img_dir, threeD_img_dir, start, stop):
+def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thresh, curves_dir, threeD_img_dir, start, stop):
     for i in range(0, UPPER_DIM+1):
-        bn_img_path = img_dir + "/epoch_{}_dim_{}_bn_{}".format(epoch, UPPER_DIM, i) + ".png"
+        bn_img_path = curves_dir + "/epoch_{}_dim_{}_bn_{}".format(epoch, UPPER_DIM, i) + ".png"
             
         fig = plt.figure()
             
         color = 'b' if i == 1 else 'r' if i == 2 else 'g' if i == 3 else 'y'
-        y_max = .14 if i == 1 else .03 if i == 2 else .01 if i == 3 else 1
 
         plt.plot(thresholds, betti_nums[:, i] / num_nodes, label='Betti {}'.format(i), color=color)
 
@@ -150,7 +149,7 @@ def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thre
 
         plt.xlabel('Thresholds')
         plt.ylabel('Betti Numbers')
-        plt.ylim(0, y_max)
+        plt.ylim(0, max_val*1.05)
         plt.grid()
         plt.title('Epoch {}'.format(epoch))
         plt.legend()

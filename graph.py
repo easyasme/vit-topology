@@ -84,7 +84,7 @@ def make_flip_matrix(M, device):
     ''' Takes in thresholded distance matrix M and returns a matrix of 1s and 0s
     where non-zero entries in M are 1 in the returned matrix '''
 
-    flipped = (M!=0).astype(torch.float32)
+    flipped = (M!=0).type(torch.float32)
     
     return flipped.to(device)
 
@@ -98,14 +98,16 @@ def adjacency(signals, device, metric=None):
     
     ''' Get input dimensions '''
     signals = np.reshape(signals, (signals.shape[0], -1))
-    signals = torch.tensor(signals, device=device, dtype=torch.float64).detach()
+    signals = torch.tensor(signals, device=device, dtype=torch.float16).detach()
 
     ''' If no metric provided fast-compute correlation  '''
     if not metric:
-        return torch.abs(torch.nan_to_num(torch.corrcoef(signals))).detach().to(device)
+        adj = torch.abs(torch.nan_to_num(torch.corrcoef(signals))).detach()
+        del signals
+        torch.cuda.empty_cache()
+        return adj.to(device)
         
     n, _ = signals.shape
-    # A = torch.zeros((n, n))
 
     A = [[metric(signals[i], torch.transpose(signals[j])) for j in range(n)] for i in range(n)]
 

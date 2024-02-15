@@ -8,12 +8,14 @@ from config import SUBSETS_LIST
 from loaders import *
 
 
-NET = 'alexnet'
-DATASET = 'imagenet'
-SUBSETS = 30 # 1 for none, 30 for all
+NET = 'lenet'
+DATASET = 'mnist'
+SUBSETS = 2 # 1 for none, 30 for all
 
-# img_path_32 = '/home/trogdent/imagenet_data/train_32'
-# img_path_64 = '/home/trogdent/imagenet_data/train_64'
+START = 1 if DATASET.__eq__('mnist') else 0
+
+# img_path_32 = './data/train_32'
+# img_path_64 = './data/train_64'
 
 # labels_path = './data/map_clsloc.txt'
 
@@ -37,7 +39,7 @@ SUBSETS = 30 # 1 for none, 30 for all
 ############################################################################################################
 ''' Make plots of losses and accuracies '''
 
-for iter in range(0, SUBSETS):
+for iter in range(START, SUBSETS): 
     pkl_path = f"./losses/{NET}/{NET}_{DATASET}_ss{iter}/stats.pkl"
 
     if not os.path.exists(pkl_path):
@@ -102,7 +104,7 @@ def get_concat_h_multi_blank(im_list):
     
     return _im
 
-for iter in range(0, SUBSETS):
+for iter in range(START, SUBSETS):
     save_dir = f"./results/{NET}_{DATASET}_ss{iter}/images/curves/"
     files = os.listdir(save_dir)
     files = [f for f in files if f.startswith('epoch')]

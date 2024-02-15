@@ -144,11 +144,11 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1, subset=None):
 
     # set data paths for different image sizes (32, 64, 256)
     if IMG_SIZE == 32:
-        train_data_path = '/home/trogdent/imagenet_data/train_32'
-        test_data_path = '/home/trogdent/imagenet_data/val_32'
+        train_data_path = './data/train_32'
+        test_data_path = './data/val_32'
     elif IMG_SIZE == 64:
-        train_data_path = '/home/trogdent/imagenet_data/train_64'
-        test_data_path = '/home/trogdent/imagenet_data/val_64'
+        train_data_path = './data/train_64'
+        test_data_path = './data/val_64'
     else:
         train_data_path = '/home/trogdent/imagenet_data/train'
         test_data_path = '/home/trogdent/imagenet_data/val'

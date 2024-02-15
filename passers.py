@@ -1,6 +1,8 @@
-from utils import progress_bar
-import torch
 import numpy as np
+import torch
+
+from graph import signal_concat
+from utils import progress_bar
 
 
 def get_accuracy(predictions, targets):
@@ -82,10 +84,11 @@ class Passer():
         return np.concatenate(gts), np.concatenate(preds)
 
     @torch.no_grad()
-    def get_function(self, forward='selected'):
+    def get_function(self, forward='selected', reduction='pca'):
         ''' Collect function (features) from the self.network.module.forward_features() routine '''
         features = []
 
+        print(f'Number of data points: {len(self.loader)* self.loader.batch_size}')
         for batch_idx, (inputs, targets) in enumerate(self.loader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             
@@ -119,8 +122,75 @@ class Passer():
         # triangular part of the matrix. We can then binarize the correlation matrix by setting
         # a threshold for the correlation value. If the correlation is above the threshold, then
         # we set the value to 1, otherwise we set the value to 0.
+            
+        features = [np.concatenate(list(zip(*features))[i]) for i in range(len(features[0]))]
+        features = signal_concat(features)
 
-        return [np.concatenate(list(zip(*features))[i]) for i in range(len(features[0]))]
+        if reduction.__eq__('pca'):
+            print("\nFeatures size before PCA:", features.shape)
+            features = self.perform_pca(features, alpha=.05)
+            print("Features size after PCA:", features.shape)
+        elif reduction.__eq__('umap'):
+            print("\nFeatures size before UMAP:", features.shape)
+            features = self.perform_umap(features)
+            print("Features size after UMAP:", features.shape)
+        elif reduction.__eq__('tsne'):
+            print("\nFeatures size before t-SNE:", features.shape)
+            features = self.perform_tsne(features)
+            print("Features size after t-SNE:", features.shape)
+
+        return features
+
+    @torch.no_grad()
+    def perform_pca(self, features, alpha=.05):
+        ''' Perform PCA on the features '''
+        tens_feats = torch.tensor(features).to(self.device).T # transpose to get the right shape
+        m, _ = tens_feats.size() # m is the number of data points
+        
+        tolerance = 1 - alpha # how much variance we want to be accounted for
+
+        # Center the data
+        centered = tens_feats - tens_feats.mean(dim=0)
+
+        # Perform PCA
+        cov = torch.matmul(centered.T, centered) / (m - 1)
+        _, S, V = torch.linalg.svd(cov, driver='gesvd')
+        
+        S, V = S.to(self.device), V.to(self.device)
+
+        # Calculate the number of principal components to keep
+        total = sum(S)
+        explained = S / total # calculate the percentage of variance explained by each component
+        
+        num_components = 0
+        partial_perc = 0
+        for perc in explained:
+            partial_perc += perc
+            num_components += 1
+            if partial_perc >= tolerance:
+                break
+        
+        # Project the data onto the principal components
+        projected = torch.matmul(tens_feats, V[:, :num_components])
+
+        del tens_feats, centered, cov, S, V
+        torch.cuda.empty_cache()
+
+        return projected.T.cpu().data.numpy().astype(np.float64)
+
+    @torch.no_grad()
+    def perform_umap(self, features):
+        ''' Perform UMAP on the features '''
+        import umap
+
+        return umap.UMAP().fit_transform(features)
+    
+    @torch.no_grad()
+    def perform_tsne(self, features):
+        ''' Perform t-SNE on the features '''
+        from sklearn.manifold import TSNE
+
+        return TSNE(n_components=2).fit_transform(features)
 
     def get_structure(self):
         ''' Collect structure (weights) from the self.network.module.forward_weights() routine '''
