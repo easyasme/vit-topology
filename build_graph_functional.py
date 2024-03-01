@@ -1,11 +1,12 @@
 from __future__ import print_function
 
+import argparse
 import time
 
 from gph import ripser_parallel
 from gtda.homology._utils import _postprocess_diagrams
 from gtda.plotting import plot_diagram
-from scipy.sparse import coo_matrix, tril
+from scipy.sparse import coo_matrix
 
 from bettis import betti_nums
 from config import UPPER_DIM
@@ -16,9 +17,11 @@ from passers import Passer
 from utils import *
 
 parser = argparse.ArgumentParser(description='Build Graph and Compute Betti Numbers')
+
 parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--save_dir')
+parser.add_argument('--cluster', default=None, help='Dask client')
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--thresholds', default='.05 1.0', help='Defining thresholds range in the form \'start stop\' ')
@@ -30,11 +33,12 @@ parser.add_argument('--verbose', default=0, type=int)
 args = parser.parse_args()
 
 device_list = []
-if torch.cuda.device_count() > 1:
+NUM_DEVICES = torch.cuda.device_count()
+if NUM_DEVICES > 1:
     print("Using", torch.cuda.device_count(), "GPUs")
     device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
 else:
-    print("Using single GPU")
+    print("Using a single GPU")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     device_list.append(device)
 
@@ -74,9 +78,9 @@ functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, subse
 
 start = float(args.thresholds.split(' ')[0])
 stop = float(args.thresholds.split(' ')[1])
-thresholds = np.linspace(start=start, stop=stop, num=100, dtype=np.float64)
+thresholds = np.linspace(start=start, stop=stop, num=50, dtype=np.float64)
 
-eps_thresh = np.linspace(start=0., stop=args.eps_thresh, num=100)
+eps_thresh = np.linspace(start=0., stop=args.eps_thresh, num=50)
 
 total_time = 0.
 ''' Load checkpoint and get activations '''
@@ -93,7 +97,7 @@ with torch.no_grad():
 
         ''' Define passer and get activations '''
         passer = Passer(net, functloader, criterion, device_list[0])
-        activs = passer.get_function(reduction=args.reduction)
+        activs = passer.get_function(reduction=args.reduction, cluster=args.cluster, num_devs=NUM_DEVICES, device_list=device_list)
         adj = adjacency(activs, device=device_list[0])
 
         num_nodes = adj.shape[0] if adj.shape[0] != 0 else 1

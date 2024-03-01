@@ -6,30 +6,12 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-import torch
 import torch.nn as nn
 import torch.nn.init as init
 from matplotlib import cm
 
 from config import UPPER_DIM
 
-
-def get_mean_and_std(dataset):
-    '''Compute the mean and std value of dataset.'''
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=True, num_workers=2)
-    mean = torch.zeros(3)
-    std = torch.zeros(3)
-
-    print('==> Computing mean and std..')
-
-    for inputs, _ in dataloader:
-        for i in range(3):
-            mean[i] += inputs[:,i,:,:].mean()
-            std[i] += inputs[:,i,:,:].std()
-    mean.div_(len(dataset))
-    std.div_(len(dataset))
-    
-    return mean, std
 
 def init_params(net):
     '''Init layer parameters.'''

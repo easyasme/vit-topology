@@ -8,11 +8,11 @@ from config import SUBSETS_LIST
 from loaders import *
 
 
-NET = 'lenet'
-DATASET = 'mnist'
-SUBSETS = 2 # 1 for none, 30 for all
+NET = 'alexnet'
+DATASET = 'imagenet'
+SUBSETS = 1 # 1 for none, 30 for all
 
-START = 1 if DATASET.__eq__('mnist') else 0
+START = 0 if DATASET.__eq__('mnist') else 0
 
 # img_path_32 = './data/train_32'
 # img_path_64 = './data/train_64'
@@ -46,7 +46,7 @@ for iter in range(START, SUBSETS):
         print("No stats.pkl found at", pkl_path)
         continue
 
-    save_dir = f"./results/{NET}_{DATASET}_ss{iter}/images/loss/"
+    save_dir = f"./results/test/my_pca/{NET}_{DATASET}_ss{iter}/images/loss/"
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     acc_save_file = f"{save_dir}/acc.png"
@@ -105,7 +105,7 @@ def get_concat_h_multi_blank(im_list):
     return _im
 
 for iter in range(START, SUBSETS):
-    save_dir = f"./results/{NET}_{DATASET}_ss{iter}/images/curves/"
+    save_dir = f"./results/test/my_pca/{NET}_{DATASET}_ss{iter}/images/curves/"
     files = os.listdir(save_dir)
     files = [f for f in files if f.startswith('epoch')]
     

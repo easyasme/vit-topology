@@ -15,7 +15,6 @@ def save_checkpoint(checkpoint, path, fname):
         
     torch.save(checkpoint, path+fname)
 
-        
 def save_activations(activs, path, fname, internal_path):
     """
     Save features to path/fname in h5py dataset.
@@ -42,7 +41,6 @@ def save_activations(activs, path, fname, internal_path):
 
     file.close()
 
-    
 def save_losses(losses, path, fname):
     """ Save losses (np.ndarray) to path with fname """
     if not os.path.exists(path):
