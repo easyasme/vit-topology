@@ -115,9 +115,9 @@ def format_time(seconds):
         f = '0ms'
     return f
 
-def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thresh, curves_dir, threeD_img_dir, start, stop, net, dataset, subset):
+def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, orig_nodes, thresholds, eps_thresh, curves_dir, threeD_img_dir, start, stop, net, dataset, subset):
     # pickle betti numbers along with epoch and thresholds in a dictionary
-    betti_nums_dict = {'epoch': epoch, 'thresholds': thresholds, 'betti_nums': betti_nums / num_nodes}
+    betti_nums_dict = {'epoch': epoch, 'thresholds': thresholds, 'betti_nums': betti_nums, 'num_nodes': num_nodes, 'orig_nodes': orig_nodes}
     pkl_file = f'./losses/{net}/{net}_{dataset}_ss{subset}/betti_nums.pkl'
 
     os.makedirs(os.path.dirname(pkl_file), exist_ok=True)

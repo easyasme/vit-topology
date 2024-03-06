@@ -125,13 +125,13 @@ class Passer():
         features = [np.concatenate(list(zip(*features))[i]) for i in range(len(features[0]))]
         features = signal_concat(features).T # put in data x features format; samples are rows, features are columns
 
+        m, n = features.shape
+        print(f"Features size before {reduction}: {(m, n)}")
+
         if reduction is not None:
             # import cudf
             # import dask_cudf
             # from dask.distributed import Client
-
-            m, n = features.shape
-            print(f"Features size before {reduction}: {(m, n)}")
 
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
@@ -157,7 +157,7 @@ class Passer():
 
             print(f"Features size after {reduction}: {features.shape}")
 
-        return features.T # put in features x data format; features are rows, samples are columns
+        return features.T, n # put in features x data format; features are rows, samples are columns
 
     @torch.no_grad()
     def perform_pca(self, features, m, alpha=.05, center_only=True, device_list=None):

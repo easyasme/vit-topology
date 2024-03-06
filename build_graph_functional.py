@@ -99,7 +99,7 @@ with torch.no_grad():
 
         ''' Define passer and get activations '''
         passer = Passer(net, functloader, criterion, device_list[0])
-        activs = passer.get_function(reduction=args.reduction, cluster=args.cluster, device_list=device_list) # get activations and reduce dimensionality
+        activs, orig_nodes = passer.get_function(reduction=args.reduction, cluster=args.cluster, device_list=device_list) # get activations and reduce dimensionality
         adj = adjacency(activs, device=device_list[0]) # compute adjacency matrix
 
         num_nodes = adj.shape[0] if adj.shape[0] != 0 else 1
@@ -176,6 +176,6 @@ with torch.no_grad():
         betti_nums_list_3d = np.array(betti_nums_list_3d)
         
         # Plot betti numbers per dimension at current eps. thresh.
-        make_plots(betti_nums_list, betti_nums_list_3d, epoch, num_nodes, thresholds, args.eps_thresh, CURVES_DIR, THREED_IMG_DIR, start, stop, args.net, args.dataset, args.iter)
+        make_plots(betti_nums_list, betti_nums_list_3d, epoch, num_nodes, orig_nodes, thresholds, args.eps_thresh, CURVES_DIR, THREED_IMG_DIR, start, stop, args.net, args.dataset, args.iter)
 
     print(f'\n Total computation time: {total_time/60:.5f} minutes \n')
