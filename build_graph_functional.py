@@ -21,12 +21,12 @@ parser = argparse.ArgumentParser(description='Build Graph and Compute Betti Numb
 parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--save_dir')
-parser.add_argument('--cluster', default=None, help='Dask client')
+parser.add_argument('--cluster', default=None, help='Dask cluster address.')
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
 parser.add_argument('--input_size', default=32, type=int)
-parser.add_argument('--thresholds', default='.05 1.0', help='Defining thresholds range in the form \'start stop\' ')
+parser.add_argument('--thresholds', default='0.05 1.0', help='Defining thresholds range in the form \'start stop\' ')
 parser.add_argument('--eps_thresh', default=1., type=float)
-parser.add_argument('--reduction', default='pca', type=str, help='Reductions: pca, tsne, umap, or none.')
+parser.add_argument('--reduction', default='pca', type=str, help='Reductions: pca, umap, or none.')
 parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--verbose', default=0, type=int)
 
@@ -45,6 +45,7 @@ else:
 for i, device in enumerate(device_list):
     print(f"Device {i}: {device}")
 
+''' Create save directories to store images '''
 SAVE_DIR = args.save_dir
 if not os.path.exists(SAVE_DIR):
     os.makedirs(SAVE_DIR)
@@ -78,9 +79,9 @@ functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, subse
 
 start = float(args.thresholds.split(' ')[0])
 stop = float(args.thresholds.split(' ')[1])
-thresholds = np.linspace(start=start, stop=stop, num=50, dtype=np.float64)
+thresholds = np.linspace(start=start, stop=stop, num=50, dtype=np.float64) # for 2D plot
 
-eps_thresh = np.linspace(start=0., stop=args.eps_thresh, num=50)
+eps_thresh = np.linspace(start=0., stop=args.eps_thresh, num=50) # for 3D plot
 
 total_time = 0.
 ''' Load checkpoint and get activations '''
@@ -94,11 +95,12 @@ with torch.no_grad():
         
         net.load_state_dict(checkpoint['net'])
         net.eval()
+        net.requires_grad_(False)
 
         ''' Define passer and get activations '''
         passer = Passer(net, functloader, criterion, device_list[0])
-        activs = passer.get_function(reduction=args.reduction, cluster=args.cluster, num_devs=NUM_DEVICES, device_list=device_list)
-        adj = adjacency(activs, device=device_list[0])
+        activs = passer.get_function(reduction=args.reduction, cluster=args.cluster, device_list=device_list) # get activations and reduce dimensionality
+        adj = adjacency(activs, device=device_list[0]) # compute adjacency matrix
 
         num_nodes = adj.shape[0] if adj.shape[0] != 0 else 1
 
@@ -110,19 +112,13 @@ with torch.no_grad():
         betti_nums_list_3d = []
         for j, t in enumerate(thresholds):
             print(f'\n Epoch: {epoch} | Threshold: {t:.3f} \n')
-
-            # print(f'Activs dtype {activs.dtype}')
-            # print(f'Adj dtype {adj.dtype}')
             
+            # Binarize and flip adjacency matrix
             binadj = partial_binarize(adj.detach().clone(), t, device=device_list[-1])
             flip = make_flip_matrix(binadj.detach(), device=device_list[-1])
-            
-            # print(f'Binadj dtype {binadj.dtype}, flip dtype {flip.dtype}')
 
             binadj *= -1 # flip binadj to reflect closeness
-            binadj += flip # flip binadj to reflect closeness
-
-            # print(f'Binadj dtype {binadj.dtype}')    
+            binadj += flip # flip binadj to reflect closeness  
 
             # indices = binadj.nonzero().cpu().numpy()
             # i = list(zip(*indices))
@@ -134,9 +130,6 @@ with torch.no_grad():
             np.fill_diagonal(binadj, 0)
             
             binadj = coo_matrix(binadj) # convert to sparse COO format matrix
-            # binadj = tril(binadj.cpu(), format="coo") # convert to sparse COO format matrix
-            
-            # print(list(zip(*binadj.nonzero())))
 
             if args.verbose:
                 print(f'\n The dimension of the COO distance matrix is {binadj.data.shape}\n')
@@ -145,10 +138,12 @@ with torch.no_grad():
                 else:
                     print(f'Binadj empty! \n')
             
+            # Compute persistence diagram
             comp_time = time.time()
             dgm = ripser_parallel(binadj, metric="precomputed", maxdim=UPPER_DIM, n_threads=-1, collapse_edges=True)
             comp_time = time.time() - comp_time
 
+            # free GPU memory
             torch.cuda.empty_cache()
             del binadj, flip
             
@@ -157,19 +152,23 @@ with torch.no_grad():
 
             dgm_gtda = _postprocess_diagrams([dgm["dgms"]], "ripser", range(UPPER_DIM + 1), np.inf, True)[0]
 
+            # Compute betti numbers over eps. and thresh. for 3D plot
             betti_nums_3d = []
             for k in eps_thresh:
                 betti_nums_3d.append(betti_nums(dgm_gtda, thresh=k))
             betti_nums_list_3d.append(betti_nums_3d)
             
+            # Compute betti numbers at current eps. thresh.
             betti_nums_list.append(betti_nums(dgm_gtda, thresh=args.eps_thresh))
 
+            # Plot persistence diagram at current eps. thresh.
             if (t != 1.0) and (j % 25 == 0):
                 dgm_img_path = PERS_DIR + "/epoch_{}_thresh{:.2f}_b{}".format(epoch, t, UPPER_DIM) + ".png"
 
                 dgm_fig = plot_diagram(dgm_gtda)
                 dgm_fig.write_image(dgm_img_path)
         
+        # free GPU memory
         del activs, adj
         torch.cuda.empty_cache()
 
@@ -177,6 +176,6 @@ with torch.no_grad():
         betti_nums_list_3d = np.array(betti_nums_list_3d)
         
         # Plot betti numbers per dimension at current eps. thresh.
-        make_plots(betti_nums_list, betti_nums_list_3d, epoch, num_nodes, thresholds, args.eps_thresh, CURVES_DIR, THREED_IMG_DIR, start, stop)
+        make_plots(betti_nums_list, betti_nums_list_3d, epoch, num_nodes, thresholds, args.eps_thresh, CURVES_DIR, THREED_IMG_DIR, start, stop, args.net, args.dataset, args.iter)
 
     print(f'\n Total computation time: {total_time/60:.5f} minutes \n')

@@ -16,6 +16,7 @@ class Bottleneck(nn.Module):
         out = self.conv1(F.relu(self.bn1(x)))
         out = self.conv2(F.relu(self.bn2(out)))
         out = torch.cat([out, x], 1)
+        
         return out
 
 
@@ -28,6 +29,7 @@ class Transition(nn.Module):
     def forward(self, x):
         out = self.conv(F.relu(self.bn(x)))
         out = F.avg_pool2d(out, 2)
+        
         return out
 
 
@@ -79,38 +81,33 @@ class DenseNet(nn.Module):
         out = F.avg_pool2d(F.relu(self.bn(out)), 4)
         out = out.view(out.size(0), -1)
         out = self.linear(out)
+        
         return out
 
     def forward_features(self, x):
-        return []
+        x1 = self.conv1(x)
+        x2 = self.trans1(self.dense1(x1))
+        x3 = self.trans2(self.dense2(x2))
+        x4 = self.trans3(self.dense3(x3))
+        x5 = self.dense4(x4)
+        x6 = F.avg_pool2d(F.relu(self.bn(x5)), 4)
+        x7 = x6.view(x6.size(0), -1)
+        out = self.linear(x7)
+        
+        return [x1, x2, x3, x4, x5, x6, x7, out]
 
 
 def DenseNet121(num_classes):
     return DenseNet(Bottleneck, [6, 12, 24, 16], growth_rate=32, num_classes=num_classes)
 
-
-def DenseNet169():
+def DenseNet169(num_classes):
     return DenseNet(Bottleneck, [6, 12, 32, 32], growth_rate=32, num_classes=num_classes)
 
-
-def DenseNet201():
+def DenseNet201(num_classes):
     return DenseNet(Bottleneck, [6, 12, 48, 32], growth_rate=32, num_classes=num_classes)
 
-
-def DenseNet161():
+def DenseNet161(num_classes):
     return DenseNet(Bottleneck, [6, 12, 36, 24], growth_rate=48, num_classes=num_classes)
 
-
-def densenet_cifar():
+def densenet_cifar(num_classes):
     return DenseNet(Bottleneck, [6, 12, 24, 16], growth_rate=12, num_classes=num_classes)
-
-
-def test():
-    net = densenet_cifar()
-    x = torch.randn(1, 3, 32, 32)
-    y = net(x)
-    print(y)
-
-
-if __name__ == '__main__':
-    test()

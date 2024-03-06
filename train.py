@@ -4,9 +4,9 @@ import argparse
 import gc
 import os
 
-import matplotlib.pyplot as plt
 import torch
 import torch.backends.cudnn as cudnn
+import torch.nn as nn
 import torch.optim as optim
 from adabelief_pytorch import AdaBelief
 from numpy import inf
@@ -14,7 +14,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
 
 from config import SAVE_PATH
 from loaders import *
-from models.utils import get_criterion, get_model, init_from_checkpoint
+from models.utils import get_model, init_from_checkpoint
 from passers import Passer
 from savers import save_checkpoint, save_losses
 
@@ -58,7 +58,7 @@ test_loader = loader(args.dataset + '_test', batch_size=args.test_batch_size, it
 
 n_samples = len(train_loader) * args.train_batch_size
 
-criterion = get_criterion(args.dataset)
+criterion = nn.CrossEntropyLoss()
 
 ''' Build models '''
 print('==> Building model..', "\n")

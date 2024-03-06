@@ -1,25 +1,34 @@
 import os
-from .lenet import *
-from .vgg import *
-from .resnet import *
-from .alexnet import *
-from .densenet import *
-from .inception import *
-from .conv_x import * 
-from .fcnet import *
 
 from config import IMG_SIZE
+
+from .alexnet import *
+from .conv_x import *
+from .densenet import *
+from .fcnet import *
+from .inception import *
+from .lenet import *
+from .resnet import *
+from .vgg import *
 
 
 def get_model(name, dataset):
     if name == 'conv_2':
+        print("\n Fetching Conv_2")
+        print("Input size:", IMG_SIZE)
         net = Conv_2(num_classes=10)
     elif name == 'conv_4':
+        print("\n Fetching Conv_4")
+        print("Input size:", IMG_SIZE)
         net = Conv_4(num_classes=10)
     elif name == 'conv_6':
+        print("\n Fetching Conv_6")
+        print("Input size:", IMG_SIZE)
         net = Conv_6(num_classes=10)
 
     elif name == 'fcnet':
+        print("\n Fetching FCNet")
+        print("Input size: ", 3, '\n')
         net = FCNet(input_size=3, num_classes=3)
     
     elif name=='lenet' and dataset == 'mnist':
@@ -40,8 +49,14 @@ def get_model(name, dataset):
         print("Input size: ", 32, '\n')
         net = LeNetExt(n_channels=1, num_classes=10)
 
+    elif name=='vgg' and dataset=='mnist':
+        print("\n Fetching VGG9")
+        print("Input size:", 28, '\n')
+        net = VGG('VGG9', img_size=28, num_classes=10)
     elif name=='vgg' and dataset=='imagenet':
-        net = VGG('VGG16', num_classes=10)
+        print("\n Fetching VGG16")
+        print("Input size:", IMG_SIZE)
+        net = VGG('VGG16', img_size=IMG_SIZE, num_classes=10)
     
     elif name=='resnet' and dataset=='imagenet':
         print("\n Fetching ResNet")
@@ -49,9 +64,13 @@ def get_model(name, dataset):
         net = ResNet18(num_classes=10, input_size=IMG_SIZE)
 
     elif name=='densenet' and dataset=='imagenet':
+        print("\n Fetching DenseNet121")
+        print("Input size:", IMG_SIZE)
         net = DenseNet121(num_classes=10)
     
     elif name=='inception' and dataset=='imagenet':
+        print("\n Fetching InceptionV3")
+        print("Input size:", IMG_SIZE)
         net = GoogLeNet(num_classes=10)
     
     elif name=='alexnet' and dataset=='imagenet':
@@ -64,17 +83,6 @@ def get_model(name, dataset):
 
     print("Trainable Params:", sum(p.numel() for p in net.parameters() if p.requires_grad), '\n')
     return net
-
-def get_criterion(dataset):
-    criterion = nn.CrossEntropyLoss()
-    ''' Prepare criterion '''
-    '''
-    if dataset in ['cifar10', 'cifar10_gray', 'imagenet', 'fashion_mnist', 'svhn']:
-        criterion = nn.CrossEntropyLoss()
-    elif dataset in ['mnist', 'mnist_adversarial']:
-        criterion = F.nll_loss
-    ''' 
-    return criterion 
 
 def init_from_checkpoint(net):
     ''' Initialize from checkpoint'''

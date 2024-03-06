@@ -3,6 +3,7 @@ import os.path
 import pickle
 import sys
 import time
+import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -114,9 +115,17 @@ def format_time(seconds):
         f = '0ms'
     return f
 
-def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thresh, curves_dir, threeD_img_dir, start, stop):
-    color = {0: 'mediumseagreen', 1: 'b', 2: 'r', 3: 'g', 4: 'c', 5: 'k', 6: 'm', 7: 'w'}
+def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thresh, curves_dir, threeD_img_dir, start, stop, net, dataset, subset):
+    # pickle betti numbers along with epoch and thresholds in a dictionary
+    betti_nums_dict = {'epoch': epoch, 'thresholds': thresholds, 'betti_nums': betti_nums / num_nodes}
+    pkl_file = f'./losses/{net}/{net}_{dataset}_ss{subset}/betti_nums.pkl'
 
+    os.makedirs(os.path.dirname(pkl_file), exist_ok=True)
+
+    with open(pkl_file, 'wb') as f:
+        pickle.dump(betti_nums_dict, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    color = {0: 'mediumseagreen', 1: 'b', 2: 'r', 3: 'g', 4: 'c', 5: 'k', 6: 'm', 7: 'w'}
     for i in range(0, UPPER_DIM+1):
         bn_img_path = curves_dir + "/epoch_{}_dim_{}_bn_{}".format(epoch, UPPER_DIM, i) + ".png"
             
@@ -156,7 +165,7 @@ def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, thresholds, eps_thre
         ax.set_title('Epoch {}'.format(epoch))
 
         with open(bn3d_img_path, 'wb') as f:
-            pickle.dump(fig, f)
+            pickle.dump(fig, f, protocol=pickle.HIGHEST_PROTOCOL)
 
         plt.clf()
         plt.close(fig)

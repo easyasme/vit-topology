@@ -9,4 +9,5 @@ dipha/
 losses/
 results/
 scripts/
+lightning_logs/
 config.py
