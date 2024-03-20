@@ -12,12 +12,15 @@ required.add_argument('--dataset', help='Specify dataset (e.g. mnist, cifar10, i
 parser.add_argument('--train', default=1, type=int)
 parser.add_argument('--build_graph', default=1, type=int)
 parser.add_argument('--data_subset', default='0 10', help='Specify data subset in the form \'start stop\'')
+parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
+parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcor", or callable.')
 parser.add_argument('--n_epochs_train', default='50', help='Number of epochs to train.')
 parser.add_argument('--lr', default='0.001', help='Specify learning rate for training.')
 parser.add_argument('--optimizer', default='adabelief', help='Specify optimizer for training. (e.g. adabelief or adam)')
 parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs for which you want to build graph.')
 parser.add_argument('--reduction', default='pca', type=str, help='Reductions: pca, umap, or none.')
 parser.add_argument('--verbose', default=0, type=int)
+parser.add_argument('--save_dir', default='./results/', help='Directory to save results.')
 
 # SLURM parameters
 parser.add_argument('--time', default='24:00:00', help="Walltime in the form hh:mm:ss")
@@ -34,63 +37,221 @@ args = parser.parse_args()
 start = int(args.data_subset.split()[0])
 stop = int(args.data_subset.split()[1])
 
-FILENAME = f'job_{args.net}_{args.dataset}_{start}-{stop}.sh'
+
+if args.dataset.__eq__('mnist'):
+    FILENAME = f'job_{args.net}_{args.dataset}.sh'
+else:
+    FILENAME = f'job_{args.net}_{args.dataset}_{start}-{stop}.sh'
 
 print(f'Generating job script: {FILENAME}\n')
-with open(FILENAME, 'w') as f:
-    f.write(f'''\
-#!/bin/sh
+if (args.reduction is not None) and (args.metric is None):
+    with open(FILENAME, 'w') as f:
+        f.write(f'''\
+    #!/bin/sh
 
-NET="{args.net}" # lenet lenetext alexnet resnet densenet vgg inception
-DATASET="{args.dataset}" # mnist imagenet etc.
+    NET="{args.net}" # lenet lenetext alexnet resnet densenet vgg inception
+    DATASET="{args.dataset}" # mnist imagenet etc.
 
-TRAIN={args.train} # train model; if 0, load model from checkpoint
-BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
+    TRAIN={args.train} # train model; if 0, load model from checkpoint
+    BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
 
-OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
+    OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
 
-RED="{args.reduction}" # pca or umap
-            
-VERBOSE={args.verbose} # verbose level
+    RED="{args.reduction}" # pca or umap
+                
+    VERBOSE={args.verbose} # verbose level
 
-START={start} # start index of experiment
-STOP={stop} # number of experiments that correspond to subsets of data; max is 29
+    START={start} # start index of experiment
+    STOP={stop} # number of experiments that correspond to subsets of data; max is 29
 
-# training params
-N_EPOCHS={args.n_epochs_train} # number of epochs to train
-EPOCHS_TEST='{args.epochs_test}' # points where functional graph will be buit
-LR={args.lr} # learning rate
+    SAVE_DIR="{args.save_dir}" # directory to save results
 
-## Train and compute topology for each dataset then create graphs
-echo
-printf -- '-%.0s' $(seq 50)
-echo
-echo "Training $NET on $DATASET"
-echo "Epochs: $N_EPOCHS"
-echo "Epochs to build graph: $EPOCHS_TEST"
-echo "Learning rate: $LR"
-printf -- '-%.0s' $(seq 50)
+    # training params
+    N_EPOCHS={args.n_epochs_train} # number of epochs to train
+    EPOCHS_TEST='{args.epochs_test}' # points where functional graph will be buit
+    LR={args.lr} # learning rate
 
-if [ $DATASET == "mnist" ]
-then
-    python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --verbose "$VERBOSE"
-else
-    for i in $(seq "$START" "$STOP")
-    do
-        echo
-        echo "Subset $i"
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --iter $i --verbose "$VERBOSE"
-    done
-fi
-''')
+    ## Train and compute topology for each dataset then create graphs
+    echo
+    printf -- '-%.0s' $(seq 50)
+    echo
+    echo "Training $NET on $DATASET"
+    echo "Epochs: $N_EPOCHS"
+    echo "Epochs to build graph: $EPOCHS_TEST"
+    echo "Learning rate: $LR"
+    printf -- '-%.0s' $(seq 50)
 
-BATCH_FILE = f'jobscript_{args.net}_{args.dataset}_{start}-{stop}'
+    if [ $DATASET == "mnist" ]
+    then
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+    else
+        for i in $(seq "$START" "$STOP")
+        do
+            echo
+            echo "Subset $i"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        done
+    fi
+    ''')
+elif (args.metric is not None) and (args.reduction is None):
+    with open(FILENAME, 'w') as f:
+        f.write(f'''\
+    #!/bin/sh
+
+    NET="{args.net}" # lenet lenetext alexnet resnet densenet vgg inception
+    DATASET="{args.dataset}" # mnist imagenet etc.
+
+    TRAIN={args.train} # train model; if 0, load model from checkpoint
+    BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
+
+    OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
+
+    METRIC="{args.metric}" # distance metric: spearman, dcorr, or callable
+                
+    VERBOSE={args.verbose} # verbose level
+
+    START={start} # start index of experiment
+    STOP={stop} # number of experiments that correspond to subsets of data; max is 29
+
+    SAVE_DIR="{args.save_dir}" # directory to save results
+
+    # training params
+    N_EPOCHS={args.n_epochs_train} # number of epochs to train
+    EPOCHS_TEST='{args.epochs_test}' # points where functional graph will be buit
+    LR={args.lr} # learning rate
+
+    ## Train and compute topology for each dataset then create graphs
+    echo
+    printf -- '-%.0s' $(seq 50)
+    echo
+    echo "Training $NET on $DATASET"
+    echo "Epochs: $N_EPOCHS"
+    echo "Epochs to build graph: $EPOCHS_TEST"
+    echo "Learning rate: $LR"
+    printf -- '-%.0s' $(seq 50)
+
+    if [ $DATASET == "mnist" ]
+    then
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+    else
+        for i in $(seq "$START" "$STOP")
+        do
+            echo
+            echo "Subset $i"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        done
+    fi
+    ''')
+elif (args.metric is None) and (args.reduction is None):
+    with open(FILENAME, 'w') as f:
+        f.write(f'''\
+    #!/bin/sh
+
+    NET="{args.net}" # lenet lenetext alexnet resnet densenet vgg inception
+    DATASET="{args.dataset}" # mnist imagenet etc.
+
+    TRAIN={args.train} # train model; if 0, load model from checkpoint
+    BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
+
+    OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
+                
+    VERBOSE={args.verbose} # verbose level
+
+    START={start} # start index of experiment
+    STOP={stop} # number of experiments that correspond to subsets of data; max is 29
+
+    SAVE_DIR="{args.save_dir}" # directory to save results
+
+    # training params
+    N_EPOCHS={args.n_epochs_train} # number of epochs to train
+    EPOCHS_TEST='{args.epochs_test}' # points where functional graph will be buit
+    LR={args.lr} # learning rate
+
+    ## Train and compute topology for each dataset then create graphs
+    echo
+    printf -- '-%.0s' $(seq 50)
+    echo
+    echo "Training $NET on $DATASET"
+    echo "Epochs: $N_EPOCHS"
+    echo "Epochs to build graph: $EPOCHS_TEST"
+    echo "Learning rate: $LR"
+    printf -- '-%.0s' $(seq 50)
+
+    if [ $DATASET == "mnist" ]
+    then
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+    else
+        for i in $(seq "$START" "$STOP")
+        do
+            echo
+            echo "Subset $i"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        done
+    fi
+    ''')
+else:
+    with open(FILENAME, 'w') as f:
+        f.write(f'''\
+    #!/bin/sh
+
+    NET="{args.net}" # lenet lenetext alexnet resnet densenet vgg inception
+    DATASET="{args.dataset}" # mnist imagenet etc.
+
+    TRAIN={args.train} # train model; if 0, load model from checkpoint
+    BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
+
+    OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
+
+    RED="{args.reduction}" # pca or umap
+
+    METRIC="{args.metric}" # distance metric: spearman, dcorr, or callable
+                
+    VERBOSE={args.verbose} # verbose level
+
+    START={start} # start index of experiment
+    STOP={stop} # number of experiments that correspond to subsets of data; max is 29
+
+    SAVE_DIR="{args.save_dir}" # directory to save results
+
+    # training params
+    N_EPOCHS={args.n_epochs_train} # number of epochs to train
+    EPOCHS_TEST='{args.epochs_test}' # points where functional graph will be buit
+    LR={args.lr} # learning rate
+
+    ## Train and compute topology for each dataset then create graphs
+    echo
+    printf -- '-%.0s' $(seq 50)
+    echo
+    echo "Training $NET on $DATASET"
+    echo "Epochs: $N_EPOCHS"
+    echo "Epochs to build graph: $EPOCHS_TEST"
+    echo "Learning rate: $LR"
+    printf -- '-%.0s' $(seq 50)
+
+    if [ $DATASET == "mnist" ]
+    then
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+    else
+        for i in $(seq "$START" "$STOP")
+        do
+            echo
+            echo "Subset $i"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        done
+    fi
+    ''')
+
+if args.dataset.__eq__('mnist'):
+    BATCH_FILE = f'jobscript_{args.net}_{args.dataset}'
+else:
+    BATCH_FILE = f'jobscript_{args.net}_{args.dataset}_{start}-{stop}'
+
 with open(BATCH_FILE, 'w') as f:
     f.write(f'''\
 #!/bin/bash --login
 
 #SBATCH --time={args.time}   # walltime
-#SBATCH --ntasks={args.ntasks}   # number of processor cores (i.e. tasks)
+#SBATCH --ntasks-per-node={args.ntasks}   # number of processor cores (i.e. tasks)
 #SBATCH --mem={args.mem}   # total CPU memory
 #SBATCH --nodes={args.nodes}   # num nodes
 #SBATCH --gpus={args.gpus}
@@ -115,7 +276,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.conda/envs/topo_gph/lib
 mamba activate topo_gph
 cd ~/compute/qual/dnn-topology
 
-. scripts/{FILENAME}
+. scripts/{args.reduction}/{args.metric}/{FILENAME}
 ''')
 
 print(f'Batch job script generated: {BATCH_FILE}')

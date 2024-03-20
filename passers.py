@@ -87,7 +87,7 @@ class Passer():
         return np.concatenate(gts), np.concatenate(preds)
 
     @torch.no_grad()
-    def get_function(self, reduction=None, cluster=None, device_list=None):
+    def get_function(self, reduction=None, device_list=None):
         ''' Collect function (features) from the self.network.module.forward_features() routine '''
         features = []
 
@@ -124,36 +124,21 @@ class Passer():
             
         features = [np.concatenate(list(zip(*features))[i]) for i in range(len(features[0]))]
         features = signal_concat(features).T # put in data x features format; samples are rows, features are columns
-
+        
         m, n = features.shape
-        print(f"Features size before {reduction}: {(m, n)}")
+        print(f"Features size: {(m, n)}")
 
         if reduction is not None:
-            # import cudf
-            # import dask_cudf
-            # from dask.distributed import Client
-
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
             torch.set_float32_matmul_precision('medium') # 'medium' or 'high' for TPU core utilization
 
-            # features must be in dask cuDF format for distributed computing
-            # features = cudf.DataFrame(features)
-            # if num_devs != -1:
-            #     features = dask_cudf.from_cudf(features, npartitions=3* num_devs)
-            # else:
-            #     features = dask_cudf.from_cudf(features, npartitions=1)
-
-            # Perform dimensionality reduction
-            # client = Client(cluster)
             if reduction.__eq__('pca'):
-                features = self.perform_pca(features, m, alpha=.05, device_list=device_list)
-                # features = self.perform_pca(features, client=client, n_components=n, alpha=.025)
+                features = self.perform_pca(features, m, alpha=.01, device_list=device_list)
             elif reduction.__eq__('umap'):
-                features = self.perform_umap(features, num_components=n//100, num_neighbors=100, min_dist=0.175, num_epochs=50, metric='mahalanobis', device_list=device_list)
+                features = self.perform_umap(features, num_components=int(.4*n), num_neighbors=100, min_dist=0.175, num_epochs=50, metric='euclidean', device_list=device_list)
             else:
                 raise ValueError(f"Reduction {reduction} not supported!")
-            # client.close()
 
             print(f"Features size after {reduction}: {features.shape}")
 

@@ -1,9 +1,7 @@
 import glob
 import os
 import random
-from typing import TypeVar, Sequence, List
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchvision
@@ -13,10 +11,8 @@ from PIL import PngImagePlugin
 from torch.utils.data import (DataLoader, Dataset, RandomSampler,
                               SequentialSampler, Subset, random_split)
 
-
 from config import IMG_SIZE, SUBSETS_LIST
 
-T_co = TypeVar('T_co', covariant=True)
 
 # uncomment these lines to allow large images and truncated images to be loaded
 LARGE_ENOUGH_NUMBER = 1000
@@ -67,7 +63,7 @@ def calc_mean_std(dataloader):
     pop_mean = []
     pop_std = []
 
-    for _, data in enumerate(dataloader):
+    for data in dataloader:
         image_batch = data[0]
         
         batch_mean = image_batch.mean(dim=[0,2,3])
@@ -117,17 +113,18 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
         else:
             dataset = DummyDataset(test.dataset, transform=dummy_transform)
 
+    if subset is not None: # and data != 'mnist':
+        subset_iter = list(np.random.choice(dataset.__len__(), size=subset, replace=False))
+        dataset = CustomSubset(dataset, subset_iter)
+
     if sampling == -1:
         sampler = RandomSampler(dataset)
     else:
         sampler = SequentialSampler(dataset)
 
-    if subset is not None and data != 'mnist':
-        dataset = CustomSubset(dataset, subset)
+    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=1, worker_init_fn=seed_worker)
 
-    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=2, drop_last=True,  worker_init_fn=seed_worker)
-
-    print("Transform before: ", dataset.__gettransform__(), "\n")
+    # print(f"Transform before: {dataset.__gettransform__()}\n")
 
     if normalize and not isinstance(transform.transforms[-1], torchvision.transforms.transforms.Normalize):
         mean, std = calc_mean_std(data_loader)
@@ -135,7 +132,7 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
         len_transform = len(dataset.__gettransform__().transforms)
         dataset.__gettransform__().transforms.insert(len_transform, transforms.Normalize(mean, std))
 
-    print("Transform after: ", dataset.__gettransform__(), "\n")
+    # print(f"Transform after: {dataset.__gettransform__()}\n")
 
     return data_loader
 
@@ -253,7 +250,7 @@ class CustomImageNet(Dataset):
 
 class CustomMNIST(Dataset):
     def __init__(self, path='./data/mnist', train=True, transform=None):
-        super(CustomMNIST).__init__()
+        super(CustomMNIST, self).__init__()
 
         download = False if os.path.exists(path) else True
         os.makedirs(path, exist_ok=True)
@@ -315,38 +312,10 @@ class DummyDataset(Dataset):
         # label[rand_int] = 1.
 
         return img, label
-    
-class CustomSubset(Dataset[T_co]):
-    r"""
-    Subset of a dataset at specified indices.
 
-    Args:
-        dataset (Dataset): The whole Dataset
-        indices (sequence): Indices in the whole set selected for subset
-    """
-    dataset: Dataset[T_co]
-    indices: Sequence[int]
+class CustomSubset(Subset):
+    def __init__(self, dataset, indices):
+        super(CustomSubset, self).__init__(dataset, indices)
 
-    def __init__(self, dataset: Dataset[T_co], indices: Sequence[int]) -> None:
-        self.dataset = dataset
-        self.indices = indices
-
-    def __getitem__(self, idx):
-        if isinstance(idx, list):
-            return self.dataset[[self.indices[i] for i in idx]]
-        return self.dataset[self.indices[idx]]
-
-    def __getitems__(self, indices: List[int]) -> List[T_co]:
-        # add batched sampling support when parent dataset supports it.
-        # see torch.utils.data._utils.fetch._MapDatasetFetcher
-        if callable(getattr(self.dataset, "__getitems__", None)):
-            return self.dataset.__getitems__([self.indices[idx] for idx in indices])  # type: ignore[attr-defined]
-        else:
-            max_idx = len(self.dataset) - 1
-            return [self.dataset[self.indices[idx]] for idx in indices if idx <= max_idx]
-
-    def __len__(self):
-        return len(self.indices)
-    
     def __gettransform__(self):
         return self.dataset.__gettransform__()

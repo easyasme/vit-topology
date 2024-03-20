@@ -2,17 +2,14 @@ from __future__ import print_function
 
 import argparse
 import gc
-import os
 
 import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 from adabelief_pytorch import AdaBelief
-from numpy import inf
-from torch.optim.lr_scheduler import ReduceLROnPlateau, StepLR
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-from config import SAVE_PATH
 from loaders import *
 from models.utils import get_model, init_from_checkpoint
 from passers import Passer
@@ -32,16 +29,15 @@ parser.add_argument('--test_batch_size', default=32, type=int)
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
+parser.add_argument('--save_dir')
+
 
 args = parser.parse_args()
 
-ONAME = args.net + '_' + args.dataset + '_ss' + str(args.iter) # Meta-name to be used as prefix on all savings
-
-summary_path = SAVE_PATH + '/' + args.net +  "/summary/"
-if not os.path.isdir(summary_path):
-        os.makedirs(summary_path)
-
-summary_file = summary_path + ONAME + ".txt"
+if args.dataset == 'imagenet':
+    ONAME = f'{args.net}_{args.dataset}_ss{args.iter}' # Meta-name to be used as prefix on all savings
+else:
+    ONAME = f'{args.net}_{args.dataset}'
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("Device: ", device, "\n")
@@ -93,41 +89,24 @@ loss_te, acc_te = passer_test.run()
 
 save_checkpoint(checkpoint = {'net':net.state_dict(),
                               'acc': acc_te, 'epoch': 0},
-                               path='./checkpoint/' + args.net + '/' + ONAME + '/', fname='ckpt_epoch_0.pt')
+                               path=f'./checkpoint/{args.net}/{ONAME}/', fname='ckpt_epoch_0.pt')
 
 print("Begin training", "\n")
 
 losses = []
-best_acc_tr = -inf
-best_acc_te = -inf
-best_epoch_tr = 0
-best_epoch_te = 0
 for epoch in range(start_epoch, start_epoch + args.epochs):
     print('Epoch {}'.format(epoch))
 
     loss_tr, acc_tr = passer_train.run(optimizer)
     loss_te, acc_te = passer_test.run()
 
-    if acc_tr > best_acc_tr:
-        best_acc_tr = acc_tr
-        best_epoch_tr = epoch
-
-    if acc_te > best_acc_te:
-        best_acc_te = acc_te
-        best_epoch_te = epoch
-
-    lines = ["Train epoch: " + str(best_epoch_tr) + "\n", "Train acc: " + str(best_acc_tr) + "\n",
-                 "Test epoch: " + str(best_epoch_te) + "\n", "Test acc: " + str(best_acc_te) + "\n"]
-    with open(summary_file, 'w') as f:
-        f.writelines(lines)
-
     losses.append({'loss_tr': loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te': acc_te, 'epoch': int(epoch)})
     lr_scheduler.step(acc_te)
 
     if epoch in vars(args)['chkpt_epochs']:
-        save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path='./checkpoint/' + args.net + '/' + ONAME + '/', fname=f"ckpt_epoch_{epoch}.pt")
+        save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_{epoch}.pt")
 
     gc.collect()
 
 '''Save losses'''
-save_losses(losses, path='./losses/' + args.net + '/' + ONAME + '/', fname='stats.pkl')
+save_losses(losses, path=f'./losses/{args.net}/{ONAME}/', fname='stats.pkl')

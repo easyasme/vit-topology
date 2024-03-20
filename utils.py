@@ -118,7 +118,11 @@ def format_time(seconds):
 def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, orig_nodes, thresholds, eps_thresh, curves_dir, threeD_img_dir, start, stop, net, dataset, subset):
     # pickle betti numbers along with epoch and thresholds in a dictionary
     betti_nums_dict = {'epoch': epoch, 'thresholds': thresholds, 'betti_nums': betti_nums, 'num_nodes': num_nodes, 'orig_nodes': orig_nodes}
-    pkl_file = f'./losses/{net}/{net}_{dataset}_ss{subset}/betti_nums.pkl'
+    
+    if dataset == 'mnist':
+        pkl_file = f'./losses/{net}/{net}_{dataset}/betti_nums.pkl'
+    else:
+        pkl_file = f'./losses/{net}/{net}_{dataset}_ss{subset}/betti_nums.pkl'
 
     os.makedirs(os.path.dirname(pkl_file), exist_ok=True)
 
@@ -127,22 +131,22 @@ def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, orig_nodes, threshol
 
     color = {0: 'mediumseagreen', 1: 'b', 2: 'r', 3: 'g', 4: 'c', 5: 'k', 6: 'm', 7: 'w'}
     for i in range(0, UPPER_DIM+1):
-        bn_img_path = curves_dir + "/epoch_{}_dim_{}_bn_{}".format(epoch, UPPER_DIM, i) + ".png"
+        bn_img_path = curves_dir + f'/epoch_{epoch}_dim_{UPPER_DIM}_bn_{i}.png'
             
         fig = plt.figure()
 
-        plt.plot(thresholds, betti_nums[:, i] / num_nodes, label='Betti {}'.format(i), color=color[i])
+        plt.plot(thresholds, betti_nums[:, i] / num_nodes, label=f'Betti {i}', color=color[i])
 
         max_idx = np.argmax(betti_nums[:, i] / num_nodes)
         max_val = betti_nums[max_idx, i] / num_nodes
-        plt.vlines(x=thresholds[max_idx], ymin=0, ymax=max_val, color='orange', linestyle='dashed', label='Max loc. {:.3f}'.format(thresholds[max_idx]))
-        plt.hlines(y=max_val, xmin=start, xmax=stop, color='orange', linestyle='dashed', label='Max val. {:.3f}'.format(max_val))
+        plt.vlines(x=thresholds[max_idx], ymin=0, ymax=max_val, color='orange', linestyle='dashed', label=f'Max loc. {thresholds[max_idx]:.3f}')
+        plt.hlines(y=max_val, xmin=start, xmax=stop, color='orange', linestyle='dashed', label=f'Max val. {max_val:.3f}')
 
         plt.xlabel('Thresholds')
         plt.ylabel('Betti Numbers')
         plt.ylim(0, 1.05* max_val)
         plt.grid()
-        plt.title('Epoch {}'.format(epoch))
+        plt.title(f'Epoch {epoch}')
         plt.legend()
             
         fig.savefig(bn_img_path)
@@ -151,18 +155,18 @@ def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, orig_nodes, threshol
         plt.close(fig)
 
     for i in range(0, UPPER_DIM+1):
-        bn3d_img_path = threeD_img_dir + "/epoch_{}_dim_{}_bn_{}_3d".format(epoch, UPPER_DIM, i) + ".pkl"
+        bn3d_img_path = threeD_img_dir + f'/epoch_{epoch}_dim_{UPPER_DIM}_bn_{i}_3d.pkl'
 
         fig, ax = plt.subplots(subplot_kw={"projection": "3d"})
 
         X, Y = np.meshgrid(eps_thresh, thresholds)
         Z = betti_nums_3d[:,:,i] / num_nodes
-        ax.plot_surface(X, Y, Z, cmap=cm.Spectral, alpha=0.8 , label=f"Betti {i}")
+        ax.plot_surface(X, Y, Z, cmap=cm.Spectral, alpha=0.8 , label=f'Betti {i}')
 
         ax.set_xlabel('Eps Thresholds')
         ax.set_ylabel('Thresholds')
         ax.set_zlabel('Betti Numbers')
-        ax.set_title('Epoch {}'.format(epoch))
+        ax.set_title(f'Epoch {epoch}')
 
         with open(bn3d_img_path, 'wb') as f:
             pickle.dump(fig, f, protocol=pickle.HIGHEST_PROTOCOL)

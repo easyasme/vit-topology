@@ -6,10 +6,21 @@ def main(pars):
     args = pars.parse_args()
 
     starts_stops = ['0 9', '10 19', '20 29']
-    for subset in starts_stops:
-        job_name = f'{args.net}_{args.dataset} {subset.split()[0]}-{subset.split()[1]}'
+    for ss in starts_stops:
+        if args.dataset.__eq__('mnist'):
+            job_name = f'{args.net}_{args.dataset}'
+        else:
+            job_name = f'{args.net}_{args.dataset} {ss.split()[0]}-{ss.split()[1]}'
 
-        os.system(f"python scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{subset}' --train {args.train} --build_graph {args.build_graph} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --reduction {args.reduction} --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}'")
+        pth = f'{args.reduction}' if args.reduction else ''
+        pth = os.path.join(pth, args.metric if args.metric else '') 
+        SAVE_DIR = os.path.join(args.save_dir, pth)
+
+        cmd = f"python ../../scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
+        cmd += f' --reduction {args.reduction}' if args.reduction else ''
+        cmd += f' --metric {args.metric}' if args.metric else ''
+
+        os.system(cmd)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Build and run SLURM scripts')
@@ -22,10 +33,13 @@ if __name__ == "__main__":
     parser.add_argument('--build_graph', default=1, type=int)
     parser.add_argument('--n_epochs_train', default='50', help='Number of epochs to train.')
     parser.add_argument('--lr', default='0.001', help='Specify learning rate for training.')
-    parser.add_argument('--optimizer', default='adabelief', help='Specify optimizer for training. (e.g. adabelief or adam)')
+    parser.add_argument('--optimizer', default='adabelief', help='Define training optimizer: "adabelief" or "adam")')
     parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs for which you want to build graph.')
-    parser.add_argument('--reduction', default='pca', type=str, help='Reductions: pca, umap, or none.')
+    parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
+    parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcor", or callable.')
+    parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap, or none.')
     parser.add_argument('--verbose', default=0, type=int)
+    parser.add_argument('--save_dir', default='./results/', help='Directory to save results.')
 
     # SLURM parameters
     parser.add_argument('--time', default='24:00:00', help="Walltime in the form 'hh:mm:ss'")

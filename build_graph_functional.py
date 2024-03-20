@@ -21,12 +21,12 @@ parser = argparse.ArgumentParser(description='Build Graph and Compute Betti Numb
 parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--save_dir')
-parser.add_argument('--cluster', default=None, help='Dask cluster address.')
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
-parser.add_argument('--input_size', default=32, type=int)
+parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
+parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcor", or callable.')
 parser.add_argument('--thresholds', default='0.05 1.0', help='Defining thresholds range in the form \'start stop\' ')
 parser.add_argument('--eps_thresh', default=1., type=float)
-parser.add_argument('--reduction', default='pca', type=str, help='Reductions: pca, umap, or none.')
+parser.add_argument('--reduction', default=None, type=str, help='Reductions: "pca" or "umap"')
 parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--verbose', default=0, type=int)
 
@@ -75,13 +75,13 @@ net = net.to(device_list[0])
 criterion = nn.CrossEntropyLoss()
 
 ''' Prepare val data loader '''
-functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, subset=list(range(0, 1000)), verbose=False)
+functloader = loader(args.dataset+'_test', batch_size=100, iter=args.iter, subset=args.subset, verbose=False) # subset size
 
 start = float(args.thresholds.split(' ')[0])
 stop = float(args.thresholds.split(' ')[1])
-thresholds = np.linspace(start=start, stop=stop, num=50, dtype=np.float64) # for 2D plot
+thresholds = np.linspace(start=start, stop=stop, num=75, dtype=np.float64) # for 2D plot
 
-eps_thresh = np.linspace(start=0., stop=args.eps_thresh, num=50) # for 3D plot
+eps_thresh = np.linspace(start=0., stop=args.eps_thresh, num=75) # for 3D plot
 
 total_time = 0.
 ''' Load checkpoint and get activations '''
@@ -91,7 +91,10 @@ with torch.no_grad():
         
         assert os.path.isdir('./checkpoint'), 'Error: no checkpoint directory found!'
         
-        checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss{args.iter}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
+        if args.dataset == 'imagenet':
+            checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss{args.iter}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
+        else:
+            checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
         
         net.load_state_dict(checkpoint['net'])
         net.eval()
@@ -99,8 +102,8 @@ with torch.no_grad():
 
         ''' Define passer and get activations '''
         passer = Passer(net, functloader, criterion, device_list[0])
-        activs, orig_nodes = passer.get_function(reduction=args.reduction, cluster=args.cluster, device_list=device_list) # get activations and reduce dimensionality
-        adj = adjacency(activs, device=device_list[0]) # compute adjacency matrix
+        activs, orig_nodes = passer.get_function(reduction=args.reduction, device_list=device_list) # get activations and reduce dimensionality
+        adj = adjacency(activs, metric=args.metric, device=device_list[0]) # compute adjacency matrix
 
         num_nodes = adj.shape[0] if adj.shape[0] != 0 else 1
 
@@ -176,6 +179,6 @@ with torch.no_grad():
         betti_nums_list_3d = np.array(betti_nums_list_3d)
         
         # Plot betti numbers per dimension at current eps. thresh.
-        make_plots(betti_nums_list, betti_nums_list_3d, epoch, num_nodes, orig_nodes, thresholds, args.eps_thresh, CURVES_DIR, THREED_IMG_DIR, start, stop, args.net, args.dataset, args.iter)
+        make_plots(betti_nums_list, betti_nums_list_3d, epoch, num_nodes, orig_nodes, thresholds, eps_thresh, CURVES_DIR, THREED_IMG_DIR, start, stop, args.net, args.dataset, args.iter)
 
     print(f'\n Total computation time: {total_time/60:.5f} minutes \n')
