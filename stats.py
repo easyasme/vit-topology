@@ -4,50 +4,47 @@ import pickle
 import matplotlib.pyplot as plt
 from PIL import Image
 
-from config import SUBSETS_LIST
 from loaders import *
 
+NET = 'lenetext'
+DATASET = 'imagenet'
+START = 0
+SUBSETS = 30 # 1 for none, 30 for all
 
-NET = 'lenet'
-DATASET = 'mnist'
-SUBSETS = 1 # 1 for none, 30 for all
+SAVE_DIR = './results/pca/spearman'
+RED = 'pca'
+METRIC = 'spearman'
 
-START = 0 if DATASET.__eq__('mnist') else 0
-
-# img_path_32 = './data/train_32'
-# img_path_64 = './data/train_64'
-
-# labels_path = './data/map_clsloc.txt'
-
-# batch_size = 32
-
-# stats = []
-# for i, subset in enumerate(SUBSETS_LIST):
-#     print("Subset: ", subset)
+def get_concat_h(im1, im2):
+    dst = Image.new('RGB', (im1.width + im2.width, im1.height))
+    dst.paste(im1, (0, 0))
+    dst.paste(im2, (im1.width, 0))
     
-#     transform = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=False)
-#     dataset = CustomImageNet(img_path_64, labels_path, verbose=True, subset=subset, transform=transform, grayscale=False, iter=i)
+    return dst
+
+def get_concat_h_multi_blank(im_list):
+    _im = im_list.pop(0)
+    for im in im_list:
+        _im = get_concat_h(_im, im)
     
-#     sampler = RandomSampler(dataset)
-#     data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=2, drop_last=True,  worker_init_fn=seed_worker)
+    return _im
 
-#     stats.append(calc_mean_std(data_loader)) # pixel-wise mean and std
-
-# print("Means: ", stats[:, 0])
-# print("Stds: ", stats[:, 1])
-
-############################################################################################################
 ''' Make plots of losses and accuracies '''
-
 for iter in range(START, SUBSETS):
-    pkl_path = f"./losses/{NET}/{NET}_{DATASET}_ss{iter}/stats.pkl"
+    if DATASET.__eq__('imagenet'):
+        pkl_path = f"./losses/{NET}/{NET}_{DATASET}_ss{iter}/stats.pkl"
+    else:
+        pkl_path = f"./losses/{NET}/{NET}_{DATASET}/stats.pkl"
 
     if not os.path.exists(pkl_path):
         print("No stats.pkl found at", pkl_path)
         continue
-
-    # save_dir = f"./results/test/spearman/{NET}_{DATASET}_ss{iter}/images/loss/"
-    save_dir = f"./results/test/spearman/{NET}_{DATASET}/images/loss/"
+    
+    if DATASET.__eq__('imagenet'):
+        save_dir = f"{SAVE_DIR}/{RED}/{METRIC}/{NET}_{DATASET}_ss{iter}/images/loss/"
+    else:
+        save_dir = f'{SAVE_DIR}/{RED}/{METRIC}/{NET}_{DATASET}/images/loss/'
+    
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
     acc_save_file = f"{save_dir}/acc.png"
@@ -91,23 +88,13 @@ for iter in range(START, SUBSETS):
     plt.savefig(loss_save_file)
     plt.clf()
 
-def get_concat_h(im1, im2):
-    dst = Image.new('RGB', (im1.width + im2.width, im1.height))
-    dst.paste(im1, (0, 0))
-    dst.paste(im2, (im1.width, 0))
-    
-    return dst
-
-def get_concat_h_multi_blank(im_list):
-    _im = im_list.pop(0)
-    for im in im_list:
-        _im = get_concat_h(_im, im)
-    
-    return _im
-
+''' Concatenate images of curves '''
 for iter in range(START, SUBSETS):
-    # save_dir = f"./results/pca/{NET}_{DATASET}_ss{iter}/images/curves/"
-    save_dir = f"./results/test/spearman/{NET}_{DATASET}/images/curves/"
+    if DATASET.__eq__('imagenet'):
+        save_dir = f"{SAVE_DIR}/{RED}/{METRIC}/{NET}_{DATASET}_ss{iter}/images/curves/"
+    else:
+        save_dir = f'{SAVE_DIR}/{RED}/{METRIC}/{NET}_{DATASET}/images/curves/'
+    
     files = os.listdir(save_dir)
     files = [f for f in files if f.startswith('epoch')]
     

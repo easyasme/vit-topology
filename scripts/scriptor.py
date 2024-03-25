@@ -18,7 +18,7 @@ parser.add_argument('--n_epochs_train', default='50', help='Number of epochs to 
 parser.add_argument('--lr', default='0.001', help='Specify learning rate for training.')
 parser.add_argument('--optimizer', default='adabelief', help='Specify optimizer for training. (e.g. adabelief or adam)')
 parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs for which you want to build graph.')
-parser.add_argument('--reduction', default='pca', type=str, help='Reductions: pca, umap, or none.')
+parser.add_argument('--reduction', default=None, type=str, help='Reductions: "pca" or "umap".')
 parser.add_argument('--verbose', default=0, type=int)
 parser.add_argument('--save_dir', default='./results/', help='Directory to save results.')
 
@@ -38,10 +38,10 @@ start = int(args.data_subset.split()[0])
 stop = int(args.data_subset.split()[1])
 
 
-if args.dataset.__eq__('mnist'):
-    FILENAME = f'job_{args.net}_{args.dataset}.sh'
-else:
+if args.dataset.__eq__('imagenet'):
     FILENAME = f'job_{args.net}_{args.dataset}_{start}-{stop}.sh'
+else:
+    FILENAME = f'job_{args.net}_{args.dataset}.sh'
 
 print(f'Generating job script: {FILENAME}\n')
 if (args.reduction is not None) and (args.metric is None):
@@ -241,10 +241,16 @@ else:
     fi
     ''')
 
-if args.dataset.__eq__('mnist'):
-    BATCH_FILE = f'jobscript_{args.net}_{args.dataset}'
-else:
+if args.dataset.__eq__('imagenet'):
     BATCH_FILE = f'jobscript_{args.net}_{args.dataset}_{start}-{stop}'
+else:
+    BATCH_FILE = f'jobscript_{args.net}_{args.dataset}'
+
+MIDDLE = '/'
+if args.reduction is not None:
+    MIDDLE += f'{args.reduction}/'
+if args.metric is not None:
+    MIDDLE += f'{args.metric}/'
 
 with open(BATCH_FILE, 'w') as f:
     f.write(f'''\
@@ -276,10 +282,10 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.conda/envs/topo_gph/lib
 mamba activate topo_gph
 cd ~/compute/qual/dnn-topology
 
-. scripts/{args.reduction}/{args.metric}/{FILENAME}
+. scripts{MIDDLE}{FILENAME}
 ''')
 
 print(f'Batch job script generated: {BATCH_FILE}')
-print(f'Job script generated: {FILENAME}\n')
+print(f'Job script generated: {FILENAME}')
 print('Run the job script with the following command from the dnn-topology directory:')
-print(f'sbatch scripts/{BATCH_FILE}\n')
+print(f'sbatch scripts{MIDDLE}{FILENAME}\n')

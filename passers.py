@@ -1,5 +1,4 @@
 import os
-import time
 
 import numpy as np
 import torch
@@ -134,13 +133,17 @@ class Passer():
             torch.set_float32_matmul_precision('medium') # 'medium' or 'high' for TPU core utilization
 
             if reduction.__eq__('pca'):
+                print(f"Performing PCA on features with {n} components...\n")
                 features = self.perform_pca(features, m, alpha=.01, device_list=device_list)
             elif reduction.__eq__('umap'):
-                features = self.perform_umap(features, num_components=int(.4*n), num_neighbors=100, min_dist=0.175, num_epochs=50, metric='euclidean', device_list=device_list)
+                print(f"Performing UMAP on features with {n} components...\n")
+                features = self.perform_umap(features, num_components=int(.4*n), num_neighbors=50, min_dist=.175, num_epochs=50, metric='correlation', device_list=device_list)
             else:
                 raise ValueError(f"Reduction {reduction} not supported!")
 
             print(f"Features size after {reduction}: {features.shape}")
+
+            del m
 
         return features.T, n # put in features x data format; features are rows, samples are columns
 
@@ -159,9 +162,7 @@ class Passer():
             centered = (features - features.mean(dim=0)) / features.std(dim=0)
 
         # Perform PCA
-        svd_time = time.time()
         _, S, V = torch.linalg.svd( (centered.T @ centered) / (m - 1), driver='gesvd')
-        print(f'SVD time: {time.time() - svd_time:.3f}s\n')
         
         S, V = S.detach().numpy(force=True), V.detach().to(device_list[-1])
 
@@ -201,7 +202,7 @@ class Passer():
 
         pumap = PUMAP(
             encoder=None, # nn.Module, None for default
-            decoder=True, # nn.Module, True for default, None for encoder only
+            decoder=None, # nn.Module, True for default, None for encoder only
             n_neighbors=num_neighbors,
             min_dist=min_dist,
             metric=metric,
@@ -212,7 +213,7 @@ class Passer():
             lr=1e-3,
             epochs=num_epochs,
             batch_size=64,
-            num_workers=len(device_list) if device_list is not None else 1,
+            num_workers=os.cpu_count() // 2,
             num_gpus=len(device_list) if device_list is not None else 0,
             match_nonparametric_umap=False # Train network to match embeddings from non parametric umap
         )

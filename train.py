@@ -29,7 +29,6 @@ parser.add_argument('--test_batch_size', default=32, type=int)
 parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
-parser.add_argument('--save_dir')
 
 
 args = parser.parse_args()

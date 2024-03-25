@@ -20,7 +20,7 @@ if __name__ == "__main__":
     parser.add_argument('--reduction', default=None, type=str, help='Reductions: "pca" or "umap"')
     parser.add_argument('--iter', type=int, default=0)
     parser.add_argument('--verbose', default=0, type=int)
-    parser.add_argument('--save_dir', default='./results/', help='Directory to save results.')
+    parser.add_argument('--save_dir', default='./results', help='Directory to save results.')
 
     args = parser.parse_args()
 
@@ -32,17 +32,14 @@ if __name__ == "__main__":
         print(50*'-')
         print('')
 
-    if args.dataset.__eq__('mnist'):
-        ONAME = f'{args.net}_{args.dataset}'
-    else:
-        ONAME = f'{args.net}_{args.dataset}_ss{args.iter}'
+    ONAME = f'{args.net}_{args.dataset}_ss{args.iter}' if args.dataset.__eq__('imagenet') else f'{args.net}_{args.dataset}'
     SAVE_DIR = os.path.join(args.save_dir, ONAME)
-
+    
     if args.train:
         visible_print('Training network')
 
-        cmd = f'python ./train.py --save_dir {SAVE_DIR} --net {args.net} --dataset {args.dataset} --epochs {args.n_epochs_train} --lr {args.lr} --iter {args.iter} --chkpt_epochs {args.epochs_test} --optimizer {args.optimizer}'
-
+        cmd = f'python ./train.py --net {args.net} --dataset {args.dataset} --epochs {args.n_epochs_train} --lr {args.lr} --iter {args.iter} --chkpt_epochs {args.epochs_test} --optimizer {args.optimizer}'
+        
         os.system(cmd)
 
     if args.build_graph:

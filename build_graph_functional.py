@@ -32,6 +32,8 @@ parser.add_argument('--verbose', default=0, type=int)
 
 args = parser.parse_args()
 
+ONAME = f'{args.net}_{args.dataset}_ss{args.iter}' if args.dataset.__eq__('imagenet') else f'{args.net}_{args.dataset}'
+
 device_list = []
 NUM_DEVICES = torch.cuda.device_count()
 if NUM_DEVICES > 1:
@@ -46,7 +48,16 @@ for i, device in enumerate(device_list):
     print(f"Device {i}: {device}")
 
 ''' Create save directories to store images '''
-SAVE_DIR = args.save_dir
+if args.reduction is None and args.metric is None:
+    SAVE_DIR = f'{args.save_dir}/{ONAME}'
+elif args.reduction is not None and args.metric is None:
+    SAVE_DIR = f'{args.save_dir}/{args.reduction}/{ONAME}'
+elif args.reduction is None and args.metric is not None:
+    SAVE_DIR = f'{args.save_dir}/{args.metric}/{ONAME}'
+else:
+    SAVE_DIR = f'{args.save_dir}/{args.reduction}/{args.metric}/{ONAME}'
+print(f'\n ==> Save directory: {SAVE_DIR} \n')
+
 if not os.path.exists(SAVE_DIR):
     os.makedirs(SAVE_DIR)
 
@@ -84,12 +95,12 @@ thresholds = np.linspace(start=start, stop=stop, num=75, dtype=np.float64) # for
 eps_thresh = np.linspace(start=0., stop=args.eps_thresh, num=75) # for 3D plot
 
 total_time = 0.
+
 ''' Load checkpoint and get activations '''
+assert os.path.isdir('./checkpoint'), 'Error: no checkpoint directory found!'
 with torch.no_grad():
     for epoch in vars(args)['chkpt_epochs']:
         print(f'\n==> Loading checkpoint for epoch {epoch}...\n')
-        
-        assert os.path.isdir('./checkpoint'), 'Error: no checkpoint directory found!'
         
         if args.dataset == 'imagenet':
             checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss{args.iter}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
@@ -103,7 +114,8 @@ with torch.no_grad():
         ''' Define passer and get activations '''
         passer = Passer(net, functloader, criterion, device_list[0])
         activs, orig_nodes = passer.get_function(reduction=args.reduction, device_list=device_list) # get activations and reduce dimensionality
-        adj = adjacency(activs, metric=args.metric, device=device_list[0]) # compute adjacency matrix
+        print(f'\n==> Computing adjacency matrix for epoch {epoch}...\n')
+        adj = adjacency(activs, metric=args.metric, device=device_list[0]) # compute distance adjacency matrix
 
         num_nodes = adj.shape[0] if adj.shape[0] != 0 else 1
 
@@ -117,8 +129,8 @@ with torch.no_grad():
             print(f'\n Epoch: {epoch} | Threshold: {t:.3f} \n')
             
             # Binarize and flip adjacency matrix
-            binadj = partial_binarize(adj.detach().clone(), t, device=device_list[-1])
-            flip = make_flip_matrix(binadj.detach(), device=device_list[-1])
+            binadj = partial_binarize(adj.detach().clone(), t, device=device_list[-1]).detach()
+            flip = make_flip_matrix(binadj, device=device_list[-1]).detach()
 
             binadj *= -1 # flip binadj to reflect closeness
             binadj += flip # flip binadj to reflect closeness  
@@ -128,8 +140,8 @@ with torch.no_grad():
             # vals = binadj[i].flatten().cpu().numpy()
             # binadj = torch.sparse_coo_tensor(i, vals, binadj.shape, device=device_list[-1], dtype=torch.half)
 
-            binadj = binadj.cpu().numpy()
-            binadj = np.where(binadj==0, None, binadj)
+            binadj = binadj.numpy(force=True)
+            binadj = np.where(binadj>=1, None, binadj)
             np.fill_diagonal(binadj, 0)
             
             binadj = coo_matrix(binadj) # convert to sparse COO format matrix
@@ -142,16 +154,16 @@ with torch.no_grad():
                     print(f'Binadj empty! \n')
             
             # Compute persistence diagram
+            print(f'\n==> Computing persistence diagram for epoch {epoch}...\n')
             comp_time = time.time()
             dgm = ripser_parallel(binadj, metric="precomputed", maxdim=UPPER_DIM, n_threads=-1, collapse_edges=True)
             comp_time = time.time() - comp_time
-
-            # free GPU memory
-            torch.cuda.empty_cache()
-            del binadj, flip
-            
             total_time += comp_time
             print(f'\n Computation time: {comp_time/60:.5f} minutes \n')
+
+            # free GPU memory
+            del binadj, flip
+            torch.cuda.empty_cache()
 
             dgm_gtda = _postprocess_diagrams([dgm["dgms"]], "ripser", range(UPPER_DIM + 1), np.inf, True)[0]
 
@@ -170,7 +182,9 @@ with torch.no_grad():
 
                 dgm_fig = plot_diagram(dgm_gtda)
                 dgm_fig.write_image(dgm_img_path)
-        
+
+            del dgm, dgm_gtda, comp_time
+
         # free GPU memory
         del activs, adj
         torch.cuda.empty_cache()
@@ -181,4 +195,8 @@ with torch.no_grad():
         # Plot betti numbers per dimension at current eps. thresh.
         make_plots(betti_nums_list, betti_nums_list_3d, epoch, num_nodes, orig_nodes, thresholds, eps_thresh, CURVES_DIR, THREED_IMG_DIR, start, stop, args.net, args.dataset, args.iter)
 
+        del betti_nums_list, betti_nums_list_3d, num_nodes, orig_nodes
+
     print(f'\n Total computation time: {total_time/60:.5f} minutes \n')
+
+    del passer, net, criterion, functloader
