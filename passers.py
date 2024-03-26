@@ -143,7 +143,7 @@ class Passer():
 
             print(f"Features size after {reduction}: {features.shape}")
 
-            del m
+        del m
 
         return features.T, n # put in features x data format; features are rows, samples are columns
 

@@ -32,30 +32,19 @@ parser.add_argument('--verbose', default=0, type=int)
 
 args = parser.parse_args()
 
-ONAME = f'{args.net}_{args.dataset}_ss{args.iter}' if args.dataset.__eq__('imagenet') else f'{args.net}_{args.dataset}'
-
 device_list = []
-NUM_DEVICES = torch.cuda.device_count()
-if NUM_DEVICES > 1:
-    print("Using", torch.cuda.device_count(), "GPUs")
+if torch.cuda.device_count() > 1:
     device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
+    print("Using", torch.cuda.device_count(), "GPUs")
+    for i, device in enumerate(device_list):
+        print(f"Device {i}: {device}")
 else:
-    print("Using a single GPU")
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     device_list.append(device)
-
-for i, device in enumerate(device_list):
-    print(f"Device {i}: {device}")
+    print(f'Using {device}')
 
 ''' Create save directories to store images '''
-if args.reduction is None and args.metric is None:
-    SAVE_DIR = f'{args.save_dir}/{ONAME}'
-elif args.reduction is not None and args.metric is None:
-    SAVE_DIR = f'{args.save_dir}/{args.reduction}/{ONAME}'
-elif args.reduction is None and args.metric is not None:
-    SAVE_DIR = f'{args.save_dir}/{args.metric}/{ONAME}'
-else:
-    SAVE_DIR = f'{args.save_dir}/{args.reduction}/{args.metric}/{ONAME}'
+SAVE_DIR = args.save_dir
 print(f'\n ==> Save directory: {SAVE_DIR} \n')
 
 if not os.path.exists(SAVE_DIR):
@@ -112,10 +101,10 @@ with torch.no_grad():
         net.requires_grad_(False)
 
         ''' Define passer and get activations '''
+        # get activations and reduce dimensionality; compute distance adjacency matrix
         passer = Passer(net, functloader, criterion, device_list[0])
-        activs, orig_nodes = passer.get_function(reduction=args.reduction, device_list=device_list) # get activations and reduce dimensionality
-        print(f'\n==> Computing adjacency matrix for epoch {epoch}...\n')
-        adj = adjacency(activs, metric=args.metric, device=device_list[0]) # compute distance adjacency matrix
+        activs, orig_nodes = passer.get_function(reduction=args.reduction, device_list=device_list) 
+        adj = adjacency(activs, metric=args.metric, device=device_list[0]) 
 
         num_nodes = adj.shape[0] if adj.shape[0] != 0 else 1
 
@@ -128,23 +117,23 @@ with torch.no_grad():
         for j, t in enumerate(thresholds):
             print(f'\n Epoch: {epoch} | Threshold: {t:.3f} \n')
             
-            # Binarize and flip adjacency matrix
+            # binarize adjacency matrix
             binadj = partial_binarize(adj.detach().clone(), t, device=device_list[-1]).detach()
-            flip = make_flip_matrix(binadj, device=device_list[-1]).detach()
 
-            binadj *= -1 # flip binadj to reflect closeness
-            binadj += flip # flip binadj to reflect closeness  
+            # flip the binarized matrix to indicate closeness in the distance matrix
+            binadj *= -1
+            binadj += 1 
 
-            # indices = binadj.nonzero().cpu().numpy()
-            # i = list(zip(*indices))
-            # vals = binadj[i].flatten().cpu().numpy()
-            # binadj = torch.sparse_coo_tensor(i, vals, binadj.shape, device=device_list[-1], dtype=torch.half)
+            indices = (binadj<1).nonzero().numpy(force=True)
+            i = list(zip(*indices))
+            vals = binadj[i].flatten().numpy(force=True)
 
-            binadj = binadj.numpy(force=True)
-            binadj = np.where(binadj>=1, None, binadj)
-            np.fill_diagonal(binadj, 0)
-            
-            binadj = coo_matrix(binadj) # convert to sparse COO format matrix
+            if len(i) > 0:
+                binadj = coo_matrix((vals, i), shape=binadj.shape) # convert to sparse COO format
+            else:
+                binadj = coo_matrix(([], ([], [])), shape=binadj.shape)
+
+            del indices, i, vals
 
             if args.verbose:
                 print(f'\n The dimension of the COO distance matrix is {binadj.data.shape}\n')
@@ -154,7 +143,6 @@ with torch.no_grad():
                     print(f'Binadj empty! \n')
             
             # Compute persistence diagram
-            print(f'\n==> Computing persistence diagram for epoch {epoch}...\n')
             comp_time = time.time()
             dgm = ripser_parallel(binadj, metric="precomputed", maxdim=UPPER_DIM, n_threads=-1, collapse_edges=True)
             comp_time = time.time() - comp_time
@@ -162,7 +150,7 @@ with torch.no_grad():
             print(f'\n Computation time: {comp_time/60:.5f} minutes \n')
 
             # free GPU memory
-            del binadj, flip
+            del binadj, comp_time
             torch.cuda.empty_cache()
 
             dgm_gtda = _postprocess_diagrams([dgm["dgms"]], "ripser", range(UPPER_DIM + 1), np.inf, True)[0]
@@ -183,7 +171,7 @@ with torch.no_grad():
                 dgm_fig = plot_diagram(dgm_gtda)
                 dgm_fig.write_image(dgm_img_path)
 
-            del dgm, dgm_gtda, comp_time
+            del dgm, dgm_gtda
 
         # free GPU memory
         del activs, adj
@@ -199,4 +187,4 @@ with torch.no_grad():
 
     print(f'\n Total computation time: {total_time/60:.5f} minutes \n')
 
-    del passer, net, criterion, functloader
+    del passer, net, criterion, functloader, total_time, checkpoint

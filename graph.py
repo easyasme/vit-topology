@@ -75,15 +75,6 @@ def partial_binarize(M, binarize_t, device):
     return M.to(device)
 
 @torch.no_grad()
-def make_flip_matrix(M, device):
-    ''' Takes in thresholded distance matrix M and returns a matrix of 1s and 0s
-    where non-zero entries in M are 1 in the returned matrix '''
-
-    flipped = (M!=0).type(torch.float32)
-    
-    return flipped.to(device)
-
-@torch.no_grad()
 def adjacency(signals, device, metric=None):
     '''
     Build matrix A of dimensions nxn where a_{ij} = metric(a_i, a_j).

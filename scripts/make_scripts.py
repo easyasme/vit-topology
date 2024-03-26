@@ -16,7 +16,7 @@ def main(pars):
         pth = os.path.join(pth, args.metric if args.metric else '') 
         SAVE_DIR = os.path.join(args.save_dir, pth)
 
-        cmd = f"python scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
+        cmd = f"python ../../scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
         cmd += f' --reduction {args.reduction}' if args.reduction else ''
         cmd += f' --metric {args.metric}' if args.metric else ''
 
