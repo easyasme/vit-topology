@@ -6,14 +6,17 @@ from PIL import Image
 
 from loaders import *
 
-NET = 'lenetext'
-DATASET = 'imagenet'
+NET = 'lenet'
+DATASET = 'mnist'
 START = 0
-SUBSETS = 30 # 1 for none, 30 for all
+SUBSETS = 1 # 1 for none, 30 for all
 
-SAVE_DIR = './results/pca/spearman'
-RED = 'pca'
-METRIC = 'spearman'
+SAVE_DIR = './results/test'
+RED = None # 'pca' or 'umap' or None
+METRIC = None # 'euclidean' or 'cosine' or None
+
+SAVE_DIR += f'/{RED}' if RED is not None else ''
+SAVE_DIR += f'/{METRIC}' if METRIC is not None else ''
 
 def get_concat_h(im1, im2):
     dst = Image.new('RGB', (im1.width + im2.width, im1.height))
@@ -41,9 +44,9 @@ for iter in range(START, SUBSETS):
         continue
     
     if DATASET.__eq__('imagenet'):
-        save_dir = f"{SAVE_DIR}/{RED}/{METRIC}/{NET}_{DATASET}_ss{iter}/images/loss/"
+        save_dir = f"{SAVE_DIR}/{NET}_{DATASET}_ss{iter}/images/loss/"
     else:
-        save_dir = f'{SAVE_DIR}/{RED}/{METRIC}/{NET}_{DATASET}/images/loss/'
+        save_dir = f'{SAVE_DIR}/{NET}_{DATASET}/images/loss/'
     
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
@@ -91,9 +94,9 @@ for iter in range(START, SUBSETS):
 ''' Concatenate images of curves '''
 for iter in range(START, SUBSETS):
     if DATASET.__eq__('imagenet'):
-        save_dir = f"{SAVE_DIR}/{RED}/{METRIC}/{NET}_{DATASET}_ss{iter}/images/curves/"
+        save_dir = f"{SAVE_DIR}/{NET}_{DATASET}_ss{iter}/images/curves/"
     else:
-        save_dir = f'{SAVE_DIR}/{RED}/{METRIC}/{NET}_{DATASET}/images/curves/'
+        save_dir = f'{SAVE_DIR}/{NET}_{DATASET}/images/curves/'
     
     files = os.listdir(save_dir)
     files = [f for f in files if f.startswith('epoch')]
