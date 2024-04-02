@@ -213,7 +213,7 @@ class Passer():
             lr=1e-3,
             epochs=num_epochs,
             batch_size=64,
-            num_workers=os.cpu_count() // 2,
+            num_workers=os.cpu_count() // 2 if os.cpu_count() > 1 else 1,
             num_gpus=len(device_list) if device_list is not None else 0,
             match_nonparametric_umap=False # Train network to match embeddings from non parametric umap
         )

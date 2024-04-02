@@ -51,7 +51,8 @@ def dist_corr(signals, device):
             dVar1 = torch.sum(centers[i]*centers[i])
             dVar2 = torch.sum(centers[j]*centers[j])
             
-            adj[i,j] = torch.sqrt(dCov/torch.sqrt(dVar1*dVar2)) if (dVar1*dVar2 > 0) else 0
+            # skip overall sqrt so that the correlation can be used as a distance metric
+            adj[i,j] = dCov/torch.sqrt(dVar1*dVar2) if (dVar1*dVar2 > 0) else 0
         centers[i].cpu()
 
     adj += adj.clone().T

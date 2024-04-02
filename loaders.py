@@ -13,7 +13,6 @@ from torch.utils.data import (DataLoader, Dataset, RandomSampler,
 
 from config import IMG_SIZE, SUBSETS_LIST
 
-
 # uncomment these lines to allow large images and truncated images to be loaded
 LARGE_ENOUGH_NUMBER = 1000
 PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024**2)
