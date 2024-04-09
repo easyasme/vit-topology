@@ -76,10 +76,10 @@ if device == 'cuda':
 ''' Initialize weights from checkpoint '''
 if args.resume:
     net, best_acc, start_acc = init_from_checkpoint(net)
-  
+
 ''' Optimization '''
 if args.optimizer == 'adabelief':
-    optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-16, betas=(0.9, 0.999), weight_decay=1e-2, weight_decouple=True, rectify=True, fixed_decay=False, amsgrad=False)
+    optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-8, betas=(0.9, 0.999), weight_decay=1e-2, weight_decouple=True, rectify=False, fixed_decay=False, amsgrad=False)
 elif args.optimizer == 'adam':
     optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
 else:
