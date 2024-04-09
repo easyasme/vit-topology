@@ -11,6 +11,7 @@ required.add_argument('--net', help='Specify deep network architecture.', requir
 required.add_argument('--dataset', help='Specify dataset (e.g. mnist, cifar10, imagenet)', required=True)
 parser.add_argument('--train', default=1, type=int)
 parser.add_argument('--build_graph', default=1, type=int)
+parser.add_argument('--post_process', default=1, type=int)
 parser.add_argument('--data_subset', default='0 10', help='Specify data subset in the form \'start stop\'')
 parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
 parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcor", or callable.')
@@ -54,6 +55,7 @@ if (args.reduction is not None) and (args.metric is None):
 
     TRAIN={args.train} # train model; if 0, load model from checkpoint
     BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
+    POST_PROCESS={args.post_process} # post-process graph; if 0, load graph from binary file
 
     OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
 
@@ -83,13 +85,13 @@ if (args.reduction is not None) and (args.metric is None):
 
     if [ $DATASET == "mnist" ]
     then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
     else
         for i in $(seq "$START" "$STOP")
         do
             echo
             echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
         done
     fi
     ''')
@@ -103,6 +105,7 @@ elif (args.metric is not None) and (args.reduction is None):
 
     TRAIN={args.train} # train model; if 0, load model from checkpoint
     BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
+    POST_PROCESS={args.post_process} # post-process graph; if 0, load graph from binary file
 
     OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
 
@@ -132,13 +135,13 @@ elif (args.metric is not None) and (args.reduction is None):
 
     if [ $DATASET == "mnist" ]
     then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
     else
         for i in $(seq "$START" "$STOP")
         do
             echo
             echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
         done
     fi
     ''')
@@ -152,6 +155,7 @@ elif (args.metric is None) and (args.reduction is None):
 
     TRAIN={args.train} # train model; if 0, load model from checkpoint
     BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
+    POST_PROCESS={args.post_process} # post-process graph; if 0, load graph from binary file
 
     OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
                 
@@ -179,13 +183,13 @@ elif (args.metric is None) and (args.reduction is None):
 
     if [ $DATASET == "mnist" ]
     then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
     else
         for i in $(seq "$START" "$STOP")
         do
             echo
             echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
         done
     fi
     ''')
@@ -199,6 +203,7 @@ else:
 
     TRAIN={args.train} # train model; if 0, load model from checkpoint
     BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
+    POST_PROCESS={args.post_process} # post-process graph; if 0, load graph from binary file
 
     OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
 
@@ -230,13 +235,13 @@ else:
 
     if [ $DATASET == "mnist" ]
     then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
     else
         for i in $(seq "$START" "$STOP")
         do
             echo
             echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
         done
     fi
     ''')

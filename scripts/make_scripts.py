@@ -7,16 +7,20 @@ def main(pars):
 
     starts_stops = ['0 9', '10 19', '20 29']
     for ss in starts_stops:
-        if args.dataset.__eq__('mnist'):
-            job_name = f'{args.net}_{args.dataset}'
-        else:
-            job_name = f'{args.net}_{args.dataset} {ss.split()[0]}-{ss.split()[1]}'
+        job_name = f'{args.net} {args.dataset}'
+        job_name += f' {ss.split()[0]}-{ss.split()[1]}' if args.dataset == 'imagenet' else ''
+        job_name += f' {args.reduction}' if args.reduction else ''
+        job_name += f' {args.metric}' if args.metric else ''
+
+        print(f'\n ==> Job name: {job_name} \n')
 
         pth = f'{args.reduction}' if args.reduction else ''
         pth = os.path.join(pth, args.metric if args.metric else '') 
         SAVE_DIR = os.path.join(args.save_dir, pth)
 
-        cmd = f"python ../../scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
+        print(f'\n ==> Save directory: {SAVE_DIR} \n')
+
+        cmd = f"python ../../scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --post_process {args.post_process} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
         cmd += f' --reduction {args.reduction}' if args.reduction else ''
         cmd += f' --metric {args.metric}' if args.metric else ''
 
@@ -31,6 +35,7 @@ if __name__ == "__main__":
     required.add_argument('--dataset', help='Specify dataset (e.g. mnist, cifar10, imagenet)', required=True)
     parser.add_argument('--train', default=1, type=int)
     parser.add_argument('--build_graph', default=1, type=int)
+    parser.add_argument('--post_process', default=1, type=int)
     parser.add_argument('--n_epochs_train', default='50', help='Number of epochs to train.')
     parser.add_argument('--lr', default='0.001', help='Specify learning rate for training.')
     parser.add_argument('--optimizer', default='adabelief', help='Define training optimizer: "adabelief" or "adam")')

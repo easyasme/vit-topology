@@ -8,7 +8,7 @@ import h5py
 def save_checkpoint(checkpoint, path, fname):
     """ Save checkpoint to path with fname """
 
-    print('Saving checkpoint...')
+    print(f'Saving checkpoint...\n')
 
     if not os.path.isdir(path):
         os.makedirs(path)
@@ -47,4 +47,4 @@ def save_losses(losses, path, fname):
         os.makedirs(path)
     
     with open(path+fname, 'wb') as f:
-        pkl.dump(losses, f, protocol=2)
+        pkl.dump(losses, f, protocol=pkl.HIGHEST_PROTOCOL)

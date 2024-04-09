@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import argparse
 import gc
+import pickle
 
 import torch
 import torch.backends.cudnn as cudnn
@@ -19,6 +20,8 @@ parser = argparse.ArgumentParser(description='PyTorch Training')
 
 parser.add_argument('--net')
 parser.add_argument('--dataset')
+parser.add_argument('--reduction', default=None, type=str, help='Reductions: "pca" or "umap"')
+parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcorr", or callable.')
 parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
 parser.add_argument('--optimizer', default='adabelief', type=str, help='optimizer')
 parser.add_argument('--epochs', default=50, type=int)
@@ -30,13 +33,13 @@ parser.add_argument('--input_size', default=32, type=int)
 parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
 
-
 args = parser.parse_args()
 
-if args.dataset == 'imagenet':
-    ONAME = f'{args.net}_{args.dataset}_ss{args.iter}' # Meta-name to be used as prefix on all savings
-else:
-    ONAME = f'{args.net}_{args.dataset}'
+''' Directory to save training transformers '''
+TRANS_DIR = f'./train_processing/{args.net}/{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet' else f'./train_processing/{args.net}/{args.net}_{args.dataset}'
+os.makedirs(TRANS_DIR, exist_ok=True)
+
+ONAME = f'{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet' else f'{args.net}_{args.dataset}'
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("Device: ", device, "\n")
@@ -45,18 +48,24 @@ best_acc = 0  # best test accuracy
 start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 
 ''' Prepare loaders '''
-print('==> Preparing data..', "\n")
-print("Preparing train loader")
-train_loader = loader(args.dataset + '_train', batch_size=args.train_batch_size, iter=args.iter, verbose=True)
-print("Preparing test loader", "\n")
-test_loader = loader(args.dataset + '_test', batch_size=args.test_batch_size, iter=args.iter, verbose=True)
+print(f'==> Preparing data..\n')
+print(f'Preparing train loader')
+train_loader, train_transform = loader(f'{args.dataset}_train', batch_size=args.train_batch_size, iter=args.iter, verbose=True)
+print(f'Preparing test loader\n')
+test_loader, _ = loader(f'{args.dataset}_test', batch_size=args.test_batch_size, iter=args.iter, verbose=False, transform=train_transform)
+
+trans_pkl_file = os.path.join(TRANS_DIR, f'train_transform.pkl')
+if not os.path.exists(os.path.dirname(trans_pkl_file)):
+    os.makedirs(os.path.dirname(trans_pkl_file))
+with open(trans_pkl_file, 'wb') as f:
+    pickle.dump(train_transform, f, protocol=pickle.HIGHEST_PROTOCOL)
 
 n_samples = len(train_loader) * args.train_batch_size
 
 criterion = nn.CrossEntropyLoss()
 
 ''' Build models '''
-print('==> Building model..', "\n")
+print(f'==> Building model..\n')
 net = get_model(args.net, args.dataset)
 net = net.to(device)
    
@@ -70,7 +79,7 @@ if args.resume:
   
 ''' Optimization '''
 if args.optimizer == 'adabelief':
-    optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-8, betas=(0.9, 0.999), weight_decay=1e-2, weight_decouple=True, rectify=False, fixed_decay=False, amsgrad=False)
+    optimizer = AdaBelief(net.parameters(), lr=args.lr, eps=1e-16, betas=(0.9, 0.999), weight_decay=1e-2, weight_decouple=True, rectify=True, fixed_decay=False, amsgrad=False)
 elif args.optimizer == 'adam':
     optimizer = optim.Adam(net.parameters(), lr=args.lr, weight_decay=5e-4)
 else:
@@ -90,8 +99,6 @@ save_checkpoint(checkpoint = {'net':net.state_dict(),
                               'acc': acc_te, 'epoch': 0},
                                path=f'./checkpoint/{args.net}/{ONAME}/', fname='ckpt_epoch_0.pt')
 
-print("Begin training", "\n")
-
 losses = []
 for epoch in range(start_epoch, start_epoch + args.epochs):
     print('Epoch {}'.format(epoch))
@@ -108,4 +115,7 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
     gc.collect()
 
 '''Save losses'''
-save_losses(losses, path=f'./losses/{args.net}/{ONAME}/', fname='stats.pkl')
+path = f'./losses/{args.net}/{ONAME}'
+path += f'/{args.reduction}' if args.reduction else ''
+path += f'/{args.metric}' if args.metric else ''
+save_losses(losses, path=path, fname='/stats.pkl')

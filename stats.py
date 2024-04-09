@@ -6,34 +6,35 @@ from PIL import Image
 
 from loaders import *
 
-NET = 'lenet'
-DATASET = 'mnist'
+NET = 'alexnet'
+DATASET = 'imagenet'
 START = 0
-SUBSETS = 1 # 1 for none, 30 for all
+SUBSETS = 30 # 1 for none, 30 for all
 
-SAVE_DIR = './results/test'
-RED = None # 'pca' or 'umap' or None
+SAVE_DIR = './results'
+RED = 'pca' # 'pca' or 'umap' or None
 METRIC = None # 'euclidean' or 'cosine' or None
 
 SAVE_DIR += f'/{RED}' if RED is not None else ''
 SAVE_DIR += f'/{METRIC}' if METRIC is not None else ''
 
-def get_concat_h(im1, im2):
-    dst = Image.new('RGB', (im1.width + im2.width, im1.height))
+def get_concat_v(im1, im2):
+    dst = Image.new('RGB', (im1.width, im1.height + im2.height))
     dst.paste(im1, (0, 0))
-    dst.paste(im2, (im1.width, 0))
+    dst.paste(im2, (0, im1.height))
     
     return dst
 
-def get_concat_h_multi_blank(im_list):
+def get_concat_v_multi_blank(im_list):
     _im = im_list.pop(0)
     for im in im_list:
-        _im = get_concat_h(_im, im)
+        _im = get_concat_v(_im, im)
     
     return _im
 
 ''' Make plots of losses and accuracies '''
 for iter in range(START, SUBSETS):
+    print(f'Processing losses for subset {iter}')
     if DATASET.__eq__('imagenet'):
         pkl_path = f"./losses/{NET}/{NET}_{DATASET}_ss{iter}/stats.pkl"
     else:
@@ -93,32 +94,24 @@ for iter in range(START, SUBSETS):
 
 ''' Concatenate images of curves '''
 for iter in range(START, SUBSETS):
+    print(f'Processing images for subset {iter}')
     if DATASET.__eq__('imagenet'):
         save_dir = f"{SAVE_DIR}/{NET}_{DATASET}_ss{iter}/images/curves/"
     else:
         save_dir = f'{SAVE_DIR}/{NET}_{DATASET}/images/curves/'
     
+    if not os.path.exists(save_dir):
+        print("No directory", save_dir)
+        continue
+
     files = os.listdir(save_dir)
     files = [f for f in files if f.startswith('epoch')]
-    
-    print("Directory:", save_dir)
 
-    dims = np.array([int(files[i].split('_')[3]) for i in range(len(files))])
-    dims = np.unique(dims)
-
-    if len(dims) == 0:
-        print("Empty directory!")
+    if len(files) == 0:
+        print("No images found at", save_dir)
         continue
-    elif len(dims) != 1:
-        raise ValueError("Files in directory were not calculated with the same upper dimension!")
-
-    for dim in range(dims[0]+1):
-        print("Dimension:", dim)
-        names = [f for f in files if f.split('_')[-1].startswith(str(dim))] # filter by dimension
-        names.sort(key=lambda x: int(x.split('_')[1])) # sort by epoch
-        
-        images = [Image.open(f"{save_dir}/{f}") for f in names] # open images
-        get_concat_h_multi_blank(images).save(f"{save_dir}/concat_dim_{dim}.png") # concat and save
-        
-        names.clear()
-        images.clear()
+    files.sort(key=lambda x: int(x.split('_')[1])) # sort by epoch
+    
+    images = [Image.open(f"{save_dir}/{f}") for f in files] # open images
+    get_concat_v_multi_blank(images).save(f"{save_dir}/concat.png") # concat and save
+    

@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torchvision
 import torchvision.transforms as transforms
-from PIL import Image  # , ImageFile
+from PIL import Image 
 from PIL import PngImagePlugin
 from torch.utils.data import (DataLoader, Dataset, RandomSampler,
                               SequentialSampler, Subset, random_split)
@@ -112,7 +112,7 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
         else:
             dataset = DummyDataset(test.dataset, transform=dummy_transform)
 
-    if subset is not None: # and data != 'mnist':
+    if subset is not None:
         subset_iter = list(np.random.choice(dataset.__len__(), size=subset, replace=False))
         dataset = CustomSubset(dataset, subset_iter)
 
@@ -133,9 +133,9 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
 
     # print(f"Transform after: {dataset.__gettransform__()}\n")
 
-    return data_loader
+    return data_loader, dataset.__gettransform__()
 
-def loader(data, batch_size, verbose, iter=0, sampling=-1, subset=None):
+def loader(data, batch_size, verbose, iter=0, sampling=-1, subset=None, transform=None):
     ''' Interface to the dataloader function '''
 
     # set data paths for different image sizes (32, 64, 256)
@@ -154,19 +154,21 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1, subset=None):
         transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
         return dataloader('imagenet', train_data_path, transform=transforms_tr_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset) 
     elif data == 'imagenet_test':
-        transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False)
+        transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False) if transform is None else transform
         return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset)
     elif data == 'mnist_train':
         transforms_tr_mnist = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28)
+
         return dataloader('mnist', train=True, transform=transforms_tr_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True, subset=subset)
     elif data == 'mnist_test':
-        transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28)
+        transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28) if transform is None else transform
+
         return dataloader('mnist', train=False, transform=transforms_te_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True, subset=subset)
     elif data == 'dummy_train':
         dummy_transform = get_transform(train=False)
         return dataloader('dummy_train', transform=dummy_transform, batch_size=batch_size, subset=subset)
     elif data == 'dummy_test':
-        dummy_transform = get_transform(train=False)
+        dummy_transform = get_transform(train=False) if transform is None else transform
         return dataloader('dummy_test', transform=dummy_transform, batch_size=batch_size, subset=subset)
     else:
         raise ValueError(f"Invalid dataset: {data}")
@@ -199,19 +201,16 @@ class CustomImageNet(Dataset):
                     self.name_dict[key] = name
                     self.label_dict[key] = value
 
+        lines = []
+        lines.append(f'Subset number: {iter}\n')
         for i, key in enumerate(self.label_dict.keys()):
             img_paths = glob.glob(os.path.join(data_path, key, img_format))
 
-            lines = []
             if i in range(9) and self.verbose:
-                lines.append("Label mapping: " + key + ' --> ' + str(i) + " " + self.name_dict[key] + "\n")
+                lines.append(f'Label mapping: {key} --> {i} {self.name_dict[key]}\n')
             elif self.verbose:
-                lines.append("Label mapping: " + key + ' --> ' + str(i) + " " + self.name_dict[key] + "\n")
-                lines.append("End of label mapping for subset " + str(subset) + " " + str(iter) + "\n")
-                lines.append("\n")
-
-            with open(CODES_TO_NAMES_FILE, 'a') as f:
-                f.writelines(lines)
+                lines.append(f'Label mapping: {key} --> {i} {self.name_dict[key]}\n')
+                lines.append(f'Original subset labels: {subset}\n')
 
             counter = 0
             for img_path in img_paths:
@@ -231,6 +230,16 @@ class CustomImageNet(Dataset):
                     self.data.append((img, i))
 
                 counter += 1
+
+        if not os.path.exists(CODES_TO_NAMES_FILE):
+                with open(CODES_TO_NAMES_FILE, 'w') as f:
+                    f.writelines(lines)
+        else:
+            with open(CODES_TO_NAMES_FILE, 'r') as f:
+                existing_lines = f.readlines()
+            if lines[-1] not in existing_lines:
+                with open(CODES_TO_NAMES_FILE, 'a') as f:
+                    f.writelines(lines)
 
     def __len__(self):
         return len(self.data)
