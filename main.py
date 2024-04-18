@@ -16,7 +16,7 @@ parser.add_argument('--lr', default='0.001', help='Specify learning rate for tra
 parser.add_argument('--optimizer', default='adabelief', help='Define optimizer for training: "adabelief" or "adam"')
 parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs for which you want to build graph.')
 parser.add_argument('--thresholds', default='0.05 1.0', help='Define thresholds range in the form \'start stop\' ')
-parser.add_argument('--reduction', default=None, type=str, help='Reductions: "pca" or "umap"')
+parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap or kmeans.')
 parser.add_argument('--iter', type=int, default=0)
 parser.add_argument('--verbose', default=0, type=int)
 parser.add_argument('--save_dir', default='./results', help='Directory to save results.')

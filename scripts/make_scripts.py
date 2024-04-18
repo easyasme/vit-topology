@@ -41,8 +41,8 @@ if __name__ == "__main__":
     parser.add_argument('--optimizer', default='adabelief', help='Define training optimizer: "adabelief" or "adam")')
     parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs for which you want to build graph.')
     parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
-    parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcor", or callable.')
-    parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap, or none.')
+    parser.add_argument('--metric', default=None, type=str, help='Distance metric: none, spearman, dcorr, or callable.')
+    parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap, kmeans, or none.')
     parser.add_argument('--verbose', default=0, type=int)
     parser.add_argument('--save_dir', default='./results/', help='Directory to save results.')
 

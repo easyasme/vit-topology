@@ -138,14 +138,17 @@ class Passer():
             elif reduction.__eq__('umap'):
                 print(f"Performing UMAP on features with {n} components...\n")
                 features = self.perform_umap(features, num_components=int(.4*n), num_neighbors=50, min_dist=.175, num_epochs=50, metric='correlation', device_list=device_list)
+            elif reduction.__eq__('kmeans'):
+                print(f"Performing K-means on features with {n} components...\n")
+                features = self.perform_kmeans(features, device_list=device_list)
             else:
                 raise ValueError(f"Reduction {reduction} not supported!")
 
             print(f"Features size after {reduction}: {features.shape}")
 
-        del m
+        del m, n
 
-        return features.T, n # put in features x data format; features are rows, samples are columns
+        return features.T # put in features x data format; features are rows, samples are columns
 
     @torch.no_grad()
     def perform_pca(self, features, m, alpha=.05, center_only=True, device_list=None):
@@ -189,6 +192,21 @@ class Passer():
 
         return features.cpu().data.numpy().astype(np.float64)
     
+    @torch.no_grad()
+    def perform_kmeans(self, features, num_max_clusters=1000, device_list=None):
+        ''' Perform a torch implemented GPU accelerated kmeans on the features
+            and return the cluster assignments. Expected input shape is (samples, features).
+        '''
+        from kmeans_pytorch import multi_kmeans
+
+        num_max_clusters = min(num_max_clusters, features.shape[1])
+
+        features = torch.tensor(features, requires_grad=False).detach().T.to(device_list[-1])
+        features = (features - features.mean(dim=-1, keepdim=True)) / features.std(dim=-1, keepdim=True)
+        features = multi_kmeans(features, num_max_clusters=num_max_clusters, distance='euclidean', device=device_list[-1], tqdm_flag=True)
+
+        return features.T.cpu().data.numpy().astype(np.float64)
+
     @torch.no_grad()
     def perform_umap(self, features, num_components, num_neighbors=50, min_dist=0.1, num_epochs=10, metric='euclidean', device_list=None):
         ''' Perform UMAP on the features.

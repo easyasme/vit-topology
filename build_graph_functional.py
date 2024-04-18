@@ -24,10 +24,10 @@ parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
 parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
-parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcor", or callable.')
+parser.add_argument('--metric', default=None, type=str, help='Distance metric: none, spearman, dcorr, or callable.')
 parser.add_argument('--thresholds', default='0. 1.0', help='Defining thresholds range in the form \'start stop\' ')
 parser.add_argument('--eps_thresh', default=1., type=float)
-parser.add_argument('--reduction', default=None, type=str, help='Reductions: "pca" or "umap"')
+parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap or kmeans.')
 parser.add_argument('--iter', default=0, type=int)
 parser.add_argument('--verbose', default=0, type=int)
 
@@ -87,20 +87,21 @@ with torch.no_grad():
         ''' Define passer and get activations '''
         # get activations and reduce dimensionality; compute distance adjacency matrix
         passer = Passer(net, functloader, criterion, device_list[0])
-        activs, _ = passer.get_function(reduction=args.reduction, device_list=device_list) 
+        activs = passer.get_function(reduction=args.reduction, device_list=device_list) 
         adj = adjacency(activs, metric=args.metric, device=device_list[0]) 
 
         if args.verbose:
             print(f'\n The dimension of the corrcoef matrix is {adj.size()[0], adj.size()[-1]} \n')
             print(f'Adj mean {adj.mean():.4f}, min {adj.min():.4f}, max {adj.max():.4f} \n')
 
-        # convert to distance matrix via sqrt(1-adj) for V-R filtration; note that adj is absolute value of correlation
+        # convert to distance matrix for V-R filtration
+        adj = torch.abs(adj) if args.reduction != 'kmeans' else adj
         adj *= -1
         adj += 1
-        adj = torch.sqrt(adj)
+        adj = torch.sqrt(adj) if args.reduction != 'kmeans' else torch.sqrt(.5*adj)
 
         # convert to COO format for faster computation of persistence diagram
-        indices = (adj<1.).nonzero().numpy(force=True)
+        indices = (adj<1.).nonzero().numpy(force=True) if args.reduction != 'kmeans' else (adj<=1).nonzero().numpy(force=True)
         i = list(zip(*indices))
         vals = adj[i].flatten().numpy(force=True)
 

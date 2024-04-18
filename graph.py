@@ -88,7 +88,7 @@ def adjacency(signals, device, metric=None):
         
     if metric == 'spearman':
         signals = spearman_ranks(signals, device=device)
-        adj = torch.abs(torch.nan_to_num(torch.corrcoef(signals))).detach()
+        adj = torch.nan_to_num(torch.corrcoef(signals)).detach()
     elif metric == 'dcorr':
         adj = dist_corr(signals, device=device).detach()
     elif callable(metric):
@@ -98,9 +98,9 @@ def adjacency(signals, device, metric=None):
 
         ''' Normalize '''
         adj = robust_scaler(adj)
-        adj = torch.abs(torch.nan_to_num(adj)).detach()
+        adj = torch.nan_to_num(adj).detach()
     else:
-        adj = torch.abs(torch.nan_to_num(torch.corrcoef(signals))).detach()
+        adj = torch.nan_to_num(torch.corrcoef(signals)).detach()
 
     del signals
     torch.cuda.empty_cache()
