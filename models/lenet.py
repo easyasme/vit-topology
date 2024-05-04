@@ -29,11 +29,10 @@ class LeNet(nn.Module):
     def forward_features(self, x):
         x1 = F.relu(F.max_pool2d(self.conv1(x), 2))
         x2 = F.relu(F.max_pool2d(self.conv2_drop(self.conv2(x1)), 2))
-        # print("FF Size x2: ", x2.size())
         x2 = x2.view(-1, self.feat_size)
         x3 = F.relu(self.fc1(x2))
         x4 = F.log_softmax(self.fc2(x3), dim=1)
-        
+
         return [x1, x2, x3, x4]
 
     def forward_param_features(self, x):

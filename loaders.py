@@ -97,7 +97,7 @@ def seed_worker(worker_id):
 def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=0, verbose=False, sampling=-1, \
                normalize=True, subset=None):
     dataset = get_dataset(data, path, transform, train=train, iter=iter, verbose=verbose)
-
+    print(f'Length of dataset: {dataset.__len__()}\n')
     if data.split('_')[0] == 'dummy':
         dummy_transform = dataset.__gettransform__()
 
@@ -115,6 +115,7 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
     if subset is not None:
         subset_iter = list(np.random.choice(dataset.__len__(), size=subset, replace=False))
         dataset = CustomSubset(dataset, subset_iter)
+    # print(f'Length of subset: {dataset.__len__()}\n')
 
     if sampling == -1:
         sampler = RandomSampler(dataset)
@@ -132,6 +133,12 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
         dataset.__gettransform__().transforms.insert(len_transform, transforms.Normalize(mean, std))
 
     # print(f"Transform after: {dataset.__gettransform__()}\n")
+
+    # list_of_labels = [dataset[i][1] for i in range(len(dataset))]
+    # print(f'Unique labels: {np.unique(list_of_labels)}\n')
+
+    # num_of_each_label = {label: list_of_labels.count(label) for label in np.unique(list_of_labels)}
+    # print(f'Number of each label: {num_of_each_label}\n')
 
     return data_loader, dataset.__gettransform__()
 

@@ -92,6 +92,7 @@ class Passer():
 
         for batch_idx, (inputs, targets) in enumerate(self.loader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
+            assert not torch.isnan(inputs).any(), 'NaN in inputs at passers.py:get_function()'
             
             # Append to features all of the outputs of the forward_features function
             # for each data point in the batch. Note that the forward_features function
@@ -100,6 +101,9 @@ class Passer():
             # Further note that the tensors within the list of tensors, in the case of the 
             # 3 layer FCNet, are of size 100x3 and 100x4, respectively, where 100 is the
             # batch size and the second dimension is the number of neurons in the layer.
+            
+            for f in self.network.forward_features(inputs):
+                assert not torch.isnan(f).any(), 'NaN in forward_features at passers.py:get_function()'
 
             features.append([f.cpu().data.numpy().astype(np.float32) for f in self.network.forward_features(inputs)])
                 
@@ -125,7 +129,7 @@ class Passer():
         features = signal_concat(features).T # put in data x features format; samples are rows, features are columns
         
         m, n = features.shape
-        print(f"Features size: {(m, n)}")
+        print(f"\nFeatures size: {(m, n)}")
 
         if reduction is not None:
             torch.cuda.empty_cache()
@@ -156,17 +160,12 @@ class Passer():
             and return the reduced unnormalized features. Expected input shape 
             is (samples, features).
         '''
-        features = torch.tensor(features, requires_grad=False).detach().to(device_list[-1])
-
-        # Center the features or normalize them
-        if center_only:
-            centered = features - features.mean(dim=0)
-        else: 
-            centered = (features - features.mean(dim=0)) / features.std(dim=0)
+        features = torch.tensor(features, requires_grad=False).detach().to(device_list[-1]).T # features x samples
+        features = features[torch.where(features.std(dim=-1, keepdim=True)!=0)[0], :] # filter out constant rows
+        # features = (features - features.mean(dim=-1, keepdim=True)) / features.std(dim=-1, keepdim=True) # standardize
 
         # Perform PCA
-        _, S, V = torch.linalg.svd( (centered.T @ centered) / (m - 1), driver='gesvd')
-        
+        _, S, V = torch.linalg.svd(torch.cov(features), driver='gesvd')
         S, V = S.detach().numpy(force=True), V.detach().to(device_list[-1])
 
         # Calculate the number of principal components to keep
@@ -183,27 +182,29 @@ class Passer():
         print(f'Explained variance: {partial_perc:.3f} with {num_components} components\n')
 
         # Project the data onto the principal components
-        features = torch.mm(features, V[:, :num_components]).detach()
+        features = torch.mm(features.T, V[:, :num_components]).detach()
 
         # free up memory on the GPU
         del explained, S, V, num_components, partial_perc
         torch.cuda.empty_cache()
-        torch.cuda.ipc_collect()
 
         return features.cpu().data.numpy().astype(np.float64)
     
     @torch.no_grad()
-    def perform_kmeans(self, features, num_max_clusters=1000, device_list=None):
+    def perform_kmeans(self, features, num_max_clusters=1000, device_list=None, metric='euclidean'):
         ''' Perform a torch implemented GPU accelerated kmeans on the features
             and return the cluster assignments. Expected input shape is (samples, features).
         '''
-        from kmeans_pytorch import multi_kmeans
+        from kmeans_pytorch import find_best_cluster
 
-        num_max_clusters = min(num_max_clusters, features.shape[1])
+        features = torch.tensor(features, requires_grad=False).detach().to(device_list[-1]).T # features x samples
+        features = features[torch.where(features.std(dim=-1, keepdim=True)!=0)[0], :] # filter out constant rows
+        features = (features - features.mean(dim=-1, keepdim=True)) / features.std(dim=-1, keepdim=True) # standardize
 
-        features = torch.tensor(features, requires_grad=False).detach().T.to(device_list[-1])
-        features = (features - features.mean(dim=-1, keepdim=True)) / features.std(dim=-1, keepdim=True)
-        features = multi_kmeans(features, num_max_clusters=num_max_clusters, distance='euclidean', device=device_list[-1], tqdm_flag=True)
+        num_max_clusters = min(num_max_clusters, features.shape[0])
+        features = find_best_cluster(features, num_max_clusters=num_max_clusters, distance=metric, device=device_list[0], tqdm_flag=True, sil_score=False, seed=SEED)
+
+        del num_max_clusters
 
         return features.T.cpu().data.numpy().astype(np.float64)
 

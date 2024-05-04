@@ -81,27 +81,27 @@ with torch.no_grad():
             checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
         
         net.load_state_dict(checkpoint['net'])
-        net.eval()
         net.requires_grad_(False)
+        net.eval()
 
         ''' Define passer and get activations '''
         # get activations and reduce dimensionality; compute distance adjacency matrix
         passer = Passer(net, functloader, criterion, device_list[0])
         activs = passer.get_function(reduction=args.reduction, device_list=device_list) 
-        adj = adjacency(activs, metric=args.metric, device=device_list[0]) 
+        adj = adjacency(activs, metric=args.metric, device=device_list[0])
 
         if args.verbose:
             print(f'\n The dimension of the corrcoef matrix is {adj.size()[0], adj.size()[-1]} \n')
             print(f'Adj mean {adj.mean():.4f}, min {adj.min():.4f}, max {adj.max():.4f} \n')
 
         # convert to distance matrix for V-R filtration
-        adj = torch.abs(adj) if args.reduction != 'kmeans' else adj
+        adj = torch.abs(adj)
         adj *= -1
         adj += 1
-        adj = torch.sqrt(adj) if args.reduction != 'kmeans' else torch.sqrt(.5*adj)
+        adj = torch.sqrt(adj.clamp(0, 1))
 
         # convert to COO format for faster computation of persistence diagram
-        indices = (adj<1.).nonzero().numpy(force=True) if args.reduction != 'kmeans' else (adj<=1).nonzero().numpy(force=True)
+        indices = (adj<1).nonzero().numpy(force=True)
         i = list(zip(*indices))
         vals = adj[i].flatten().numpy(force=True)
 
@@ -115,11 +115,10 @@ with torch.no_grad():
                 print(f'adj mean {np.nanmean(adj.data):.4f}, min {np.nanmin(adj.data):.4f}, max {np.nanmax(adj.data):.4f}')
             else:
                 print(f'adj empty! \n')
-        
+
         # Compute persistence diagram
         comp_time = time.time()
         dgm = ripser_parallel(adj, metric="precomputed", maxdim=UPPER_DIM, n_threads=-1, collapse_edges=True)
-        # dgm = rips.fit_transform([adj])
         comp_time = time.time() - comp_time
         total_time += comp_time
         print(f'\n PH computation time: {comp_time/60:.5f} minutes \n')
