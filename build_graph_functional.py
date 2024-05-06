@@ -110,7 +110,7 @@ with torch.no_grad():
         del indices, i, vals
 
         if args.verbose:
-            print(f'\n The dimension of the COO distance matrix is {adj.data.shape}\n')
+            print(f'\n The dimension of the COO distance matrix is {(len(adj.nonzero()[0]),)}\n')
             if adj.data.shape[0] != 0:
                 print(f'adj mean {np.nanmean(adj.data):.4f}, min {np.nanmin(adj.data):.4f}, max {np.nanmax(adj.data):.4f}')
             else:

@@ -202,7 +202,7 @@ class Passer():
         features = (features - features.mean(dim=-1, keepdim=True)) / features.std(dim=-1, keepdim=True) # standardize
 
         num_max_clusters = min(num_max_clusters, features.shape[0])
-        features = find_best_cluster(features, num_max_clusters=num_max_clusters, distance=metric, device=device_list[0], tqdm_flag=True, sil_score=False, seed=SEED)
+        features = find_best_cluster(features, num_min_clusters=num_max_clusters, num_max_clusters=num_max_clusters, distance=metric, device=device_list[-1], tqdm_flag=True, sil_score=False, seed=SEED)
 
         del num_max_clusters
 
