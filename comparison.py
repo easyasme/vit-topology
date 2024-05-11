@@ -88,7 +88,7 @@ def compute_net_epoch_distances(epoch_dict_1, epoch_dict_2, start, stop, epochs,
     start: start subset index
     stop: stop subset index
     epochs: list of epochs to compute distances for
-    return: list of pairwise distances across networks for each subset
+    return: list of normalized pairwise distances across networks for each subset
     '''
     dist_list = []
     for i in range(start, stop+1):
@@ -97,7 +97,10 @@ def compute_net_epoch_distances(epoch_dict_1, epoch_dict_2, start, stop, epochs,
         dgm_1 = torch.tensor(dgm_1).to(device).permute(1,0,2) if permute else torch.tensor(dgm_1).to(device)
         dgm_2 = torch.tensor(dgm_2).to(device).permute(1,0,2) if permute else torch.tensor(dgm_2).to(device)
 
-        dist_list.append(torch.cdist(dgm_1, dgm_2, p=np.inf).numpy(force=True))
+        dist = torch.cdist(dgm_1, dgm_2, p=np.inf)
+        # dist = (dist - dist.min(dim=0)[0]) / (dist.max(dim=0)[0] - dist.min(dim=0)[0])
+        
+        dist_list.append(dist.numpy(force=True))
 
         del dgm_1, dgm_2
         torch.cuda.empty_cache()
@@ -111,7 +114,7 @@ def compute_net_subset_distances(epoch_dict_1, epoch_dict_2, start, stop, epochs
     start: start subset index
     stop: stop subset index
     epochs: list of epochs to compute distances for
-    return: list of pairwise distances across networks for each epoch
+    return: list of normalized pairwise distances across networks for each epoch
     '''
     dist_list_ss = []
     for epoch in epochs:
@@ -119,8 +122,11 @@ def compute_net_subset_distances(epoch_dict_1, epoch_dict_2, start, stop, epochs
         dgm_2 = np.array([epoch_dict_2[i][epoch] for i in range(start, stop+1)],dtype=np.float32)
         dgm_1 = torch.tensor(dgm_1).to(device).permute(1,0,2) if permute else torch.tensor(dgm_1).to(device)
         dgm_2 = torch.tensor(dgm_2).to(device).permute(1,0,2) if permute else torch.tensor(dgm_2).to(device)
-
-        dist_list_ss.append(torch.cdist(dgm_1, dgm_2, p=np.inf).numpy(force=True))
+        
+        dist = torch.cdist(dgm_1, dgm_2, p=np.inf)
+        # dist = (dist - dist.min(dim=0)[0]) / (dist.max(dim=0)[0] - dist.min(dim=0)[0])
+        
+        dist_list_ss.append(dist.numpy(force=True))
 
         del dgm_1, dgm_2
         torch.cuda.empty_cache()
