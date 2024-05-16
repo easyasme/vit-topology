@@ -11,7 +11,7 @@ from PIL import PngImagePlugin
 from torch.utils.data import (DataLoader, Dataset, RandomSampler,
                               SequentialSampler, Subset, random_split)
 
-from config import IMG_SIZE, SUBSETS_LIST
+from config import IMG_SIZE, SUBSETS_LIST, SEED
 
 # uncomment these lines to allow large images and truncated images to be loaded
 LARGE_ENOUGH_NUMBER = 1000
@@ -21,6 +21,10 @@ PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024**2)
 CODES_TO_NAMES_FILE = './results/codes_to_names.txt'
 
 def get_color_distortion(s=0.125): # s is the strength of color distortion.
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
+    random.seed(SEED)
+
     color_jitter = transforms.ColorJitter(0.8*s, 0.8*s, 0.8*s, 0.2*s)
     rnd_color_jitter = transforms.RandomApply([color_jitter], p=0.8)
     rnd_gray = transforms.RandomGrayscale(p=0.2)
@@ -59,6 +63,7 @@ def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True
     return transform
 
 def calc_mean_std(dataloader):
+    ''' Calculate mean and standard deviation of dataset '''
     pop_mean = []
     pop_std = []
 
@@ -89,15 +94,10 @@ def get_dataset(data, path, transform, verbose, train=False, iter=0):
 
     return dataset
 
-def seed_worker(worker_id):
-    worker_seed = torch.initial_seed() % 2**32
-    np.random.seed(worker_seed)
-    random.seed(worker_seed)
-
 def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=0, verbose=False, sampling=-1, \
                normalize=True, subset=None):
     dataset = get_dataset(data, path, transform, train=train, iter=iter, verbose=verbose)
-    print(f'Length of dataset: {dataset.__len__()}\n')
+
     if data.split('_')[0] == 'dummy':
         dummy_transform = dataset.__gettransform__()
 
@@ -115,30 +115,27 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
     if subset is not None:
         subset_iter = list(np.random.choice(dataset.__len__(), size=subset, replace=False))
         dataset = CustomSubset(dataset, subset_iter)
-    # print(f'Length of subset: {dataset.__len__()}\n')
 
     if sampling == -1:
         sampler = RandomSampler(dataset)
     else:
         sampler = SequentialSampler(dataset)
 
-    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=1, worker_init_fn=seed_worker)
+    def seed_worker(worker_id):
+        worker_seed = torch.initial_seed() % 2**32
+        np.random.seed(worker_seed)
+        random.seed(worker_seed)
 
-    # print(f"Transform before: {dataset.__gettransform__()}\n")
+    g = torch.Generator()
+    g.manual_seed(SEED)
+
+    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=1, worker_init_fn=seed_worker, generator=g)
 
     if normalize and not isinstance(transform.transforms[-1], torchvision.transforms.transforms.Normalize):
         mean, std = calc_mean_std(data_loader)
         
         len_transform = len(dataset.__gettransform__().transforms)
         dataset.__gettransform__().transforms.insert(len_transform, transforms.Normalize(mean, std))
-
-    # print(f"Transform after: {dataset.__gettransform__()}\n")
-
-    # list_of_labels = [dataset[i][1] for i in range(len(dataset))]
-    # print(f'Unique labels: {np.unique(list_of_labels)}\n')
-
-    # num_of_each_label = {label: list_of_labels.count(label) for label in np.unique(list_of_labels)}
-    # print(f'Number of each label: {num_of_each_label}\n')
 
     return data_loader, dataset.__gettransform__()
 
@@ -192,7 +189,7 @@ class CustomImageNet(Dataset):
         self.name_dict = {}
         self.transform = transform
         self.verbose = verbose
-        
+
         if data_path == '/home/trogdent/imagenet_data/train' or data_path == '/home/trogdent/imagenet_data/val':
             img_format = '*.JPEG'
         else:

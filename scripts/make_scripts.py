@@ -20,7 +20,7 @@ def main(pars):
 
         print(f'\n ==> Save directory: {SAVE_DIR} \n')
 
-        cmd = f"python ../scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --post_process {args.post_process} --compare {args.compare} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
+        cmd = f"python ../../scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --post_process {args.post_process} --compare {args.compare} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
         cmd += f' --reduction {args.reduction}' if args.reduction else ''
         cmd += f' --metric {args.metric}' if args.metric else ''
 
@@ -36,7 +36,7 @@ if __name__ == "__main__":
     parser.add_argument('--train', default=1, type=int)
     parser.add_argument('--build_graph', default=1, type=int)
     parser.add_argument('--post_process', default=1, type=int)
-    parser.add_argument('--compare', default=1, type=int)
+    parser.add_argument('--compare', default=0, type=int)
     parser.add_argument('--n_epochs_train', default='50', help='Number of epochs to train.')
     parser.add_argument('--lr', default='0.001', help='Specify learning rate for training.')
     parser.add_argument('--optimizer', default='adabelief', help='Define training optimizer: "adabelief" or "adam")')

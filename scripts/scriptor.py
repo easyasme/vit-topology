@@ -12,7 +12,7 @@ required.add_argument('--dataset', help='Specify dataset (e.g. mnist, cifar10, i
 parser.add_argument('--train', default=1, type=int)
 parser.add_argument('--build_graph', default=1, type=int)
 parser.add_argument('--post_process', default=1, type=int)
-parser.add_argument('--compare', default=1, type=int)
+parser.add_argument('--compare', default=0, type=int)
 parser.add_argument('--data_subset', default='0 10', help='Specify data subset in the form \'start stop\'')
 parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
 parser.add_argument('--metric', default=None, type=str, help='Distance metric: none, spearman, dcorr, or callable.')
@@ -314,6 +314,7 @@ export UCX_MEMTYPE_CACHE=n
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.conda/envs/topo_gph/lib
 
 mamba activate topo_gph
+export CUBLAS_WORKSPACE_CONFIG=:4096:8
 cd ~/compute/qual/dnn-topology
 
 . scripts{MIDDLE}{FILENAME}

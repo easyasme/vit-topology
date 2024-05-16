@@ -49,7 +49,6 @@ class Passer():
                     loss.backward()
                     optimizer.step()
 
-                
                 accuracies.append(get_accuracy(outputs, targets))
                 progress_bar((r-1)*len(self.loader)+batch_idx, r*len(self.loader), 'repeat %d -- Mean Loss: %.3f | Last Loss: %.3f | Acc: %.3f%%' % (r, np.mean(losses), losses[-1], np.mean(accuracies)))
 

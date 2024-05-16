@@ -4,18 +4,20 @@ import argparse
 import time
 
 from gph import ripser_parallel
-# from gtda.homology import VietorisRipsPersistence, SparseRipsPersistence
 from gtda.homology._utils import _postprocess_diagrams
 from gtda.utils import check_diagrams
 from scipy.sparse import coo_matrix
 
 from bettis import betti_nums
-from config import UPPER_DIM
+from config import UPPER_DIM, SEED
 from graph import *
 from loaders import *
 from models.utils import get_model
 from passers import Passer
 from utils import *
+
+import numpy as np
+import random
 
 
 parser = argparse.ArgumentParser(description='Build Graph and Compute Betti Numbers')
@@ -43,6 +45,13 @@ else:
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     device_list.append(device)
     print(f'Using {device}')
+
+''' Set seed and other deterministic settings '''
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+random.seed(SEED)
+torch.backends.cudnn.benchmark = False
+torch.use_deterministic_algorithms(True, warn_only=True)
 
 ''' Directory to retrieve transformers '''
 TRANS_DIR = f'./train_processing/{args.net}/{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet' else f'./train_processing/{args.net}/{args.net}_{args.dataset}'

@@ -9,12 +9,13 @@ import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
 from adabelief_pytorch import AdaBelief
-from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from loaders import *
 from models.utils import get_model, init_from_checkpoint
 from passers import Passer
 from savers import save_checkpoint, save_losses
+
+from config import SEED
 
 parser = argparse.ArgumentParser(description='PyTorch Training')
 
@@ -35,6 +36,13 @@ parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, defa
 
 args = parser.parse_args()
 
+''' Set seed and other cudnn settings '''
+torch.manual_seed(SEED)
+np.random.seed(SEED)
+random.seed(SEED)
+cudnn.benchmark = False
+torch.use_deterministic_algorithms(True, warn_only=True)
+
 ''' Directory to save training transformers '''
 TRANS_DIR = f'./train_processing/{args.net}/{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet' else f'./train_processing/{args.net}/{args.net}_{args.dataset}'
 os.makedirs(TRANS_DIR, exist_ok=True)
@@ -51,6 +59,7 @@ start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 print(f'==> Preparing data..\n')
 print(f'Preparing train loader')
 train_loader, train_transform = loader(f'{args.dataset}_train', batch_size=args.train_batch_size, iter=args.iter, verbose=True)
+
 print(f'Preparing test loader\n')
 test_loader, _ = loader(f'{args.dataset}_test', batch_size=args.test_batch_size, iter=args.iter, verbose=False, transform=train_transform)
 
@@ -68,14 +77,6 @@ criterion = nn.CrossEntropyLoss()
 print(f'==> Building model..\n')
 net = get_model(args.net, args.dataset)
 net = net.to(device)
-   
-if device == 'cuda':
-    net = torch.nn.DataParallel(net)
-    cudnn.benchmark = True
-
-''' Initialize weights from checkpoint '''
-if args.resume:
-    net, best_acc, start_acc = init_from_checkpoint(net)
 
 ''' Optimization '''
 if args.optimizer == 'adabelief':
@@ -85,19 +86,23 @@ elif args.optimizer == 'adam':
 else:
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
-''' Learning rate scheduler '''
-lr_scheduler = ReduceLROnPlateau(optimizer, factor=0.5, mode='max', verbose=True)
+''' Initialize from checkpoint '''
+if args.resume:
+    net, optimizer, loss_tr, loss_te, acc_tr, acc_te, start_epoch = init_from_checkpoint(net, optimizer, args)
+    print(f'==> Resuming from checkpoint.. Epoch: {start_epoch}\n')
 
 ''' Define passer '''
 passer_train = Passer(net, train_loader, criterion, device)
 passer_test = Passer(net, test_loader, criterion, device)
 
 ''' Make intial pass before any training '''
-loss_te, acc_te = passer_test.run()
-
-save_checkpoint(checkpoint = {'net':net.state_dict(),
-                              'acc': acc_te, 'epoch': 0},
-                               path=f'./checkpoint/{args.net}/{ONAME}/', fname='ckpt_epoch_0.pt')
+if not args.resume:
+    loss_te, acc_te = passer_test.run()
+    save_checkpoint(checkpoint = {'net':net.state_dict(),
+                                  'loss_te': loss_te,
+                                  'acc_te': acc_te,
+                                  'optimizer': optimizer.state_dict()},
+                                  path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_0.pt")
 
 losses = []
 for epoch in range(start_epoch, start_epoch + args.epochs):
@@ -107,10 +112,15 @@ for epoch in range(start_epoch, start_epoch + args.epochs):
     loss_te, acc_te = passer_test.run()
 
     losses.append({'loss_tr': loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te': acc_te, 'epoch': int(epoch)})
-    lr_scheduler.step(acc_te)
-
     if epoch in vars(args)['chkpt_epochs']:
-        save_checkpoint(checkpoint = {'net':net.state_dict(), 'acc': acc_te, 'epoch': epoch}, path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_{epoch}.pt")
+        save_checkpoint(checkpoint = {'net':net.state_dict(),
+                                      'loss_tr': loss_tr,
+                                      'loss_te': loss_te,
+                                      'acc_tr': acc_tr,
+                                      'acc_te': acc_te,
+                                      'epoch': epoch,
+                                      'optimizer': optimizer.state_dict()},
+                                       path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_{epoch}.pt")
 
     gc.collect()
 

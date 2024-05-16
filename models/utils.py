@@ -84,16 +84,32 @@ def get_model(name, dataset):
     print("Trainable Params:", sum(p.numel() for p in net.parameters() if p.requires_grad), '\n')
     return net
 
-def init_from_checkpoint(net):
+def init_from_checkpoint(net, optimizer, args):
     ''' Initialize from checkpoint'''
     print('==> Initializing  from fixed checkpoint..')
-    assert os.path.isdir('checkpoint'), 'Error: no checkpoint directory found!'
+    assert os.path.isdir('./checkpoint'), 'Error: no checkpoint directory found!'
     
-    checkpoint = torch.load('./checkpoint/' + args.net + '/' + args.net + '_' + args.dataset + '_ss' + args.iter + '/ckpt_trial_' + str(args.fixed_init) + '_epoch_50.t7')
+    if args.dataset == 'imagenet':
+        checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss{args.iter}/ckpt_epoch_{args.resume_epoch}.pt')
+    else:
+        checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}/ckpt_epoch_{args.resume_epoch}.pt')
     
-    net.load_state_dict(checkpoint['net'])
-    
-    best_acc = checkpoint['acc']
-    start_epoch = checkpoint['epoch']
+    keys = checkpoint.keys()
+    if 'net' in keys:
+        net.load_state_dict(checkpoint['net'])
+    if 'optimizer' in keys:
+        optimizer.load_state_dict(checkpoint['optimizer'])
+    if 'loss_tr' in keys:
+        loss_tr = checkpoint['loss_tr']
+    if 'loss_te' in keys:
+        loss_te = checkpoint['loss_te']
+    if 'acc_tr' in keys:
+        acc_tr = checkpoint['acc_tr']
+    if 'acc_te' in keys:
+        acc_te = checkpoint['acc_te']
+    if 'epoch' in keys:
+        epoch = checkpoint['epoch']
 
-    return net, best_acc, start_epoch
+    del keys, checkpoint
+
+    return net, optimizer, loss_tr, loss_te, acc_tr, acc_te, epoch
