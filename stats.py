@@ -1,17 +1,18 @@
 import os
 import pickle
-import plotly.express as px
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
+from plotly.io import write_image
+
 from PIL import Image
 
 from loaders import *
 
-NET = 'alexnet'
+NET = 'resnet'
 DATASET = 'imagenet'
 START = 0
 SUBSETS = 30 # 1 for none, 30 for all
 
-SAVE_DIR = './results'
+SAVE_DIR = './results/stats'
 RED = 'kmeans' # 'pca' or 'umap' or None
 METRIC = 'spearman' # 'euclidean' or 'cosine' or None
 
@@ -32,12 +33,15 @@ def get_concat_v_multi_blank(im_list):
     
     return _im
 
+time_only = True
+
 # ''' Make plots of losses and accuracies '''
-Xs = []
+Xs = None
 test_accs = []
 train_accs = []
+times = []
 for iter in range(START, SUBSETS):
-    print(f'Processing losses for subset {iter}')
+    # print(f'Processing losses for subset {iter}')
     if DATASET.__eq__('imagenet'):
         pkl_path = f"./losses/{NET}/{NET}_{DATASET}_ss{iter}/"
     else:
@@ -45,6 +49,7 @@ for iter in range(START, SUBSETS):
 
     pkl_path += f'{RED}/' if RED is not None else ''
     pkl_path += f'{METRIC}/' if METRIC is not None else ''
+    time_pkl_path = pkl_path + 'time.pkl'
     pkl_path += 'stats.pkl'
 
     if not os.path.exists(pkl_path):
@@ -61,58 +66,74 @@ for iter in range(START, SUBSETS):
     acc_save_file = f"{save_dir}/acc.png"
     loss_save_file = f"{save_dir}/loss.png"
 
-    with open(pkl_path, 'rb') as f:
-        losses = pickle.load(f)
+    with open(time_pkl_path, 'rb') as f:
+        time = pickle.load(f)
+    times.append(time)
+    
+    if not time_only:
+        with open(pkl_path, 'rb') as f:
+            losses = pickle.load(f)
+            
+        X = [loss['epoch'] for loss in losses]
+        Xs = X
+
+        test_accs.append([loss['acc_te']/100. for loss in losses])
+        train_accs.append([loss['acc_tr']/100. for loss in losses])
+
+        '''Create plots of accuracies'''
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=X, y=[loss['acc_te']/100. for loss in losses], mode='lines', line_color='red', name='Test'))
+        fig.add_trace(go.Scatter(x=X, y=[loss['acc_tr']/100. for loss in losses], mode='lines', line_color='blue', name='Train'))
+        fig.update_layout(title=f'Accuracy on subset {iter}', xaxis_title='Epoch', yaxis_title='Accuracy')
+        write_image(fig, acc_save_file, format='png')
+
+        '''Create plots of losses'''
+        test_loss = np.array([np.mean(loss['loss_te']) for loss in losses])
+        test_std = np.array([np.std(loss['loss_te']) for loss in losses])
+        train_loss = np.array([np.mean(loss['loss_tr']) for loss in losses])
+        train_std = np.array([np.std(loss['loss_tr']) for loss in losses])
+
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(x=X, y=test_loss, mode='lines', fill=None, line_color='red', name='Test'))
+        fig.add_trace(go.Scatter(x=X, y=test_loss + test_std, fill=None, mode='lines', showlegend=False, line=dict(color='red', width=.1, dash='dash')))
+        fig.add_trace(go.Scatter(x=X, y=test_loss - test_std, fill='tonexty', mode='lines', showlegend=False, line=dict(color='red', width=.1, dash='dash')))
         
-    X = [loss['epoch'] for loss in losses]
-
-    Xs.append(X)
-    test_accs.append([loss['acc_te']/100. for loss in losses])
-    train_accs.append([loss['acc_tr']/100. for loss in losses])
-
-    '''Create plots of accuracies'''
-    plt.xlabel('Epoch (N)')
-    plt.ylabel('Accuracy')
-    test_acc = [loss['acc_te']/100. for loss in losses]
-    train_acc = [loss['acc_tr']/100. for loss in losses]
-    plt.plot(X, test_acc, label='Test')
-    plt.plot(X, train_acc, label='Train')
-    plt.legend()
-    plt.title('Accuracy v. Epoch')
-    plt.savefig(acc_save_file)
-    plt.clf()
-
-    '''Create plots of losses'''
-    plt.xlabel('Epoch (N)')
-    plt.ylabel('Loss')
-    test_loss = np.array([np.mean(loss['loss_te']) for loss in losses])
-    test_std = np.array([np.std(loss['loss_te']) for loss in losses])
-    argmin_test_loss = np.argmin(test_loss)
-    min_test_loss = test_loss[argmin_test_loss]
-    plt.fill_between(X, test_loss - test_std, test_loss + test_std, alpha=0.1, interpolate=True)
-
-    train_loss = np.array([np.mean(loss['loss_tr']) for loss in losses])
-    train_std = np.array([np.std(loss['loss_tr']) for loss in losses])
-    plt.fill_between(X, train_loss - train_std, train_loss + train_std, alpha=0.1, interpolate=True)
-    plt.vlines(X[argmin_test_loss], 0, min_test_loss, linestyles='dashed', label='Min Test Loss')
-
-    plt.plot(X, test_loss, label='Test Mean')
-    plt.plot(X, train_loss, label='Train Mean')
-    plt.legend()
-    plt.title('Average Loss v. Epoch')
-    plt.savefig(loss_save_file)
-    plt.clf()
+        fig.add_trace(go.Scatter(x=X, y=train_loss, mode='lines', fill=None, line_color='blue', name='Train'))
+        fig.add_trace(go.Scatter(x=X, y=train_loss + train_std, fill=None, mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
+        fig.add_trace(go.Scatter(x=X, y=train_loss - train_std, fill='tonexty', mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
+        
+        fig.update_layout(title=f'Average loss on subset {iter}', xaxis_title='Epoch', yaxis_title='Loss')
+        write_image(fig, loss_save_file, format='png')
 
 ''' Plot averages over all subsets '''
-test_accs = np.array(test_accs)
-train_accs = np.array(train_accs)
+if not time_only:
+    save_dir = f"{SAVE_DIR}/{NET}_{DATASET}/images/"
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    avg_acc_save_file = f"{SAVE_DIR}/{NET}_{DATASET}/images/avg_acc.png"
 
-plt.plot(Xs[-1], test_accs.mean(axis=0), label='Average Test Mean')
-plt.plot(Xs[-1], train_accs.mean(axis=0), label='Average Train Mean')
-plt.legend()
-plt.title('Average Loss v. Epoch')
-plt.savefig(loss_save_file)
-plt.clf()
+    test_accs = np.array(test_accs)
+    test_mean = np.mean(test_accs, axis=0)
+    test_std = np.std(test_accs, axis=0)
+
+    train_accs = np.array(train_accs)
+    train_mean = np.mean(train_accs, axis=0)
+    train_std = np.std(train_accs, axis=0)
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=Xs, y=test_mean, mode='lines', line_color='red', name='Test'))
+    fig.add_trace(go.Scatter(x=Xs, y=test_mean + test_std, fill=None, mode='lines', showlegend=False, line=dict(color='red', width=.1, dash='dash')))
+    fig.add_trace(go.Scatter(x=Xs, y=test_mean - test_std, fill='tonexty', mode='lines', showlegend=False, line=dict(color='red', width=.1, dash='dash')))
+
+    fig.add_trace(go.Scatter(x=Xs, y=train_mean, mode='lines', line_color='blue', name='Train'))
+    fig.add_trace(go.Scatter(x=Xs, y=train_mean + train_std, fill=None, mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
+    fig.add_trace(go.Scatter(x=Xs, y=train_mean - train_std, fill='tonexty', mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
+
+    fig.update_layout(title=f'Average accuracy over subsets {START}-{SUBSETS-1}', xaxis_title='Epoch', yaxis_title='Accuracy')
+    write_image(fig, avg_acc_save_file, format='png')
+
+times = np.array(times)
+print(f'Average time per subset: {times.mean()/60.:.3f} minutes')
 
 # ''' Concatenate images of curves '''
 # for iter in range(START, SUBSETS):
