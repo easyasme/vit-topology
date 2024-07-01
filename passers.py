@@ -85,7 +85,7 @@ class Passer():
         return np.concatenate(gts), np.concatenate(preds)
 
     @torch.no_grad()
-    def get_function(self, reduction=None, device_list=None):
+    def get_function(self, reduction=None, device_list=None, corr='pearson', exp=1):
         ''' Collect function (features) from the self.network.module.forward_features() routine '''
         features = []
 
@@ -143,7 +143,7 @@ class Passer():
                 features = self.perform_umap(features, num_components=int(.4*n), num_neighbors=50, min_dist=.175, num_epochs=50, metric='correlation', device_list=device_list)
             elif reduction.__eq__('kmeans'):
                 print(f"Performing K-means on features with {n} components...\n")
-                features = self.perform_kmeans(features, device_list=device_list)
+                features = self.perform_kmeans(features, device_list=device_list, exp=exp, corr=corr)
             else:
                 raise ValueError(f"Reduction {reduction} not supported!")
 
@@ -190,7 +190,7 @@ class Passer():
         return features.cpu().data.numpy().astype(np.float64)
     
     @torch.no_grad()
-    def perform_kmeans(self, features, num_max_clusters=1000, device_list=None, metric='euclidean'):
+    def perform_kmeans(self, features, num_max_clusters=1000, device_list=None, metric='correlation', exp=1, corr='pearson'):
         ''' Perform a torch implemented GPU accelerated kmeans on the features
             and return the cluster assignments. Expected input shape is (samples, features).
         '''
@@ -201,7 +201,7 @@ class Passer():
         features = (features - features.mean(dim=-1, keepdim=True)) / features.std(dim=-1, keepdim=True) # standardize
 
         num_max_clusters = min(num_max_clusters, features.shape[0])
-        features = find_best_cluster(features, num_min_clusters=num_max_clusters, num_max_clusters=num_max_clusters, distance=metric, device=device_list[-1], tqdm_flag=True, sil_score=False, seed=SEED)
+        features = find_best_cluster(features, num_min_clusters=num_max_clusters, num_max_clusters=num_max_clusters, distance=metric, device=device_list[-1], tqdm_flag=True, sil_score=False, seed=SEED, corr=corr, exp=exp)
 
         del num_max_clusters
 

@@ -14,12 +14,12 @@ def adjacency_l2(signals):
     return np.sqrt((signals - signals.transpose())**2)
 
 @torch.no_grad()
-def spearman_ranks(signals, device='cpu'):
+def spearman_ranks(signals, device=torch.device('cpu')):
     ''' In this case signals is an MXN tensor not a time series. 
     Builds adjacency based on Spearman correlation between node activations.
     '''
-    signals = [pd.Series(signals.numpy(force=True)[i]).rank().values for i in range(signals.size(0))]
-    signals = torch.tensor(np.array(signals), device=device).detach()
+    signals = pd.DataFrame(signals.numpy(force=True)).rank(axis=1, method='average').values
+    signals = torch.tensor(signals, device=device).detach()
     
     return signals
 

@@ -52,9 +52,6 @@ ONAME = f'{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print("Device: ", device, "\n")
 
-best_acc = 0  # best test accuracy
-start_epoch = 1  # start from epoch 1 or last checkpoint epoch
-
 ''' Prepare loaders '''
 print(f'==> Preparing data..\n')
 print(f'Preparing train loader')
@@ -86,9 +83,12 @@ elif args.optimizer == 'adam':
 else:
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
+best_acc = 0  # best test accuracy
+start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 ''' Initialize from checkpoint '''
 if args.resume:
     net, optimizer, loss_tr, loss_te, acc_tr, acc_te, start_epoch = init_from_checkpoint(net, optimizer, args)
+    start_epoch += 1
     print(f'==> Resuming from checkpoint.. Epoch: {start_epoch}\n')
 
 ''' Define passer '''
@@ -105,8 +105,8 @@ if not args.resume:
                                   path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_0.pt")
 
 losses = []
-for epoch in range(start_epoch, start_epoch + args.epochs):
-    print('Epoch {}'.format(epoch))
+for epoch in range(start_epoch, args.epochs + 1):
+    print(f'Epoch {epoch}')
 
     loss_tr, acc_tr = passer_train.run(optimizer)
     loss_te, acc_te = passer_test.run()

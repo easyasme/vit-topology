@@ -1,6 +1,7 @@
 import os
 
 from config import IMG_SIZE
+from numpy import inf
 
 from .alexnet import *
 from .conv_x import *
@@ -99,16 +100,11 @@ def init_from_checkpoint(net, optimizer, args):
         net.load_state_dict(checkpoint['net'])
     if 'optimizer' in keys:
         optimizer.load_state_dict(checkpoint['optimizer'])
-    if 'loss_tr' in keys:
-        loss_tr = checkpoint['loss_tr']
-    if 'loss_te' in keys:
-        loss_te = checkpoint['loss_te']
-    if 'acc_tr' in keys:
-        acc_tr = checkpoint['acc_tr']
-    if 'acc_te' in keys:
-        acc_te = checkpoint['acc_te']
-    if 'epoch' in keys:
-        epoch = checkpoint['epoch']
+    loss_tr = checkpoint['loss_tr'] if 'loss_tr' in keys else inf
+    loss_te = checkpoint['loss_te'] if 'loss_te' in keys else inf
+    acc_tr = checkpoint['acc_tr'] if 'acc_tr' in keys else 0
+    acc_te = checkpoint['acc_te'] if 'acc_te' in keys else 0
+    epoch = checkpoint['epoch'] if 'epoch' in keys else 0
 
     del keys, checkpoint
 

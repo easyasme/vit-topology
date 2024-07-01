@@ -22,6 +22,8 @@ parser.add_argument('--optimizer', default='adabelief', help='Specify optimizer 
 parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs for which you want to build graph.')
 parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap or kmeans.')
 parser.add_argument('--verbose', default=0, type=int)
+parser.add_argument('--resume', default=0, type=int, help='resume from checkpoint')
+parser.add_argument('--resume_epoch', default=20, type=int, help='resume from epoch')
 parser.add_argument('--save_dir', default='./results/', help='Directory to save results.')
 
 # SLURM parameters
@@ -62,6 +64,10 @@ if (args.reduction is not None) and (args.metric is None):
     OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
 
     RED="{args.reduction}" # pca or umap
+
+    RESUME={args.resume} # resume from checkpoint
+
+    RESUME_EPOCH={args.resume_epoch} # resume from epoch
                 
     VERBOSE={args.verbose} # verbose level
 
@@ -87,13 +93,13 @@ if (args.reduction is not None) and (args.metric is None):
 
     if [ $DATASET == "mnist" ]
     then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
     else
         for i in $(seq "$START" "$STOP")
         do
             echo
             echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
         done
     fi
 
@@ -119,6 +125,10 @@ elif (args.metric is not None) and (args.reduction is None):
     OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
 
     METRIC="{args.metric}" # distance metric: spearman, dcorr, or callable
+
+    RESUME={args.resume} # resume from checkpoint
+
+    RESUME_EPOCH={args.resume_epoch} # resume from epoch
                 
     VERBOSE={args.verbose} # verbose level
 
@@ -144,13 +154,13 @@ elif (args.metric is not None) and (args.reduction is None):
 
     if [ $DATASET == "mnist" ]
     then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
     else
         for i in $(seq "$START" "$STOP")
         do
             echo
             echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
         done
     fi
 
@@ -174,6 +184,10 @@ elif (args.metric is None) and (args.reduction is None):
     COMPARE={args.compare} # compare graphs; if 0, skip comparison
 
     OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
+
+    RESUME={args.resume} # resume from checkpoint
+
+    RESUME_EPOCH={args.resume_epoch} # resume from epoch
                 
     VERBOSE={args.verbose} # verbose level
 
@@ -199,13 +213,13 @@ elif (args.metric is None) and (args.reduction is None):
 
     if [ $DATASET == "mnist" ]
     then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
     else
         for i in $(seq "$START" "$STOP")
         do
             echo
             echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
         done
     fi
 
@@ -233,6 +247,10 @@ else:
     RED="{args.reduction}" # pca or umap
 
     METRIC="{args.metric}" # distance metric: spearman, dcorr, or callable
+
+    RESUME={args.resume} # resume from checkpoint
+
+    RESUME_EPOCH={args.resume_epoch} # resume from epoch
                 
     VERBOSE={args.verbose} # verbose level
 
@@ -258,13 +276,13 @@ else:
 
     if [ $DATASET == "mnist" ]
     then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
     else
         for i in $(seq "$START" "$STOP")
         do
             echo
             echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR"
+            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
         done
     fi
 
@@ -315,7 +333,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.conda/envs/topo_gph/lib
 
 mamba activate topo_gph
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
-cd ~/compute/qual/dnn-topology
+cd /nobackup/archive/usr/trogdent/qual/dnn-topology
 
 . scripts{MIDDLE}{FILENAME}
 ''')

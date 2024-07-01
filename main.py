@@ -18,6 +18,8 @@ parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs f
 parser.add_argument('--thresholds', default='0.05 1.0', help='Define thresholds range in the form \'start stop\' ')
 parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap or kmeans.')
 parser.add_argument('--iter', type=int, default=0)
+parser.add_argument('--resume', default=0, type=int)
+parser.add_argument('--resume_epoch', default=20, type=int)
 parser.add_argument('--verbose', default=0, type=int)
 parser.add_argument('--save_dir', default='./results', help='Directory to save results.')
 
@@ -40,7 +42,7 @@ SAVE_DIR = os.path.join(args.save_dir, ONAME)
 if args.train:
     visible_print('Training network')
 
-    cmd = f'python ./train.py --net {args.net} --dataset {args.dataset} --epochs {args.n_epochs_train} --lr {args.lr} --iter {args.iter} --chkpt_epochs {args.epochs_test} --optimizer {args.optimizer}'
+    cmd = f'python ./train.py --net {args.net} --dataset {args.dataset} --epochs {args.n_epochs_train} --lr {args.lr} --iter {args.iter} --chkpt_epochs {args.epochs_test} --optimizer {args.optimizer} --resume {args.resume} --resume_epoch {args.resume_epoch}'
     cmd += f' --reduction {args.reduction}' if args.reduction else ''
     cmd += f' --metric {args.metric}' if args.metric else ''
     
@@ -49,7 +51,7 @@ if args.train:
 if args.build_graph:
     visible_print('Building graph')
     
-    cmd = f'python ./build_graph_functional.py --net {args.net} --dataset {args.dataset} --chkpt_epochs {args.epochs_test} --iter {args.iter} --verbose {args.verbose} --subset {args.subset}'
+    cmd = f'python ./build_graph_functional.py --net {args.net} --dataset {args.dataset} --chkpt_epochs {args.epochs_test} --iter {args.iter} --verbose {args.verbose} --subset {args.subset} --resume {0} --resume_epoch {args.resume_epoch}'
     cmd += f' --reduction {args.reduction}' if args.reduction else ''
     cmd += f' --metric {args.metric}' if args.metric else ''
 

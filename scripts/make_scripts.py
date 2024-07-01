@@ -20,7 +20,7 @@ def main(pars):
 
         print(f'\n ==> Save directory: {SAVE_DIR} \n')
 
-        cmd = f"python ../../scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --post_process {args.post_process} --compare {args.compare} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
+        cmd = f"python ../../scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --post_process {args.post_process} --compare {args.compare} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --resume {args.resume} --resume_epoch {args.resume_epoch} --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
         cmd += f' --reduction {args.reduction}' if args.reduction else ''
         cmd += f' --metric {args.metric}' if args.metric else ''
 
@@ -44,8 +44,10 @@ if __name__ == "__main__":
     parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
     parser.add_argument('--metric', default=None, type=str, help='Distance metric: none, spearman, dcorr, or callable.')
     parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap, kmeans, or none.')
+    parser.add_argument('--resume', default=0, type=int, help='resume from checkpoint')
+    parser.add_argument('--resume_epoch', default=20, type=int, help='resume from epoch')
     parser.add_argument('--verbose', default=0, type=int)
-    parser.add_argument('--save_dir', default='./results/', help='Directory to save results.')
+    parser.add_argument('--save_dir', default='./results', help='Directory to save results.')
 
     # SLURM parameters
     parser.add_argument('--time', default='24:00:00', help="Walltime in the form 'hh:mm:ss'")

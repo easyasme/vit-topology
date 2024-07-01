@@ -33,7 +33,7 @@ def get_concat_v_multi_blank(im_list):
     
     return _im
 
-time_only = True
+time_only = False
 
 # ''' Make plots of losses and accuracies '''
 Xs = None
@@ -43,9 +43,11 @@ times = []
 for iter in range(START, SUBSETS):
     # print(f'Processing losses for subset {iter}')
     if DATASET.__eq__('imagenet'):
-        pkl_path = f"./losses/{NET}/{NET}_{DATASET}_ss{iter}/"
+        # pkl_path = f"./losses/{NET}/{NET}_{DATASET}_ss{iter}/"
+        pkl_path = f'/home/trogdent/compute/qual/results/trial_0/losses/{NET}/{NET}_{DATASET}_ss{iter}/'
     else:
-        pkl_path = f"./losses/{NET}/{NET}_{DATASET}/"
+        # pkl_path = f"./losses/{NET}/{NET}_{DATASET}/"
+        pkl_path = f'/home/trogdent/compute/qual/results/trial_0/losses/{NET}/{NET}_{DATASET}/'
 
     pkl_path += f'{RED}/' if RED is not None else ''
     pkl_path += f'{METRIC}/' if METRIC is not None else ''
@@ -81,10 +83,16 @@ for iter in range(START, SUBSETS):
         train_accs.append([loss['acc_tr']/100. for loss in losses])
 
         '''Create plots of accuracies'''
-        fig = go.Figure()
+        fig = go.Figure(layout=go.Layout(
+                        title=f'Accuracy on subset {iter}',
+                        xaxis=dict(title='Epoch'),
+                        yaxis=dict(title='Accuracy'),
+                        font=dict(size=16)
+                        )
+                    )
         fig.add_trace(go.Scatter(x=X, y=[loss['acc_te']/100. for loss in losses], mode='lines', line_color='red', name='Test'))
         fig.add_trace(go.Scatter(x=X, y=[loss['acc_tr']/100. for loss in losses], mode='lines', line_color='blue', name='Train'))
-        fig.update_layout(title=f'Accuracy on subset {iter}', xaxis_title='Epoch', yaxis_title='Accuracy')
+
         write_image(fig, acc_save_file, format='png')
 
         '''Create plots of losses'''
@@ -93,7 +101,12 @@ for iter in range(START, SUBSETS):
         train_loss = np.array([np.mean(loss['loss_tr']) for loss in losses])
         train_std = np.array([np.std(loss['loss_tr']) for loss in losses])
 
-        fig = go.Figure()
+        fig = go.Figure(layout=go.Layout(
+                        title=f'Average loss on subset {iter}',
+                        xaxis=dict(title='Epoch'),
+                        yaxis=dict(title='Loss'),
+                        font=dict(size=16)
+                        ))
         fig.add_trace(go.Scatter(x=X, y=test_loss, mode='lines', fill=None, line_color='red', name='Test'))
         fig.add_trace(go.Scatter(x=X, y=test_loss + test_std, fill=None, mode='lines', showlegend=False, line=dict(color='red', width=.1, dash='dash')))
         fig.add_trace(go.Scatter(x=X, y=test_loss - test_std, fill='tonexty', mode='lines', showlegend=False, line=dict(color='red', width=.1, dash='dash')))
@@ -102,7 +115,7 @@ for iter in range(START, SUBSETS):
         fig.add_trace(go.Scatter(x=X, y=train_loss + train_std, fill=None, mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
         fig.add_trace(go.Scatter(x=X, y=train_loss - train_std, fill='tonexty', mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
         
-        fig.update_layout(title=f'Average loss on subset {iter}', xaxis_title='Epoch', yaxis_title='Loss')
+        # fig.update_layout(title=f'Average loss on subset {iter}', xaxis_title='Epoch', yaxis_title='Loss')
         write_image(fig, loss_save_file, format='png')
 
 ''' Plot averages over all subsets '''
@@ -120,7 +133,15 @@ if not time_only:
     train_mean = np.mean(train_accs, axis=0)
     train_std = np.std(train_accs, axis=0)
 
-    fig = go.Figure()
+    fig = go.Figure(layout=go.Layout(
+                    title=None,
+                    margin=dict(t=7.5),
+                    xaxis=dict(title='Epoch'),
+                    yaxis=dict(title='Accuracy'),
+                    font=dict(
+                        size=16)
+                    )
+                )
     fig.add_trace(go.Scatter(x=Xs, y=test_mean, mode='lines', line_color='red', name='Test'))
     fig.add_trace(go.Scatter(x=Xs, y=test_mean + test_std, fill=None, mode='lines', showlegend=False, line=dict(color='red', width=.1, dash='dash')))
     fig.add_trace(go.Scatter(x=Xs, y=test_mean - test_std, fill='tonexty', mode='lines', showlegend=False, line=dict(color='red', width=.1, dash='dash')))
@@ -129,7 +150,7 @@ if not time_only:
     fig.add_trace(go.Scatter(x=Xs, y=train_mean + train_std, fill=None, mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
     fig.add_trace(go.Scatter(x=Xs, y=train_mean - train_std, fill='tonexty', mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
 
-    fig.update_layout(title=f'Average accuracy over subsets {START}-{SUBSETS-1}', xaxis_title='Epoch', yaxis_title='Accuracy')
+    # fig.update_layout(title=f'Average accuracy over subsets {START}-{SUBSETS-1}', xaxis_title='Epoch', yaxis_title='Accuracy', yaxis=dict(tickfont=dict(size=20)), xaxis=dict(tickfont=dict(size=20)))
     write_image(fig, avg_acc_save_file, format='png')
 
 times = np.array(times)
