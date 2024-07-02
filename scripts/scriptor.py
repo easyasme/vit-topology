@@ -333,7 +333,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.conda/envs/topo_gph/lib
 
 mamba activate topo_gph
 export CUBLAS_WORKSPACE_CONFIG=:4096:8
-cd /nobackup/archive/usr/trogdent/qual/dnn-topology
+cd /home/trogdent/dnn-topology
 
 . scripts{MIDDLE}{FILENAME}
 ''')
