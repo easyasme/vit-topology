@@ -198,10 +198,12 @@ class Passer():
 
         features = torch.tensor(features, requires_grad=False).detach().to(device_list[-1]).T # features x samples
         features = features[torch.where(features.std(dim=-1, keepdim=True)!=0)[0], :] # filter out constant rows
-        features = (features - features.mean(dim=-1, keepdim=True)) / features.std(dim=-1, keepdim=True) # standardize
 
         num_max_clusters = min(num_max_clusters, features.shape[0])
-        features = find_best_cluster(features, num_min_clusters=num_max_clusters, num_max_clusters=num_max_clusters, distance=metric, device=device_list[-1], tqdm_flag=True, sil_score=False, seed=SEED, corr=corr, exp=exp)
+        features = find_best_cluster(features, num_min_clusters=num_max_clusters, num_max_clusters=num_max_clusters, distance=metric, device=device_list[-1], tqdm_flag=True, sil_score=False, seed=SEED, corr=corr, exp=exp, minibatch=None)
+
+        features = features[torch.where(features.std(dim=-1, keepdim=True)!=0)[0], :] # filter out constant rows
+        features = (features - features.mean(dim=-1, keepdim=True)) / features.std(dim=-1, keepdim=True) # standardize
 
         del num_max_clusters
 

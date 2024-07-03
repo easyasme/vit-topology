@@ -54,7 +54,7 @@ torch.manual_seed(SEED)
 np.random.seed(SEED)
 random.seed(SEED)
 torch.backends.cudnn.benchmark = False
-torch.use_deterministic_algorithms(True, warn_only=True)
+# torch.use_deterministic_algorithms(True, warn_only=True)
 
 ''' Directory to retrieve transformers '''
 TRANS_DIR = f'./train_processing/{args.net}/{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet' else f'./train_processing/{args.net}/{args.net}_{args.dataset}'
@@ -103,31 +103,26 @@ with torch.no_grad():
         ''' Define passer and get activations '''
         # get activations and reduce dimensionality; compute distance adjacency matrix
         passer = Passer(net, functloader, criterion, device_list[0])
-        
-        red_time = time.time()
         activs = passer.get_function(reduction=args.reduction, device_list=device_list, corr=args.metric if not None else 'pearson', exp=args.exp)
-        red_time = time.time() - red_time
-        print(f'\n Reduction time: {red_time/60:.2f} minutes \n')
-
         adj = adjacency(activs, metric=args.metric, device=device_list[0])
 
         if args.verbose:
             print(f'\n The dimension of the corrcoef matrix is {adj.size()[0], adj.size()[-1]} \n')
             print(f'Adj mean {adj.mean():.4f}, min {adj.min():.4f}, max {adj.max():.4f} \n')
 
-        # convert to distance matrix for V-R filtration; other metric is (1 - adj)^.5 w/no abs value
-        adj = -torch.abs(adj).pow(args.exp)
+        # convert to distance matrix for V-R filtration; metrics: (.5*(1 - adj))^.5 or (1 - |adj|)^.5
+        adj = -adj
         adj += 1
-        adj = torch.sqrt(adj.clamp(0., 1.))
+        adj = torch.sqrt(.5 * adj.clamp(0., 1.))
 
-        # convert to COO format for faster computation of persistence diagram; if other metric then adj<2^.5
-        indices = (adj<1.).nonzero().numpy(force=True)
+        # convert to COO format for faster computation of persistence diagram
+        indices = (adj<=1.).nonzero().numpy(force=True)
         i = list(zip(*indices))
         vals = adj[i].flatten().numpy(force=True)
 
         adj = coo_matrix((vals, i), shape=adj.shape) if len(i) > 0 else coo_matrix(([], ([], [])), shape=adj.shape)
 
-        del indices, i, vals, red_time
+        del indices, i, vals
 
         if args.verbose:
             print(f'\n The dimension of the COO distance matrix is {(len(adj.nonzero()[0]),)}\n')

@@ -7,8 +7,8 @@ def main(pars):
 
     starts_stops = ['0 9', '10 19', '20 29']
     for ss in starts_stops:
-        job_name = f'{args.net} {args.dataset}'
-        job_name += f' {ss.split()[0]}-{ss.split()[1]}' if args.dataset == 'imagenet' else ''
+        job_name = f'{ss.split()[0]}-{ss.split()[1]}' if args.dataset == 'imagenet' else ''
+        job_name += f' {args.net} {args.dataset}'
         job_name += f' {args.reduction}' if args.reduction else ''
         job_name += f' {args.metric}' if args.metric else ''
 
