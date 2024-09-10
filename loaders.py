@@ -38,8 +38,9 @@ def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True
     if train:
         if crop:
             len_trans = len(transform.transforms)
-            transform.transforms.insert(len_trans, transforms.RandomResizedCrop(size=(IMG_SIZE, IMG_SIZE), \
-                                                                        interpolation=Image.BICUBIC))
+            # transform.transforms.insert(len_trans, transforms.RandomResizedCrop(size=(IMG_SIZE, IMG_SIZE), \
+                                                                        # interpolation=Image.BICUBIC))
+            transform.transforms.insert(len_trans, transforms.CenterCrop(size=(IMG_SIZE, IMG_SIZE)))
         if hflip:
             len_trans = len(transform.transforms)
             transform.transforms.insert(len_trans, transforms.RandomHorizontalFlip())
@@ -55,10 +56,12 @@ def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True
     else:
         if resize is not None:
             len_trans = len(transform.transforms)
-            transform.transforms.insert(len_trans, transforms.Resize((resize, resize), interpolation=Image.BICUBIC))
+            transform.transforms.insert(len_trans, transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.BICUBIC))
 
     len_trans = len(transform.transforms)
     transform.transforms.insert(len_trans, transforms.ToTensor())
+
+    del len_trans
 
     return transform
 
@@ -87,8 +90,6 @@ def get_dataset(data, path, transform, verbose, train=False, iter=0):
         dataset = CustomImageNet(path, 'data/map_clsloc.txt', subset=SUBSETS_LIST[iter], transform=transform, verbose=verbose, iter=iter)
     elif data == 'mnist':
         dataset = CustomMNIST(train=train, transform=transform)
-    elif data.split('_')[0] == 'dummy':
-        dataset = DummyDataset(transform=transform)
     else:
         dataset = torchvision.datasets.ImageFolder(path, transform=transform)
 
@@ -96,29 +97,25 @@ def get_dataset(data, path, transform, verbose, train=False, iter=0):
 
 def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=0, verbose=False, sampling=-1, \
                normalize=True, subset=None):
-    dataset = get_dataset(data, path, transform, train=train, iter=iter, verbose=verbose)
-
-    if data.split('_')[0] == 'dummy':
-        dummy_transform = dataset.__gettransform__()
-
-        proportions = [.7, .3]
-        lengths = [int(p * len(dataset)) for p in proportions]
-        lengths[-1] = len(dataset) - sum(lengths[:-1])
-
-        train, test = random_split(dataset, lengths)
-
-        if data.split('_')[1] == 'train':
-            dataset = DummyDataset(train.dataset, transform=dummy_transform)
-        else:
-            dataset = DummyDataset(test.dataset, transform=dummy_transform)
+    
+    # if data == 'imagenet':
+    #     temp_trans = transforms.Compose([transforms.CenterCrop((500, 500)), transforms.ToTensor()])
+    # elif data == 'mnist':
+    #     temp_trans = transforms.Compose([transforms.CenterCrop((28, 28)), transforms.ToTensor()])
+    # else:
+    #     temp_trans = transforms.Compose([transforms.ToTensor()])
+    # dataset = get_dataset(data, path, transform=temp_trans, train=train, iter=iter, verbose=verbose)
+    dataset = get_dataset(data, path, transform, train=train, verbose=verbose, iter=iter)
 
     if subset is not None:
         subset_iter = list(np.random.choice(dataset.__len__(), size=subset, replace=False))
         dataset = CustomSubset(dataset, subset_iter)
 
-    if sampling == -1:
+    if train or not train:
+        print(f'Using RandomSampler, train is {train}')
         sampler = RandomSampler(dataset)
     else:
+        print(f'Using SequentialSampler, train is {train}')
         sampler = SequentialSampler(dataset)
 
     def seed_worker(worker_id):
@@ -129,10 +126,13 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, iter=
     g = torch.Generator()
     g.manual_seed(SEED)
 
-    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=1, worker_init_fn=seed_worker, generator=g)
+    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=1, worker_init_fn=seed_worker, generator=g, drop_last=True)
 
     if normalize and not isinstance(transform.transforms[-1], torchvision.transforms.transforms.Normalize):
-        mean, std = calc_mean_std(data_loader)
+        # mean, std = calc_mean_std(data_loader)
+        mean, std = [0.485, 0.456, 0.406], [0.229, 0.224, 0.225]
+
+        # dataset.__settransform__(transform)
         
         len_transform = len(dataset.__gettransform__().transforms)
         dataset.__gettransform__().transforms.insert(len_transform, transforms.Normalize(mean, std))
@@ -156,9 +156,10 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1, subset=None, transfor
     # return dataloader for different datasets and train/test splits
     if data == 'imagenet_train':
         transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
-        return dataloader('imagenet', train_data_path, transform=transforms_tr_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset) 
+        return dataloader('imagenet', path=train_data_path, train=True, transform=transforms_tr_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset) 
     elif data == 'imagenet_test':
         transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False) if transform is None else transform
+        
         return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset)
     elif data == 'mnist_train':
         transforms_tr_mnist = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28)
@@ -168,12 +169,6 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1, subset=None, transfor
         transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28) if transform is None else transform
 
         return dataloader('mnist', train=False, transform=transforms_te_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True, subset=subset)
-    elif data == 'dummy_train':
-        dummy_transform = get_transform(train=False)
-        return dataloader('dummy_train', transform=dummy_transform, batch_size=batch_size, subset=subset)
-    elif data == 'dummy_test':
-        dummy_transform = get_transform(train=False) if transform is None else transform
-        return dataloader('dummy_test', transform=dummy_transform, batch_size=batch_size, subset=subset)
     else:
         raise ValueError(f"Invalid dataset: {data}")
 
@@ -252,10 +247,13 @@ class CustomImageNet(Dataset):
         img = self.data[idx][0]
         label = self.data[idx][1]
 
-        img = self.transform(img)
+        img = self.transform(img) if self.transform else transforms.ToTensor()(img)
         label = torch.tensor(label, dtype=torch.long)
 
         return (img, label)
+
+    def __settransform__(self, transform):
+        self.transform = transform
 
     def __gettransform__(self):
         return self.transform    
@@ -281,53 +279,15 @@ class CustomMNIST(Dataset):
         else:
             raise AttributeError("CustomMNIST has no attribute 'transform'")
 
-class DummyDataset(Dataset):
-    
-    def __init__(self, data=None, transform=None, num_samples=10000):
-        super(DummyDataset, self).__init__()
-
-        self.data = data if data else []
-        self.transform = transform
-        self.num_samples = num_samples
-    
-        if data is None:
-            self.generate_data(num_samples)
-    
-    def __len__(self):
-        return self.num_samples
-        
-    def __getitem__(self, idx):
-        img, label = self.data[idx]
-
-        img = img
-        label = label # this is a hack to make the label a tensor; the transform is simply ToTensor()
-        
-        return img, label
-
-    def __gettransform__(self):
-        return self.transform
-
-    def generate_data(self, num_samples):
-        for _ in range(num_samples):
-            img = np.random.rand(3, 3).astype(np.float32)
-            img, label = self.get_label(img)
-                
-            self.data.append((img, label))
-
-    def get_label(self, img):
-        rand_int = np.random.randint(low=0, high=3)
-        
-        img[rand_int, rand_int] = 0.
-        
-        label = rand_int
-        # label = np.zeros(shape=3, dtype=int)
-        # label[rand_int] = 1.
-
-        return img, label
-
 class CustomSubset(Subset):
     def __init__(self, dataset, indices):
         super(CustomSubset, self).__init__(dataset, indices)
+
+    def __settransform__(self, transform):
+        if hasattr(self.dataset, '__settransform__'):
+            self.dataset.__settransform__(transform)
+        else:
+            raise AttributeError("CustomSubset has no attribute '__settransform__'")
 
     def __gettransform__(self):
         return self.dataset.__gettransform__()

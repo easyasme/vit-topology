@@ -75,10 +75,10 @@ net = net.to(device_list[0])
 criterion = nn.CrossEntropyLoss()
 
 ''' Prepare val data loader '''
-trans_pkl_file = os.path.join(TRANS_DIR, f'train_transform.pkl')
+trans_pkl_file = os.path.join(TRANS_DIR, f'test_transform.pkl')
 with open(trans_pkl_file, 'rb') as f:
-    train_transform = pickle.load(f)
-functloader, _ = loader(f'{args.dataset}_test', batch_size=100, iter=args.iter, subset=args.subset, verbose=False, transform=train_transform) # subset size
+    test_transform = pickle.load(f)
+functloader, _ = loader(f'{args.dataset}_test', batch_size=100, iter=args.iter, subset=args.subset, verbose=False, transform=test_transform) # subset size
 
 ''' Load checkpoint and get activations '''
 assert os.path.isdir('./checkpoint'), 'Error: no checkpoint directory found!'

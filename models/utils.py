@@ -85,13 +85,17 @@ def get_model(name, dataset):
     print("Trainable Params:", sum(p.numel() for p in net.parameters() if p.requires_grad), '\n')
     return net
 
-def init_from_checkpoint(net, optimizer, args):
+def init_from_checkpoint(net, optimizer, args, start=False):
     ''' Initialize from checkpoint'''
     print('==> Initializing  from fixed checkpoint..')
     assert os.path.isdir('./checkpoint'), 'Error: no checkpoint directory found!'
     
     if args.dataset == 'imagenet':
-        checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss{args.iter}/ckpt_epoch_{args.resume_epoch}.pt')
+        if start:
+            print('==> Starting from original weight init..')
+            checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss0/ckpt_epoch_0.pt')
+        else:
+            checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss{args.iter}/ckpt_epoch_{args.resume_epoch}.pt')
     else:
         checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}/ckpt_epoch_{args.resume_epoch}.pt')
     
