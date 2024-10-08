@@ -101,10 +101,15 @@ class Passer():
             # 3 layer FCNet, are of size 100x3 and 100x4, respectively, where 100 is the
             # batch size and the second dimension is the number of neurons in the layer.
             
-            for f in self.network.forward_features(inputs):
-                assert not torch.isnan(f).any(), 'NaN in forward_features at passers.py:get_function()'
+            # for f in self.network.forward_features(inputs):
+            #     assert not torch.isnan(f).any(), 'NaN in forward_features at passers.py:get_function()'
 
-            features.append([f.cpu().data.numpy().astype(np.float32) for f in self.network.forward_features(inputs)])
+            # Collect activations from each batch - store in features
+            activations = self.network.forward_features(inputs)
+            assert all(not torch.isnan(f).any() for f in activations), 'NaN in activations at passers.py:get_function()'
+
+            # Convert tensors to numpy arrays
+            features.append([f.cpu().data.numpy().astype(np.float32) for f in activations])
                 
             progress_bar(batch_idx, len(self.loader))
 

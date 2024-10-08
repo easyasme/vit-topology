@@ -42,10 +42,10 @@ from torchvision.models import vit_b_16, ViT_B_16_Weights
 #     test_vtransformer()
 
 class VTransformer(nn.Module):
-    def __init__(self, num_classes=10, pretrained=True, input_size=224): # how many num_classes?
+    def __init__(self, num_classes=10, pretrained=True, input_size=224):
         super(VTransformer, self).__init__()
 
-        #Load pre-trained model
+        # Load pre-trained model
         if pretrained:
             weights = ViT_B_16_Weights.IMAGENET1K_V1
             print(weights)
@@ -62,6 +62,7 @@ class VTransformer(nn.Module):
         # Register hooks
         self._register_hooks()
 
+    # Registers hook on specific layers to capture activations during the forward pass
     def _register_hooks(self):
         # Register forward hooks - encoder blocks
         for idx, block in enumerate(self.model.encoder.layers):
@@ -69,35 +70,40 @@ class VTransformer(nn.Module):
             block.register_forward_hook(self._get_activation(f'encoder_block_{idx}'))
         
         # extract activation at first
+        self.model.encoder.ln.register_forward_hook(self._get_activation('encoder_ln'))
 
+    # Creates actual hook function executed during the forward pass
     def _get_activation(self, name):
-        #  returns a hook that save the activation
         def hook(module, input, output):
             self.activations[name] = output.detach() # capture activations
         return hook
 
+    # forward pass
     def forward(self, x): # activations from hooked layers captured
+        self.activations = {} # reset
         # pass input to model
         output = self.model(x)
         return output
 
     # retrieves the activations during the pass
     def forward_features(self, x):
-        self.activations = {} # reset
         self.forward(x)
-        # collect activations - list of features for each encoder block -> dictionary?
-        features = []
-        for idx in range(len(self.mode.encoder.layers)):
+        features = [] # collect activations - list of features for each encoder block
+        for idx in range(len(self.model.encoder.layers)):
             activation_extracted = self.activations.get(f'encoder_block_{idx}')
             if activation_extracted is not None:
-                featueres.append(activation_extracted)
+                features.append(activation_extracted)
         return features
 
         
-    # rewrite train and eval for transformer.py?
-
-
-
+    # Forward hooks remain properly registered and active when switching to two modes
+    def train(self, mode=True):
+        self.model.train(mode)
+        return super(VTransformer, self).train(mode)
+    
+    def eval(self):
+        self.model.eval()
+        return super(VTransformer, self).eval()
 
 
 
@@ -114,13 +120,14 @@ class VTransformer(nn.Module):
 
 
 
-# model = vit_b_16(weights=ViT_B_16_Weights.IMAGENET1K_V1)
+model = vit_b_16(weights=ViT_B_16_Weights.IMAGENET1K_V1)
 
 # # Print all layers
-# for layer in model.modules():
+for layer in model.modules():
+    print(layer)
+
+# for layer in model.encoder.layers():
 #     print(layer)
-
-
 
 
 
