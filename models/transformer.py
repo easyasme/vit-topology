@@ -185,11 +185,11 @@ class VTransformer(nn.Module):
 
 
 
-model = vit_b_16(weights=ViT_B_16_Weights.IMAGENET1K_V1)
+# model = vit_b_16(weights=ViT_B_16_Weights.IMAGENET1K_V1)
 
-# # Print all layers
-for layer in model.modules():
-    print(layer)
+# # # Print all layers
+# for layer in model.modules():
+#     print(layer)
 
 # for layer in model.encoder.layers():
 #     print(layer)
