@@ -4,26 +4,26 @@ from torchvision.models import vit_b_16, ViT_B_16_Weights
 from typing import Dict, Iterable, Callable
 
 
-class FeatureExtractor(nn.Module):
-    def __init__(self, model: nn.Module, layers: Iterable[str]):
-        super(FeatureExtractor, self).__init__()
+# class FeatureExtractor(nn.Module):
+#     def __init__(self, model: nn.Module, layers: Iterable[str]):
+#         super(FeatureExtractor, self).__init__()
 
-        self.model = model
-        self.layers = layers
-        self._features = {layer: torch.empty(0) for layer in layers}
+#         self.model = model
+#         self.layers = layers
+#         self._features = {layer: torch.empty(0) for layer in layers}
 
-        for layer_id in layers:
-            layer = dict([*self.model.named_modules()])[layer_id]
-            layer.register_forward_hook(self.save_outputs_hook(layer_id))
+#         for layer_id in layers:
+#             layer = dict([*self.model.named_modules()])[layer_id]
+#             layer.register_forward_hook(self.save_outputs_hook(layer_id))
 
-    def save_outputs_hook(self, layer_id: str) -> Callable:
-        def fn(_, __, output):
-            self._features[layer_id] = output
-        return fn
+#     def save_outputs_hook(self, layer_id: str) -> Callable:
+#         def fn(_, __, output):
+#             self._features[layer_id] = output
+#         return fn
 
-    def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
-        _ = self.model(x)
-        return self._features
+#     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+#         _ = self.model(x)
+#         return self._features
     
 class VTransformer(nn.Module):
     def __init__(self, num_classes=10, pretrained=True, input_size=224):
@@ -79,37 +79,46 @@ class VTransformer(nn.Module):
                 features.append(activation_extracted)
         return features
 
-def test_vtransformer():
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-
-    weights = ViT_B_16_Weights.IMAGENET1K_V1
-    preprocess = weights.transforms()
-
-    model = VTransformer(num_classes=10, pretrained=True, img_size=224)
-
-    model.to(device)
-    model.eval()
-
-    example_input = torch.randn(2, 3, 224, 224)
-    example_input = preprocess(example_input).to(device)
+    # Forward hooks remain properly registered and active when switching to two modes
+    def train(self, mode=True):
+        self.model.train(mode)
+        return super(VTransformer, self).train(mode)
     
-    children = model.named_parameters()
-    layers = [name for name, _ in children if 'encoder_layer.\*.mlp' in name]
-    for child in layers:
-        print(f'Child: {child.__str__()}')
+    def eval(self):
+        self.model.eval()
+        return super(VTransformer, self).eval()
 
-    extractor = FeatureExtractor(model, layers)
-    activations = extractor(example_input)
-    print(f'Activations: {activations.values()}')
-    tensor_lst = [tensor for tensor in activations.values()]
-    tensor_lst = torch.cat(tensor_lst, dim=1)
-    for key in activations.keys():
-        print(f'Layer: {key}, Activations size: {activations[key]}')
+# def test_vtransformer():
+#     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-    print(f'Activations size: {activations.size()}')
+#     weights = ViT_B_16_Weights.IMAGENET1K_V1
+#     preprocess = weights.transforms()
 
-if __name__ == "__main__":
-    test_vtransformer()
+#     model = VTransformer(num_classes=10, pretrained=True, img_size=224)
+
+#     model.to(device)
+#     model.eval()
+
+#     example_input = torch.randn(2, 3, 224, 224)
+#     example_input = preprocess(example_input).to(device)
+    
+#     children = model.named_parameters()
+#     layers = [name for name, _ in children if 'encoder_layer.\*.mlp' in name]
+#     for child in layers:
+#         print(f'Child: {child.__str__()}')
+
+#     extractor = FeatureExtractor(model, layers)
+#     activations = extractor(example_input)
+#     print(f'Activations: {activations.values()}')
+#     tensor_lst = [tensor for tensor in activations.values()]
+#     tensor_lst = torch.cat(tensor_lst, dim=1)
+#     for key in activations.keys():
+#         print(f'Layer: {key}, Activations size: {activations[key]}')
+
+#     print(f'Activations size: {activations.size()}')
+
+# if __name__ == "__main__":
+#     test_vtransformer()
 
 # class VTransformer(nn.Module):
 #     def __init__(self, num_classes=10, pretrained=True, input_size=224): # how many num_classes?
@@ -162,18 +171,6 @@ if __name__ == "__main__":
 #             if activation_extracted is not None:
 #                 featueres.append(activation_extracted)
 #         return features
-
-        
-    # Forward hooks remain properly registered and active when switching to two modes
-    def train(self, mode=True):
-        self.model.train(mode)
-        return super(VTransformer, self).train(mode)
-    
-    def eval(self):
-        self.model.eval()
-        return super(VTransformer, self).eval()
-
-
 
 #     def print_weights(self):
 #         for name, param in self.model.named_parameters():
