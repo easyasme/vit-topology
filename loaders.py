@@ -155,18 +155,18 @@ def loader(data, batch_size, verbose, iter=0, sampling=-1, subset=None, transfor
     
     # return dataloader for different datasets and train/test splits
     if data == 'imagenet_train':
-        transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True)
+        transforms_tr_imagenet = get_transform(train=True, crop=True, hflip=True, vflip=False, blur=True) if transform is None else transform
         return dataloader('imagenet', path=train_data_path, train=True, transform=transforms_tr_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset) 
     elif data == 'imagenet_test':
         transforms_te_imagenet = get_transform(train=False, crop=False, hflip=False, vflip=False, blur=False) if transform is None else transform
         
         return dataloader('imagenet', test_data_path, transform=transforms_te_imagenet, batch_size=batch_size, iter=iter, verbose=verbose, subset=subset)
     elif data == 'mnist_train':
-        transforms_tr_mnist = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28)
+        transforms_tr_mnist = get_transform(train=True, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28) if transform is None else transform
 
         return dataloader('mnist', train=True, transform=transforms_tr_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True, subset=subset)
     elif data == 'mnist_test':
-        transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28) if transform is None else transform
+        transforms_te_mnist = get_transform(train=False, crop=False, hflip=False, vflip=False, color_dis=False, blur=False, resize=28) if transform is None else transform 
 
         return dataloader('mnist', train=False, transform=transforms_te_mnist, batch_size=batch_size, iter=iter, verbose=verbose, normalize=True, subset=subset)
     else:
