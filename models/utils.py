@@ -11,6 +11,7 @@ from .inception import *
 from .lenet import *
 from .resnet import *
 from .vgg import *
+from .transformer import VTransformer
 
 
 def get_model(name, dataset):
@@ -82,7 +83,7 @@ def get_model(name, dataset):
     elif name=='vtransformer' and dataset == 'imagenet':
         print("\n Fetching Vtransformer")
         print("Input size:", IMG_SIZE)
-        net= VTransformer(num_classes=10, pretrained=True, input_size=IMG_SIZE)
+        net = VTransformer(num_classes=10, pretrained=True, input_size=IMG_SIZE)
     
     else:
         raise ValueError(f"{name} and {dataset} combination not valid")

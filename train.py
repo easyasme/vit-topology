@@ -125,6 +125,7 @@ if not args.resume and args.iter == 0:
                                   'optimizer': optimizer.state_dict()},
                                   path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_0.pt")
 
+# 
 losses = []
 for epoch in range(start_epoch, args.epochs + 1):
     print(f'Epoch {epoch}')
