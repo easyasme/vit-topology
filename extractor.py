@@ -1,4 +1,6 @@
+import torch
 from typing import Dict, Iterable, Callable
+
 
 class FeatureExtractor(nn.Module):
     def __init__(self, model: nn.Module, layers: Iterable[str]):
@@ -17,6 +19,6 @@ class FeatureExtractor(nn.Module):
             self._features[layer_id] = output
         return fn
 
-    def forward(self, x: Tensor) -> Dict[str, Tensor]:
+    def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         _ = self.model(x)
         return self._features

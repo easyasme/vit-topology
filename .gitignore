@@ -13,3 +13,4 @@ results/
 lightning_logs/
 train_processing/
 config.py
+*.png
