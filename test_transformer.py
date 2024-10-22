@@ -3,9 +3,10 @@ import torch.nn as nn
 from models.transformer import VTransformer
 
 def test_vtransformer():
-    # device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device = torch.device('cpu')
-    print("Using CPU for computation.")
+    # Active GPU ask
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    # device = torch.device('cpu')
+    # print("Using CPU for computation.")
 
     # Initialize VTransformer model
     num_classes = 10
@@ -39,7 +40,6 @@ def test_vtransformer():
     for idx, activation in enumerate(features):
         print(f"Encoder Block {idx} activation summary:")
         print(f"Mean: {activation.mean().item()}, Std: {activation.std().item()}, Min: {activation.min().item()}, Max: {activation.max().item()}")
-
 
 if __name__ == "__main__":
     test_vtransformer()
