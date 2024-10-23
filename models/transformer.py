@@ -38,7 +38,7 @@ class VTransformer(nn.Module):
             self.model = vit_b_16(weights=None)
 
         # Modify classifier head to match classes
-        self.model.heads.head = nn.Linear(self.model.heads.head.in_features, num_classes)
+        # self.model.heads.head = nn.Linear(self.model.heads.head.in_features, num_classes)
 
         # activations dictionary
         self.activations = {}

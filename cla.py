@@ -12,19 +12,23 @@ def apply_cla_to_block(block_output, reduction_rate=0.5, method='random', max_it
     embeddings = block_output.view(-1, embedding_dimension) # [batch_size * sequence_length, embedding_dimension]
 
     # PCA - dimensionality reduction
-    n_components = 100 # Question - do we want to reduce it to 100?
-    pca = PCA(n_components=n_components)
-    embeddings_np = embeddings.cpu().numpy()
-    embeddings_reduced_np = pca.fit_transform(embeddings_np)
-    embeddings_reduced = torch.tensor(embeddings_reduced_np, device = embeddings.device) # numpy -> tensor
+    #n_components = 100 # Question - do we want to reduce it to 100?
+    #pca = PCA(n_components=n_components)
+    #embeddings_np = embeddings.cpu().numpy()
+    #embeddings_reduced_np = pca.fit_transform(embeddings_np)
+    #embeddings_reduced = torch.tensor(embeddings_reduced_np, device = embeddings.device) # numpy -> tensor
 
     # Find delta - iteratively till resulting the desired reduction rate
-    delta = find_delta_for_reduction_rate(embeddings_reduced, reduction_rate, method, max_iterations, tolerance)
+    delta = find_delta_for_reduction_rate(embeddings, reduction_rate, method, max_iterations, tolerance)
+    print(f'delta: {delta}')
 
     # Grid indices calculated
-    min_values = embeddings_reduced.min(dim=0)[0] # min value of data for starting point - dividing the space into grid
+    min_values = embeddings.min(dim=0)[0] # min value of data for starting point - dividing the space into grid
+    print(f'mined vals: {embeddings - min_values}')
+
     # Actual split of the space -> indices - tensor that each row represents the grid indices of data point
-    grid_indices_of_data_point = torch.floor((embeddings_reduced - min_values) / delta).long() # grid index for each data point in embeddings_reduced
+    grid_indices_of_data_point = torch.floor((embeddings - min_values) / delta).long() # grid index for each data point in embeddings_reduced
+    print(f'indices: {grid_indices_of_data_point}')
 
     # Find representative point in each grid
     # group data point in each grid - unique_indices = unique grid cells where data points are located, inverse_indices = which unique grid cell each point belongs to
@@ -32,11 +36,11 @@ def apply_cla_to_block(block_output, reduction_rate=0.5, method='random', max_it
     unique_indices, inverse_indices = torch.unique(grid_indices_of_data_point, dim=0, return_inverse=True)
     representatives = []
 
-    print (unique_indices)
-    print (inverse_indices)
+    print (f'unique: {unique_indices.size()}')
+    print (f'inverse: {inverse_indices.size()}')
 
     for idx in range(unique_indices.size(0)):
-        points_in_cell = embeddings_reduced[(inverse_indices == idx)] # find points in current grid
+        points_in_cell = embeddings[(inverse_indices == idx)] # find points in current grid
 
         if method == 'random':
             representatives.append(points_in_cell[0])
@@ -62,9 +66,11 @@ def find_delta_for_reduction_rate(embeddings, reduction_rate, method='random', m
     target_size = int(n_samples * reduction_rate)
     
     # Initialize delta guess using std
-    delta = embeddings.std().item() / 10 # might need to divide by other value
+    std = embeddings.std(dim=0).min()
+    print(f'std size: {std.size()}')
+    delta = std.item() / 10 # might need to divide by other value
 
-    for _ in range(max_iterations):
+    for i in range(max_iterations):
         # Grid indices calculated
         min_values = embeddings.min(dim=0)[0]
         indices = torch.floor((embeddings - min_values) / delta).long() # data point belongs to which grid
@@ -75,25 +81,26 @@ def find_delta_for_reduction_rate(embeddings, reduction_rate, method='random', m
 
         # Check reduced size -> target
         if abs(reduced_size - target_size) <= tolerance:
+            print(f'iter: {i}')
             break
         elif reduced_size > target_size:
             # increase delta
-            delta *= 1.05
+            delta *= 1.1
         else:
-            delta /= 1.05
-    
+            delta /= 1.1
+        print(f'iter: {i}')
     return delta
 
 
 
 # Test
 
-batch_size = 20
-sequence_length = 10
-embedding_dimension = 768
+batch_size = 12
+sequence_length = 200
+embedding_dimension = 800
 
 block_output = torch.rand(batch_size, sequence_length, embedding_dimension)
-
+print(f'input: {block_output}')
 reduction_rate = 0.5
 
 reduced_embeddings_closest_to_mean = apply_cla_to_block(block_output, reduction_rate, method='closest_to_mean')

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 from models.transformer import VTransformer
 import matplotlib.pyplot as plt
+from PIL import Image
 
 def test_vtransformer():
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -12,10 +13,12 @@ def test_vtransformer():
     model = VTransformer(num_classes=num_classes, pretrained=True, input_size=224)
     model.to(device)
     model.eval()  # set model to evaluation mode - disable dropout
+    print(model)
 
     batch_size = 1
     input_size = 224
-    dummy_input = torch.randn(batch_size, 3, input_size, input_size).to(device)
+    # dummy_input = torch.randn(batch_size, 3, input_size, input_size).to(device)
+    dummy_input Image.open('data/imagenet_sample.jpg').resize((input_size, input_size))
 
     # Run forward pass through the model
     with torch.no_grad():
