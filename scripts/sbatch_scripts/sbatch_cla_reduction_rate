@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#SBATCH --job-name=cla_reduction_rate
+#SBATCH --output=cla_reduction_rate_output.txt
+#SBATCH --error=cla_reduction_rate_error.txt
+#SBATCH --time=03:00:00
+#SBATCH --qos=cs
+#SBATCH --nodes=1
+#SBATCH --ntasks=100
+#SBATCH --gpus=2
+#SBATCH --mem=500G
+#SBATCH --mail-user=yws226@byu.edu
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+# Load modules or activate environment
+module load python/3.8.18
+mamba activate dnnenv
+
+# Run the meta-study for reduction_rate
+python cla.py --study 'reduction_rate' --output_dir 'meta_study_results/reduction_rate'

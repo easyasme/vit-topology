@@ -1,0 +1,20 @@
+#!/bin/bash
+
+#SBATCH --job-name=cla_sequence_length
+#SBATCH --output=cla_sequence_length_output.txt
+#SBATCH --error=cla_sequence_length_error.txt
+#SBATCH --time=03:00:00
+#SBATCH --qos=cs
+#SBATCH --nodes=1
+#SBATCH --ntasks=100
+#SBATCH --gpus=2
+#SBATCH --mem=500G
+#SBATCH --mail-user=yws226@byu.edu
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+# Load modules or activate environment
+module load python/3.8.18
+mamba activate dnnenv
+
+# Run the meta-study for sequence_length
+python cla.py --study 'sequence_length' --output_dir 'meta_study_results/sequence_length'
