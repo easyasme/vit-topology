@@ -127,13 +127,13 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
         return delta
 
     # Flatten data
-    batch_size, sequence_length, embedding_dimension = features.size()
+    _, _, embedding_dimension = features.size()
     embeddings = features.view(-1, embedding_dimension).to(device_list[0]) # [batch_size * patches, embedding_dimension]
 
     # PCA - dimensionality reduction among embedding dimension
     if pca:
         embeddings_reduced_np = perform_pca(embeddings, alpha=.05, center_only=True, device_list=device_list)
-        embeddings_reduced = torch.tensor(embeddings_reduced_np, device=device_list[0]) # numpy -> tensor
+        embeddings = torch.tensor(embeddings_reduced_np, device=device_list[0]) # numpy -> tensor
 
     # Find delta - iteratively till resulting the desired reduction rate
     if pre_delta is None:
@@ -154,6 +154,7 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
     # group data point in each grid - unique_indices = unique grid cells where data points are located, inverse_indices = which unique grid cell each point belongs to
     # grid without data points is not included in unique_indices
     unique_indices, inverse_indices = torch.unique(grid_indices_of_data_point, dim=0, return_inverse=True)
+    unique_indices, inverse_indices = unique_indices.to(device_list[-1]), inverse_indices.to(device_list[0])
     representatives = []
 
     print (f'unique: {unique_indices.size()}')
@@ -179,9 +180,11 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
 
 # Test
 if __name__ == "__main__":
+    import matplotlib.pyplot as plt
+
     batch_size = 12
     sequence_length = 200
-    embedding_dimension = 800
+    embedding_dimension = 2
 
     device_list = []
     if torch.cuda.device_count() > 1:
@@ -194,20 +197,20 @@ if __name__ == "__main__":
         device_list.append(device)
         print(f'Using {device}')
 
-    features = torch.rand(batch_size, sequence_length, embedding_dimension)  # Random tensor for testing
+    features = torch.randn(batch_size, sequence_length, embedding_dimension)  # Random tensor for testing
     reduction_rate = 0.5
-    pre_delta = .999
+    pre_delta = .9975
     pca = False
 
     distances = torch.cdist(features.view(-1, embedding_dimension), features.view(-1, embedding_dimension))
     print("Distances shape:", distances.size())
-    print("Ratio of min to max distances:", distances.max() / distances[distances > 0].min())
+    print("Ratio of max to min distances:", distances.max() / distances[distances > 0].min())
 
     reduced_embeddings = perform_cla(features, reduction_rate, method='random', device_list=device_list, pca=pca, pre_delta=pre_delta)
 
     distances = torch.cdist(reduced_embeddings, reduced_embeddings)
     print("Distances shape:", distances.size())
-    print("Ratio of min to max distances:", distances.max() / distances[distances > 0].min())
+    print("Ratio of max to min distances:", distances.max() / distances[distances > 0].min())
     print("Hypercube volume:", pre_delta**embedding_dimension if pre_delta is not None else None)
     
     print("Original shape:", features.shape)
