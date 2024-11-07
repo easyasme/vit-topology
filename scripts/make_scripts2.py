@@ -6,7 +6,7 @@ def main(args):
     studies = ['embedding_dimension', 'sequence_length', 'reduction_rate']
     for study in studies:
         job_name = f'cla_{study}'
-        script_filename = os.path.join(script_dir, f'sbatch_{job_name}.sh')
+        script_filename = os.path.join(script_dir, f'sbatch_{job_name}')
         SAVE_DIR = os.path.join(args.output_dir, study)
 
         print(f'\n ==> Job name: {job_name} \n')
