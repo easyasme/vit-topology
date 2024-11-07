@@ -11,7 +11,7 @@ from reductions import perform_cla
 # Generate data with specified distribution
 def generate_data(batch_size, sequence_length, embedding_dimension, distribution='uniform', device_list=None):
     if distribution == 'uniform':
-        data = torch.rand(batch_size, sequence_length, embedding_dimension, device=device_list[-1])
+        data = torch.rand(size=(batch_size, sequence_length, embedding_dimension), device=device_list[-1])
         
     elif distribution == 'normal':
         data = torch.randn(batch_size, sequence_length, embedding_dimension, device=device_list[-1])
@@ -60,9 +60,9 @@ def run_meta_study(args):
 
     # small, medium, big values
     distributions = ['uniform', 'normal', 'exponential', 'beta', 'log_normal', 'gamma']
-    embedding_dimension_values = np.linspace(0, 1000, 100, dtype=int) # [50, 100, 200, 400, 800, 1000]
-    sequence_length_values = np.linspace(5, 1000, 100, dtype=int) # [50, 100, 200, 400, 800, 1000]
-    pre_delta_values = np.linspace(.01, 1, 100) # [0.1, 0.3, 0.5, 0.7, 0.9, 0.95]
+    embedding_dimension_values = np.linspace(2, 1000, 10, dtype=int) # [50, 100, 200, 400, 800, 1000]
+    sequence_length_values = np.linspace(5, 1000, 10, dtype=int) # [50, 100, 200, 400, 800, 1000]
+    pre_delta_values = np.linspace(.01, 1, 10) # [0.1, 0.3, 0.5, 0.7, 0.9, 0.95]
 
     results_dict = dict()
     for distribution in distributions:
@@ -89,8 +89,12 @@ def run_meta_study(args):
                     n_samples_reduced = reduced_embeddings.size(0)
                     n_samples_og = data.view(-1, embedding_dimension).size(0)
 
-                    reduced_distance_ratio = calculate_distance_ratio(reduced_embeddings)
-                    og_distance_ratio = calculate_distance_ratio(data.view(-1, embedding_dimension))
+                    if n_samples_reduced >= 2:
+                        reduced_dist_ratio = calculate_distance_ratio(reduced_embeddings).numpy(force=True)
+                        og_dist_ratio = calculate_distance_ratio(data.view(-1, embedding_dimension)).numpy(force=True)
+                    else:
+                        reduced_dist_ratio = np.nan
+                        og_dist_ratio = np.nan
 
                     # Save results
                     results = np.array([n_samples_reduced, n_samples_og, reduced_dist_ratio, og_dist_ratio])
@@ -113,16 +117,14 @@ if __name__ == "__main__":
     else:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         device_list.append(device)
-        print(f'Using {k}')
+        print(f'Using {device}')
 
     parser = argparse.ArgumentParser(description='Run CLA Meta-Study')
 
-    parser.add_argument('--study', type=str, required=True, choices=['embedding_dimension', 'sequence_length', 'reduction_rate'], help='Parameter to study')
     parser.add_argument('--output_dir', type=str, default='meta_study_results')
     parser.add_argument('--device_list', type=list, default=device_list)
     
     args = parser.parse_args()
-
     run_meta_study(args)
 
 

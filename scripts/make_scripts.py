@@ -1,61 +1,45 @@
-import argparse
 import os
+import argparse
 
+def main(args):
+    job_name = f'cla_meta_study'
+    script_dir = os.path.join('./scripts', args.script_dir)
+    script_filename = os.path.join(script_dir, f'sbatch_{job_name}')
 
-def main(pars):
-    args = pars.parse_args()
+    print(f'\n ==> Job name: {job_name}')
+    print(f'\n ==> Script filename: {script_filename}')
+    print(f'\n ==> Save directory: {args.output_dir} \n')
 
-    starts_stops = ['0 9', '10 19', '20 29']
-    for ss in starts_stops:
-        job_name = f'{ss.split()[0]}-{ss.split()[1]}' if args.dataset == 'imagenet' else ''
-        job_name += f' {args.net} {args.dataset}'
-        job_name += f' {args.reduction}' if args.reduction else ''
-        job_name += f' {args.metric}' if args.metric else ''
-
-        print(f'\n ==> Job name: {job_name} \n')
-
-        pth = f'{args.reduction}' if args.reduction else ''
-        pth = os.path.join(pth, args.metric if args.metric else '') 
-        SAVE_DIR = os.path.join(args.save_dir, pth)
-
-        print(f'\n ==> Save directory: {SAVE_DIR} \n')
-
-        cmd = f"python ../../scriptor.py --net {args.net} --dataset {args.dataset} --data_subset '{ss}' --subset {args.subset} --train {args.train} --build_graph {args.build_graph} --post_process {args.post_process} --compare {args.compare} --n_epochs_train {args.n_epochs_train} --lr {args.lr} --optimizer {args.optimizer} --epochs_test '{args.epochs_test}' --resume {args.resume} --resume_epoch {args.resume_epoch} --verbose {args.verbose} --time {args.time} --ntasks {args.ntasks} --mem {args.mem} --nodes {args.nodes} --gpus {args.gpus} --qos {args.qos} --user_email {args.user_email} --job_name '{job_name}' --save_dir '{SAVE_DIR}'"
-        cmd += f' --reduction {args.reduction}' if args.reduction else ''
-        cmd += f' --metric {args.metric}' if args.metric else ''
-
-        os.system(cmd)
+    cmd = f"python scripts/scriptor.py "
+    cmd += f"--job_name '{job_name}' "
+    cmd += f"--script_filename {script_filename} "
+    cmd += f"--output_dir '{args.output_dir}' "
+    cmd += f"--user_email {args.user_email} "
+    cmd += f"--conda_env {args.conda_env} "
+    cmd += f"--time {args.time} "
+    cmd += f"--ntasks {args.ntasks} "
+    cmd += f"--mem {args.mem} "
+    cmd += f"--nodes {args.nodes} "
+    cmd += f"--gpus {args.gpus}"
+    
+    os.system(cmd)
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description='Build and run SLURM scripts')
-    required = parser.add_argument_group('required arguments')
-
-    # Train, build graph, and comparison parameters
-    required.add_argument('--net', help='Specify deep network architecture.', required=True)
-    required.add_argument('--dataset', help='Specify dataset (e.g. mnist, cifar10, imagenet)', required=True)
-    parser.add_argument('--train', default=1, type=int)
-    parser.add_argument('--build_graph', default=1, type=int)
-    parser.add_argument('--post_process', default=1, type=int)
-    parser.add_argument('--compare', default=0, type=int)
-    parser.add_argument('--n_epochs_train', default='50', help='Number of epochs to train.')
-    parser.add_argument('--lr', default='0.001', help='Specify learning rate for training.')
-    parser.add_argument('--optimizer', default='adabelief', help='Define training optimizer: "adabelief" or "adam")')
-    parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs for which you want to build graph.')
-    parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
-    parser.add_argument('--metric', default=None, type=str, help='Distance metric: none, spearman, dcorr, or callable.')
-    parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap, kmeans, or none.')
-    parser.add_argument('--resume', default=0, type=int, help='resume from checkpoint')
-    parser.add_argument('--resume_epoch', default=20, type=int, help='resume from epoch')
-    parser.add_argument('--verbose', default=0, type=int)
-    parser.add_argument('--save_dir', default='./results', help='Directory to save results.')
-
-    # SLURM parameters
-    parser.add_argument('--time', default='24:00:00', help="Walltime in the form 'hh:mm:ss'")
-    parser.add_argument('--ntasks', default=120, type=int, help='Number of processor cores (i.e. tasks)')
-    parser.add_argument('--mem', default='750G', help='Total CPU memory')
-    parser.add_argument('--nodes', default=1, type=int, help='Number of nodes')
-    parser.add_argument('--gpus', default=1, type=int, help='Number of GPUs')
-    parser.add_argument('--qos', default='cs', help='Quality of service')
-    parser.add_argument('--user_email', default='name@institute.edu', type=str, help='Email address')
+    parser = argparse.ArgumentParser(description='Generate and submit sbatch scripts for CLA meta-study')
     
-    main(parser)
+    parser.add_argument('--script_dir', type=str, default='sbatch_scripts', help='Directory to save sbatch scripts')
+    parser.add_argument('--output_dir', type=str, default='meta_study_results')
+    parser.add_argument('--user_email', type=str, default='yws226@byu.edu')
+    parser.add_argument('--conda_env', type=str, default='dnnenv')
+    parser.add_argument('--time', type=str, default='04:00:00', help='Time limit for the job')
+    parser.add_argument('--ntasks', type=int, default=16, help='Number of tasks')
+    parser.add_argument('--mem', type=str, default='64G', help='Memory per node')
+    parser.add_argument('--nodes', type=int, default=1, help='Number of nodes')
+    parser.add_argument('--gpus', type=int, default=1, help='Number of GPUs')
+    
+    args = parser.parse_args()
+    
+    main(args)
+
+# Run the following command from ~/vit-topology in the terminal to generate the sbatch script:
+# python scripts/make_scripts.py --user_email jdoe@byu.edu --conda_env your_env --time 04:00:00 --ntasks 16 --mem 64G --nodes 1 --gpus 2

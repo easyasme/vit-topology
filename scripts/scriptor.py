@@ -1,344 +1,64 @@
-''' SLURM batch job script generator '''
-
 import argparse
 import os
 
-parser = argparse.ArgumentParser(description='Build and run SLURM scripts')
-required = parser.add_argument_group('required arguments')
 
-# Train and build graph parameters
-required.add_argument('--net', help='Specify deep network architecture.', required=True)
-required.add_argument('--dataset', help='Specify dataset (e.g. mnist, cifar10, imagenet)', required=True)
-parser.add_argument('--train', default=1, type=int)
-parser.add_argument('--build_graph', default=1, type=int)
-parser.add_argument('--post_process', default=1, type=int)
-parser.add_argument('--compare', default=0, type=int)
-parser.add_argument('--data_subset', default='0 10', help='Specify data subset in the form \'start stop\'')
-parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
-parser.add_argument('--metric', default=None, type=str, help='Distance metric: none, spearman, dcorr, or callable.')
-parser.add_argument('--n_epochs_train', default='50', help='Number of epochs to train.')
-parser.add_argument('--lr', default='0.001', help='Specify learning rate for training.')
-parser.add_argument('--optimizer', default='adabelief', help='Specify optimizer for training. (e.g. adabelief or adam)')
-parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs for which you want to build graph.')
-parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap or kmeans.')
-parser.add_argument('--verbose', default=0, type=int)
-parser.add_argument('--resume', default=0, type=int, help='resume from checkpoint')
-parser.add_argument('--resume_epoch', default=20, type=int, help='resume from epoch')
-parser.add_argument('--save_dir', default='./results/', help='Directory to save results.')
-
-# SLURM parameters
-parser.add_argument('--time', default='24:00:00', help="Walltime in the form hh:mm:ss")
-parser.add_argument('--ntasks', default=120, type=int, help='Number of processor cores (i.e. tasks)')
-parser.add_argument('--mem', default='750G', help='Total CPU memory')
-parser.add_argument('--nodes', default=1, type=int, help='Number of nodes')
-parser.add_argument('--gpus', default=1, type=int, help='Number of GPUs')
-parser.add_argument('--qos', default='cs', help='Quality of service')
-parser.add_argument('--user_email', default='name@institute.edu', type=str, help='Email address')
-parser.add_argument('--job_name', default='train and build', type=str, help='Job name')
-
-args = parser.parse_args()
-
-start = int(args.data_subset.split()[0])
-stop = int(args.data_subset.split()[1])
-
-
-if args.dataset.__eq__('imagenet'):
-    FILENAME = f'job_{args.net}_{args.dataset}_{start}-{stop}.sh'
-else:
-    FILENAME = f'job_{args.net}_{args.dataset}.sh'
-
-print(f'Generating job script: {FILENAME}\n')
-if (args.reduction is not None) and (args.metric is None):
-    with open(FILENAME, 'w') as f:
-        f.write(f'''\
-    #!/bin/sh
-
-    NET="{args.net}" # lenet lenetext alexnet resnet densenet vgg inception
-    DATASET="{args.dataset}" # mnist imagenet etc.
-
-    TRAIN={args.train} # train model; if 0, load model from checkpoint
-    BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
-    POST_PROCESS={args.post_process} # post-process graph; if 0, load graph from binary file
-    COMPARE={args.compare} # compare graphs; if 0, skip comparison
-
-    OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
-
-    RED="{args.reduction}" # pca or umap
-
-    RESUME={args.resume} # resume from checkpoint
-
-    RESUME_EPOCH={args.resume_epoch} # resume from epoch
-                
-    VERBOSE={args.verbose} # verbose level
-
-    START={start} # start index of experiment
-    STOP={stop} # number of experiments that correspond to subsets of data; max is 29
-
-    SAVE_DIR="{args.save_dir}" # directory to save results
-
-    # training params
-    N_EPOCHS={args.n_epochs_train} # number of epochs to train
-    EPOCHS_TEST='{args.epochs_test}' # points where functional graph will be buit
-    LR={args.lr} # learning rate
-
-    ## Train and compute topology for each dataset then create graphs
-    echo
-    printf -- '-%.0s' $(seq 50)
-    echo
-    echo "Training $NET on $DATASET"
-    echo "Epochs: $N_EPOCHS"
-    echo "Epochs to build graph: $EPOCHS_TEST"
-    echo "Learning rate: $LR"
-    printf -- '-%.0s' $(seq 50)
-
-    if [ $DATASET == "mnist" ]
-    then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
-    else
-        for i in $(seq "$START" "$STOP")
-        do
-            echo
-            echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
-        done
-    fi
-
-    # Compare graphs
-    if [ "$COMPARE" == 1 ]
-    then
-        python comparison.py --net "$NET" --dataset "$DATASET" --save_dir "$SAVE_DIR" --chkpt_epochs $EPOCHS_TEST  --start_iter "$START" --stop_iter "$STOP" --reduction "$RED" --metric "$METRIC"
-    fi
-    ''')
-elif (args.metric is not None) and (args.reduction is None):
-    with open(FILENAME, 'w') as f:
-        f.write(f'''\
-    #!/bin/sh
-
-    NET="{args.net}" # lenet lenetext alexnet resnet densenet vgg inception
-    DATASET="{args.dataset}" # mnist imagenet etc.
-
-    TRAIN={args.train} # train model; if 0, load model from checkpoint
-    BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
-    POST_PROCESS={args.post_process} # post-process graph; if 0, load graph from binary file
-    COMPARE={args.compare} # compare graphs; if 0, skip comparison
-
-    OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
-
-    METRIC="{args.metric}" # distance metric: spearman, dcorr, or callable
-
-    RESUME={args.resume} # resume from checkpoint
-
-    RESUME_EPOCH={args.resume_epoch} # resume from epoch
-                
-    VERBOSE={args.verbose} # verbose level
-
-    START={start} # start index of experiment
-    STOP={stop} # number of experiments that correspond to subsets of data; max is 29
-
-    SAVE_DIR="{args.save_dir}" # directory to save results
-
-    # training params
-    N_EPOCHS={args.n_epochs_train} # number of epochs to train
-    EPOCHS_TEST='{args.epochs_test}' # points where functional graph will be buit
-    LR={args.lr} # learning rate
-
-    ## Train and compute topology for each dataset then create graphs
-    echo
-    printf -- '-%.0s' $(seq 50)
-    echo
-    echo "Training $NET on $DATASET"
-    echo "Epochs: $N_EPOCHS"
-    echo "Epochs to build graph: $EPOCHS_TEST"
-    echo "Learning rate: $LR"
-    printf -- '-%.0s' $(seq 50)
-
-    if [ $DATASET == "mnist" ]
-    then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
-    else
-        for i in $(seq "$START" "$STOP")
-        do
-            echo
-            echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
-        done
-    fi
-
-    # Compare graphs
-    if [ "$COMPARE" == 1 ]
-    then
-        python comparison.py --net "$NET" --dataset "$DATASET" --save_dir "$SAVE_DIR" --chkpt_epochs $EPOCHS_TEST  --start_iter "$START" --stop_iter "$STOP" --reduction "$RED" --metric "$METRIC"
-    fi
-    ''')
-elif (args.metric is None) and (args.reduction is None):
-    with open(FILENAME, 'w') as f:
-        f.write(f'''\
-    #!/bin/sh
-
-    NET="{args.net}" # lenet lenetext alexnet resnet densenet vgg inception
-    DATASET="{args.dataset}" # mnist imagenet etc.
-
-    TRAIN={args.train} # train model; if 0, load model from checkpoint
-    BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
-    POST_PROCESS={args.post_process} # post-process graph; if 0, load graph from binary file
-    COMPARE={args.compare} # compare graphs; if 0, skip comparison
-
-    OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
-
-    RESUME={args.resume} # resume from checkpoint
-
-    RESUME_EPOCH={args.resume_epoch} # resume from epoch
-                
-    VERBOSE={args.verbose} # verbose level
-
-    START={start} # start index of experiment
-    STOP={stop} # number of experiments that correspond to subsets of data; max is 29
-
-    SAVE_DIR="{args.save_dir}" # directory to save results
-
-    # training params
-    N_EPOCHS={args.n_epochs_train} # number of epochs to train
-    EPOCHS_TEST='{args.epochs_test}' # points where functional graph will be buit
-    LR={args.lr} # learning rate
-
-    ## Train and compute topology for each dataset then create graphs
-    echo
-    printf -- '-%.0s' $(seq 50)
-    echo
-    echo "Training $NET on $DATASET"
-    echo "Epochs: $N_EPOCHS"
-    echo "Epochs to build graph: $EPOCHS_TEST"
-    echo "Learning rate: $LR"
-    printf -- '-%.0s' $(seq 50)
-
-    if [ $DATASET == "mnist" ]
-    then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
-    else
-        for i in $(seq "$START" "$STOP")
-        do
-            echo
-            echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
-        done
-    fi
-
-    # Compare graphs
-    if [ "$COMPARE" == 1 ]
-    then
-        python comparison.py --net "$NET" --dataset "$DATASET" --save_dir "$SAVE_DIR" --chkpt_epochs $EPOCHS_TEST  --start_iter "$START" --stop_iter "$STOP" --reduction "$RED" --metric "$METRIC"
-    fi
-    ''')
-else:
-    with open(FILENAME, 'w') as f:
-        f.write(f'''\
-    #!/bin/sh
-
-    NET="{args.net}" # lenet lenetext alexnet resnet densenet vgg inception
-    DATASET="{args.dataset}" # mnist imagenet etc.
-
-    TRAIN={args.train} # train model; if 0, load model from checkpoint
-    BUILD_GRAPH={args.build_graph} # build graph; if 0, load graph from binary file
-    POST_PROCESS={args.post_process} # post-process graph; if 0, load graph from binary file
-    COMPARE={args.compare} # compare graphs; if 0, skip comparison
-
-    OPTIMIZER="{args.optimizer}" # adam, adabelief; if '' then use sgd
-
-    RED="{args.reduction}" # pca or umap
-
-    METRIC="{args.metric}" # distance metric: spearman, dcorr, or callable
-
-    RESUME={args.resume} # resume from checkpoint
-
-    RESUME_EPOCH={args.resume_epoch} # resume from epoch
-                
-    VERBOSE={args.verbose} # verbose level
-
-    START={start} # start index of experiment
-    STOP={stop} # number of experiments that correspond to subsets of data; max is 29
-
-    SAVE_DIR="{args.save_dir}" # directory to save results
-
-    # training params
-    N_EPOCHS={args.n_epochs_train} # number of epochs to train
-    EPOCHS_TEST='{args.epochs_test}' # points where functional graph will be buit
-    LR={args.lr} # learning rate
-
-    ## Train and compute topology for each dataset then create graphs
-    echo
-    printf -- '-%.0s' $(seq 50)
-    echo
-    echo "Training $NET on $DATASET"
-    echo "Epochs: $N_EPOCHS"
-    echo "Epochs to build graph: $EPOCHS_TEST"
-    echo "Learning rate: $LR"
-    printf -- '-%.0s' $(seq 50)
-
-    if [ $DATASET == "mnist" ]
-    then
-        python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
-    else
-        for i in $(seq "$START" "$STOP")
-        do
-            echo
-            echo "Subset $i"
-            python main.py --net "$NET" --dataset "$DATASET" --lr "$LR" --n_epochs_train "$N_EPOCHS" --epochs_test "$EPOCHS_TEST" --train "$TRAIN" --build_graph "$BUILD_GRAPH" --post_process "$POST_PROCESS" --optimizer "$OPTIMIZER" --reduction "$RED" --metric "$METRIC" --iter $i --verbose "$VERBOSE" --save_dir "$SAVE_DIR" --resume "$RESUME" --resume_epoch "$RESUME_EPOCH"
-        done
-    fi
-
-    # Compare graphs
-    if [ "$COMPARE" == 1 ]
-    then
-        python comparison.py --net "$NET" --dataset "$DATASET" --save_dir "$SAVE_DIR" --chkpt_epochs $EPOCHS_TEST  --start_iter "$START" --stop_iter "$STOP" --reduction "$RED" --metric "$METRIC"
-    fi
-    ''')
-
-if args.dataset.__eq__('imagenet'):
-    BATCH_FILE = f'jobscript_{args.net}_{args.dataset}_{start}-{stop}'
-else:
-    BATCH_FILE = f'jobscript_{args.net}_{args.dataset}'
-
-MIDDLE = '/'
-if args.reduction is not None:
-    MIDDLE += f'{args.reduction}/'
-if args.metric is not None:
-    MIDDLE += f'{args.metric}/'
-
-with open(BATCH_FILE, 'w') as f:
-    f.write(f'''\
-#!/bin/bash --login
-
-#SBATCH --time={args.time}   # walltime
-#SBATCH --ntasks-per-node={args.ntasks}   # number of processor cores (i.e. tasks)
-#SBATCH --mem={args.mem}   # total CPU memory
-#SBATCH --nodes={args.nodes}   # num nodes
-#SBATCH --gpus={args.gpus}
-#SBATCH --qos={args.qos}
-#SBATCH --mail-user={args.user_email}   # email address
-#SBATCH --mail-type=BEGIN
-#SBATCH --mail-type=END
-#SBATCH --mail-type=FAIL
-#SBATCH -J "{args.job_name}"   # job name
-
-# Set the max number of threads to use for programs using OpenMP. Should be <= ppn. Does nothing if the program doesn't use OpenMP.
-export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
-
-# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
-export OMPI_MCA_opal_cuda_support=true
-export OMPI_MCA_pml="ucx" 
-export OMPI_MCA_osc="ucx"
-export UCX_MEMTYPE_CACHE=n 
-
-export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.conda/envs/topo_gph/lib
-
-mamba activate topo_gph
-export CUBLAS_WORKSPACE_CONFIG=:4096:8
-cd /home/trogdent/dnn-topology
-
-. scripts{MIDDLE}{FILENAME}
-''')
-
-print(f'Batch job script generated: {BATCH_FILE}')
-print(f'Job script generated: {FILENAME}')
-print('Run the job script with the following command from the dnn-topology directory:')
-print(f'sbatch scripts{MIDDLE}{FILENAME}\n')
+def generate_sbatch_script(job_name, script_filename, output_dir, time='04:00:00', ntasks=16, mem='64G', nodes=1, gpus=1, user_email='your_email@example.com', conda_env='your_env'):
+    sbatch_script = f"""#!/bin/bash
+
+#SBATCH --job-name={job_name}
+#SBATCH --output={job_name}_output.txt
+#SBATCH --error={job_name}_error.txt
+#SBATCH --time={time}
+#SBATCH --qos=cs
+#SBATCH --nodes={nodes}
+#SBATCH --ntasks={ntasks}
+#SBATCH --gpus={gpus}
+#SBATCH --mem={mem}
+#SBATCH --mail-user={user_email}
+#SBATCH --mail-type=BEGIN,END,FAIL
+
+# Load modules or activate environment
+conda init bash
+source ~/.bashrc
+conda activate {conda_env}
+
+# Run the meta-study
+python cla.py --output_dir '{output_dir}'
+"""
+    
+    script_dir = os.path.dirname(script_filename)
+    if not os.path.exists(script_dir):
+        os.makedirs(os.path.dirname(script_filename), exist_ok=True)
+    with open(script_filename, 'w') as f:
+        f.write(sbatch_script)
+
+    print(f"Generated sbatch script: {script_filename}\n")
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Generate sbatch script for CLA meta-study')
+    
+    parser.add_argument('--job_name', type=str, required=True, help='Job name')
+    parser.add_argument('--script_filename', type=str, required=True, help='Filename for the sbatch script')
+    parser.add_argument('--output_dir', type=str, default='meta_study_results', help='Where results are saved')
+    parser.add_argument('--user_email', type=str, default='yws226@byu.edu')
+    parser.add_argument('--conda_env', type=str, default='dnnenv')
+    parser.add_argument('--time', type=str, default='24:00:00', help='Time limit for the job')
+    parser.add_argument('--ntasks', type=int, default=16, help='Number of tasks')
+    parser.add_argument('--mem', type=str, default='64G', help='Memory per node')
+    parser.add_argument('--nodes', type=int, default=1, help='Number of nodes')
+    parser.add_argument('--gpus', type=int, default=1, help='Number of GPUs')
+    
+    args = parser.parse_args()
+
+    generate_sbatch_script(
+        job_name=args.job_name,
+        script_filename=args.script_filename,
+        output_dir=args.output_dir,
+        user_email=args.user_email,
+        conda_env=args.conda_env,
+        time=args.time,
+        ntasks=args.ntasks,
+        mem=args.mem,
+        nodes=args.nodes,
+        gpus=args.gpus
+    )

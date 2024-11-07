@@ -138,7 +138,6 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
         delta = find_delta(embeddings, reduction_rate, method, max_iterations, tolerance) # side length of hypercubes
     else:
         delta = pre_delta
-    print(f'delta: {delta}')
 
     # Grid indices calculated
     min_values = embeddings.min(dim=0)[0] # min value of data for starting point - dividing the space into grid
