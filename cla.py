@@ -148,8 +148,6 @@ def run_meta_study(args):
             for sequence_length in sequence_length_values:
                 for reduction_rate in reduction_rate_values:
                     for distribution in distributions:
-                        print(f'args.device in meta study = {args.device}')
-                        print(f'args.device[-1] in meta study = {args.device[-1]}')
                         device = args.device[-1]
                         data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device_list=args.device)
 
@@ -194,7 +192,7 @@ def run_meta_study(args):
             for embedding_dimension in embedding_dimension_values:
                 for reduction_rate in reduction_rate_values:
                     for distribution in distributions:
-                        data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device=args.device[-1])
+                        data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device_list=args.device)
 
                         reduced_embeddings, delta = perform_cla(
                             data,
@@ -202,7 +200,7 @@ def run_meta_study(args):
                             method=method,
                             max_iterations=max_iterations,
                             tolerance=tolerance,
-                            device=args.device[-1],
+                            device_list=args.device,
                             pca=False
                         )
 
@@ -233,7 +231,7 @@ def run_meta_study(args):
             for embedding_dimension in embedding_dimension_values:
                 for sequence_length in sequence_length_values:
                     for distribution in distributions:
-                        data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device=args.device[-1])
+                        data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device_list=args.device)
 
                         reduced_embeddings, delta = perform_cla(
                             data,
@@ -241,7 +239,7 @@ def run_meta_study(args):
                             method=method,
                             max_iterations=max_iterations,
                             tolerance=tolerance,
-                            device=args.device[-1],
+                            device_list=args.device,
                             pca=False
                         )
 
@@ -272,7 +270,6 @@ if __name__ == "__main__":
     device_list = []
     if torch.cuda.device_count() > 1:
         device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
-        print(f"device list = {device_list}")
         print("Using", torch.cuda.device_count(), "GPUs")
         for i, device in enumerate(device_list):
             print(f"Device {i}: {device}")
