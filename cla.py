@@ -66,16 +66,16 @@ def run_meta_study(args):
 
     results_dict = dict()
     for distribution in distributions:
+        print(f"\nRunning meta-study for distribution: {distribution}")
         for sequence_length in sequence_length_values:
             for embedding_dimension in embedding_dimension_values:
+                data = generate_data(batch_size,
+                                     sequence_length,
+                                     embedding_dimension,
+                                     distribution=distribution,
+                                     device_list=args.device_list
+                                    )
                 for delta in pre_delta_values:
-                    data = generate_data(batch_size,
-                                         sequence_length,
-                                         embedding_dimension,
-                                         distribution=distribution,
-                                         device_list=args.device_list
-                                        )
-
                     reduced_embeddings, delta = perform_cla(data,
                                                             method=method,
                                                             max_iterations=max_iterations,
@@ -98,20 +98,20 @@ def run_meta_study(args):
 
                     # Save results
                     results = np.array([n_samples_reduced, n_samples_og, reduced_dist_ratio, og_dist_ratio])
-                    results_dict[(distribution, sequence_length, embedding_dimension, delta)] = results
+                    results_dict[(sequence_length, embedding_dimension, delta)] = results
 
-    filename = f"meta_study.pkl"
-    save_path = os.path.join(args.output_dir, filename)
-    with open(save_path, 'wb') as f:
-        pickle.dump(params, f, protocol=pickle.HIGHEST_PROTOCOL) # python 3.8.18
+        filename = f"{distribution}_meta_study.pkl"
+        save_path = os.path.join(args.output_dir, filename)
+        with open(save_path, 'wb') as f:
+            pickle.dump(params, f, protocol=pickle.HIGHEST_PROTOCOL) # python 3.8.18
 
-    print(f"Saved results to {save_path}")
+        print(f"Saved results to {save_path}")
 
 if __name__ == "__main__":
     device_list = []
     if torch.cuda.device_count() > 1:
         device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
-        print("Using", torch.cuda.device_count(), "GPUs")
+        print("\nUsing", torch.cuda.device_count(), "GPUs")
         for i, device in enumerate(device_list):
             print(f"Device {i}: {device}")
     else:
