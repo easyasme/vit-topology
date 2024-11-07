@@ -1,14 +1,12 @@
 *pyc
-*~
 *.bin
 *.out
 *.locktest.*
-*jobscript*
 *.log
 *.sh
 config.py
 *.png
 *.txt
-./scripts/sbatch_scripts/*
+
 cla_embedding_dimension_error.txt
 cla_embedding_dimension_output.txt
