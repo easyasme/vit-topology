@@ -6,7 +6,7 @@ def main(args):
     studies = ['embedding_dimension', 'sequence_length', 'reduction_rate']
     for study in studies:
         job_name = f'cla_{study}'
-        script_filename = os.path.join(script_dir, f'sbatch_{job_name}')
+        script_filename = os.path.join(script_dir, f'sbatch_{job_name}.sh')
         SAVE_DIR = os.path.join(args.output_dir, study)
 
         print(f'\n ==> Job name: {job_name} \n')
@@ -35,7 +35,7 @@ if __name__ == "__main__":
     parser.add_argument('--script_dir', type=str, default='sbatch_scripts', help='Directory to save sbatch scripts')
     parser.add_argument('--output_dir', type=str, default='meta_study_results')
     parser.add_argument('--user_email', type=str, default='yws226@byu.edu')
-    parser.add_argument('--python_module', type=str, default='python/3.8.18')
+    parser.add_argument('--python_module', type=str, default="3.8.18")
     parser.add_argument('--conda_env', type=str, default='dnnenv')
     parser.add_argument('--time', type=str, default='24:00:00', help='Time limit for the job')
     parser.add_argument('--ntasks', type=int, default=16, help='Number of tasks')
