@@ -17,9 +17,21 @@ def generate_sbatch_script(job_name, script_filename, study_type, output_dir, ti
 #SBATCH --mail-user={user_email}
 #SBATCH --mail-type=BEGIN,END,FAIL
 
+# Set the max number of threads to use for programs using OpenMP. Should be <= ppn. Does nothing if the program doesn't use OpenMP.
+export OMP_NUM_THREADS=$SLURM_CPUS_ON_NODE
+
+# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE
+export OMPI_MCA_opal_cuda_support=true
+export OMPI_MCA_pml="ucx" 
+export OMPI_MCA_osc="ucx"
+export UCX_MEMTYPE_CACHE=n 
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:~/.conda/envs/topo_gph/lib
+
 # Load modules or activate environment
-module load {python_module}
-mamba activate {conda_env}
+conda init bash
+source ~/.bashrc
+conda activate {conda_env}
 
 # Run the meta-study for {study_type}
 python cla.py --study '{study_type}' --output_dir '{output_dir}'
@@ -32,7 +44,6 @@ python cla.py --study '{study_type}' --output_dir '{output_dir}'
         f.write(sbatch_script)
 
     print(f"Generated sbatch script: {script_filename}")
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate sbatch script for CLA meta-study')

@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import numpy as np
 
 @torch.no_grad()
@@ -202,16 +203,16 @@ if __name__ == "__main__":
     pre_delta = .9975
     pca = False
 
-    distances = torch.cdist(features.view(-1, embedding_dimension), features.view(-1, embedding_dimension))
+    distances = F.pdist(features.view(-1, embedding_dimension)) # Pairwise distances; returns upper triangular matrix
     print("Distances shape:", distances.size())
-    print("Ratio of max to min distances:", distances.max() / distances[distances > 0].min())
+    print("Ratio of max to min distances:", distances.max() / distances.min())
 
     reduced_embeddings = perform_cla(features, reduction_rate, method='random', device_list=device_list, pca=pca, pre_delta=pre_delta)
 
-    distances = torch.cdist(reduced_embeddings, reduced_embeddings)
+    distances = F.pdist(reduced_embeddings)
     print("Distances shape:", distances.size())
     print("Ratio of max to min distances:", distances.max() / distances[distances > 0].min())
     print("Hypercube volume:", pre_delta**embedding_dimension if pre_delta is not None else None)
     
     print("Original shape:", features.shape)
-    print("Reduced (closest to mean) shape:", reduced_embeddings.shape)
+    print("Reduced shape:", reduced_embeddings.shape)
