@@ -7,6 +7,4 @@
 config.py
 *.png
 *.txt
-
-cla_embedding_dimension_error.txt
-cla_embedding_dimension_output.txt
+./scripts/sbatch_scripts/*sbatch*
