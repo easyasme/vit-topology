@@ -176,7 +176,7 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
 
     reduced_embeddings = torch.stack(representatives) # [k representative points, embedding_dimension]
 
-    return reduced_embeddings
+    return reduced_embeddings, delta
 
 # Test
 if __name__ == "__main__":

@@ -95,32 +95,32 @@ from reductions import perform_cla
 
 
 # Generate data with specified distribution
-def generate_data(batch_size, sequence_length, embedding_dimension, distribution='uniform', device=None):
+def generate_data(batch_size, sequence_length, embedding_dimension, distribution='uniform', device_list=None):
     if distribution == 'uniform':
-        data = torch.rand(batch_size, sequence_length, embedding_dimension, device=device[-1])
+        data = torch.rand(batch_size, sequence_length, embedding_dimension, device=device_list[-1])
         
     elif distribution == 'normal':
-        data = torch.randn(batch_size, sequence_length, embedding_dimension, device=device[-1])
+        data = torch.randn(batch_size, sequence_length, embedding_dimension, device=device_list[-1])
         
     elif distribution == 'binary':
-        data = torch.randint(0, 2, (batch_size, sequence_length, embedding_dimension), device=device[-1], dtype=torch.float32)
+        data = torch.randint(0, 2, (batch_size, sequence_length, embedding_dimension), device=device_list[-1], dtype=torch.float32)
         
     elif distribution == 'exponential':
-        data = torch.distributions.Exponential(1.0).sample((batch_size, sequence_length, embedding_dimension)).to(device[-1])
+        data = torch.distributions.Exponential(1.0).sample((batch_size, sequence_length, embedding_dimension)).to(device_list[-1])
         
     elif distribution == 'beta':
-        data = torch.distributions.Beta(2.0, 5.0).sample((batch_size, sequence_length, embedding_dimension)).to(device[-1])
+        data = torch.distributions.Beta(2.0, 5.0).sample((batch_size, sequence_length, embedding_dimension)).to(device_list[-1])
         
     elif distribution == 'log_normal':
-        data = torch.distributions.LogNormal(0.0, 1.0).sample((batch_size, sequence_length, embedding_dimension)).to(device[-1])
+        data = torch.distributions.LogNormal(0.0, 1.0).sample((batch_size, sequence_length, embedding_dimension)).to(device_list[-1])
         
     elif distribution == 'poisson':
         # Lambda = 5
-        data = torch.poisson(torch.full((batch_size, sequence_length, embedding_dimension), 5.0, device=device[-1]))
+        data = torch.poisson(torch.full((batch_size, sequence_length, embedding_dimension), 5.0, device=device_list[-1]))
         
     elif distribution == 'gamma':
         # Alpha beta = 2.0
-        data = torch.distributions.Gamma(2.0, 2.0).sample((batch_size, sequence_length, embedding_dimension)).to(device[-1])
+        data = torch.distributions.Gamma(2.0, 2.0).sample((batch_size, sequence_length, embedding_dimension)).to(device_list[-1])
         
     else:
         raise ValueError("Unsupported distribution type")
@@ -148,7 +148,10 @@ def run_meta_study(args):
             for sequence_length in sequence_length_values:
                 for reduction_rate in reduction_rate_values:
                     for distribution in distributions:
-                        data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device=args.device[-1])
+                        print(f'args.device in meta study = {args.device}')
+                        print(f'args.device[-1] in meta study = {args.device[-1]}')
+                        device = args.device[-1]
+                        data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device_list=args.device)
 
                         reduced_embeddings, delta = perform_cla(
                             data,
@@ -156,7 +159,7 @@ def run_meta_study(args):
                             method=method,
                             max_iterations=max_iterations,
                             tolerance=tolerance,
-                            device=args.device[-1],
+                            device_list=args.device,
                             pca=False
                         )
 
@@ -271,6 +274,7 @@ if __name__ == "__main__":
     device_list = []
     if torch.cuda.device_count() > 1:
         device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
+        print(f"device list = {device_list}")
         print("Using", torch.cuda.device_count(), "GPUs")
         for i, device in enumerate(device_list):
             print(f"Device {i}: {device}")
@@ -280,7 +284,7 @@ if __name__ == "__main__":
         print(f'Using {device}')
 
     parser = argparse.ArgumentParser(description='Run CLA Meta-Study')
-    
+
     parser.add_argument('--study', type=str, required=True, choices=['embedding_dimension', 'sequence_length', 'reduction_rate'], help='Parameter to study')
     parser.add_argument('--output_dir', type=str, default='meta_study_results')
     parser.add_argument('--device', type=list, default=device_list)
