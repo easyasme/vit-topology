@@ -184,7 +184,6 @@ def run_meta_study(args):
                             pickle.dump(params, f, protocol=pickle.HIGHEST_PROTOCOL) # python 3.8.18
 
                         print(f"Saved results to {save_path}")
-
     elif args.study == 'sequence_length':
         varying_param = list(range(1, 1001))
         varying_param_name = 'sequence_length'
@@ -224,7 +223,6 @@ def run_meta_study(args):
                             pickle.dump(params, f)
 
                         print(f"Saved results to {save_path}")
-
     elif args.study == 'reduction_rate':
         varying_param = np.arange(0, 1.05, 0.05).tolist()
         varying_param_name = 'reduction_rate'
@@ -287,7 +285,7 @@ if __name__ == "__main__":
     
     args = parser.parse_args()
 
-    run_meta_study(args=args)
+    run_meta_study(args)
 
 
 # import torch
