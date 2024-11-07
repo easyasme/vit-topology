@@ -60,12 +60,12 @@ def run_meta_study(args):
 
     # small, medium, big values
     distributions = ['uniform', 'normal', 'exponential', 'beta', 'log_normal', 'gamma']
-    embedding_dimension_values = np.linspace(2, 1000, 10, dtype=int) # [50, 100, 200, 400, 800, 1000]
-    sequence_length_values = np.linspace(5, 1000, 10, dtype=int) # [50, 100, 200, 400, 800, 1000]
-    pre_delta_values = np.linspace(.01, 1, 10) # [0.1, 0.3, 0.5, 0.7, 0.9, 0.95]
+    embedding_dimension_values = np.linspace(2, 1000, args.grid_samples, dtype=int) # [50, 100, 200, 400, 800, 1000]
+    sequence_length_values = np.linspace(5, 1000, args.grid_samples, dtype=int) # [50, 100, 200, 400, 800, 1000]
+    pre_delta_values = np.linspace(.01, 1, args.grid_samples) # [0.1, 0.3, 0.5, 0.7, 0.9, 0.95]
 
-    results_dict = dict()
     for distribution in distributions:
+        results_dict = dict()
         print(f"\nRunning meta-study for distribution: {distribution}")
         for sequence_length in sequence_length_values:
             for embedding_dimension in embedding_dimension_values:
@@ -100,10 +100,10 @@ def run_meta_study(args):
                     results = np.array([n_samples_reduced, n_samples_og, reduced_dist_ratio, og_dist_ratio])
                     results_dict[(sequence_length, embedding_dimension, delta)] = results
 
-        filename = f"{distribution}_meta_study.pkl"
+        filename = f"meta_study_{distribution}_gs_{args.grid_samples}.pkl"
         save_path = os.path.join(args.output_dir, filename)
         with open(save_path, 'wb') as f:
-            pickle.dump(params, f, protocol=pickle.HIGHEST_PROTOCOL) # python 3.8.18
+            pickle.dump(results_dict, f, protocol=pickle.HIGHEST_PROTOCOL) # python 3.8.18
 
         print(f"Saved results to {save_path}")
 
@@ -122,6 +122,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run CLA Meta-Study')
 
     parser.add_argument('--output_dir', type=str, default='meta_study_results')
+    parser.add_argument('--grid_samples', type=int, default=6)
     parser.add_argument('--device_list', type=list, default=device_list)
     
     args = parser.parse_args()

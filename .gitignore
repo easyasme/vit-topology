@@ -7,4 +7,5 @@
 config.py
 *.png
 *.txt
+*.pkl
 scripts/sbatch_scripts/
