@@ -7,4 +7,4 @@
 config.py
 *.png
 *.txt
-./scripts/sbatch_scripts/*sbatch*
+scripts/sbatch_scripts/
