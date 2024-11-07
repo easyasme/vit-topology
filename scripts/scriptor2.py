@@ -2,7 +2,7 @@ import argparse
 import os
 
 
-def generate_sbatch_script(job_name, script_filename, study_type, output_dir, time='24:00:00', ntasks=16, mem='64G', nodes=1, gpus=1, user_email='your_email@example.com', python_module='python/3.8', conda_env='your_env'):
+def generate_sbatch_script(job_name, script_filename, study_type, output_dir, time='24:00:00', ntasks=16, mem='64G', nodes=1, gpus=1, user_email='your_email@example.com', python_module='python/3.8.18', conda_env='your_env'):
     sbatch_script = f"""#!/bin/bash
 
 #SBATCH --job-name={job_name}
@@ -25,7 +25,8 @@ mamba activate {conda_env}
 python cla.py --study '{study_type}' --output_dir '{output_dir}'
 """
     
-    if not os.path.exists(script_filename):
+    script_dir = os.path.dirname(script_filename)
+    if not os.path.exists(script_dir):
         os.makedirs(os.path.dirname(script_filename), exist_ok=True)
     with open(script_filename, 'w') as f:
         f.write(sbatch_script)
@@ -41,7 +42,7 @@ if __name__ == "__main__":
     parser.add_argument('--study_type', type=str, required=True, choices=['embedding_dimension', 'sequence_length', 'reduction_rate'], help='Type of parameter being studied')
     parser.add_argument('--output_dir', type=str, default='meta_study_results', help='Where results are saved')
     parser.add_argument('--user_email', type=str, default='yws226@byu.edu')
-    parser.add_argument('--python_module', type=str, default='python/3.8.18')
+    parser.add_argument('--python_module', type=str, default="3.8.18")
     parser.add_argument('--conda_env', type=str, default='dnnenv')
     parser.add_argument('--time', type=str, default='24:00:00', help='Time limit for the job')
     parser.add_argument('--ntasks', type=int, default=16, help='Number of tasks')

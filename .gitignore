@@ -6,11 +6,9 @@
 *jobscript*
 *.log
 *.sh
-checkpoint/
-data/
-losses/
-results/
-lightning_logs/
-train_processing/
 config.py
 *.png
+*.txt
+./scripts/sbatch_scripts/*
+cla_embedding_dimension_error.txt
+cla_embedding_dimension_output.txt
