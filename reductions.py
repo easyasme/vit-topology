@@ -96,13 +96,12 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
     # features: tensor of shape [batch_size, sequence_length, embedding_dimension]
     # Returns reduced_embeddings - tensor of reduced embeddings
 
-    def find_delta(embeddings, reduction_rate, method='random', max_iterations=1000, tolerance=1):
+    def find_delta(embeddings, reduction_rate, max_iterations=1000, tolerance=1):
         n_samples = embeddings.size(0)
         target_size = int(n_samples * reduction_rate)
         
         # Initialize delta guess using std
         std = embeddings.std(dim=0).min()
-        print(f'std size: {std.size()}')
         delta = std.item() / 10 # might need to divide by other value
 
         for i in range(max_iterations):
@@ -116,14 +115,12 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
 
             # Check reduced size -> target
             if abs(reduced_size - target_size) <= tolerance:
-                print(f'iter: {i}')
                 break
             elif reduced_size > target_size:
                 # increase delta
                 delta *= 1.1
             else:
                 delta /= 1.1
-            # print(f'iter: {i}')
         
         return delta
 
@@ -145,25 +142,20 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
 
     # Grid indices calculated
     min_values = embeddings.min(dim=0)[0] # min value of data for starting point - dividing the space into grid
-    # print(f'minned vals: {embeddings - min_values}')
 
     # Actual split of the space -> indices - tensor that each row represents the grid indices of data point
-    grid_indices_of_data_point = torch.floor((embeddings - min_values) / delta).to(device_list[-1]).long() # grid index for each data point in embeddings_reduced
-    # print(f'indices: {grid_indices_of_data_point}')
+    grid_indices_of_data_point = torch.floor((embeddings - min_values) / delta).to(device_list[-1]).long()
 
     # Find representative point in each grid
-    # group data point in each grid - unique_indices = unique grid cells where data points are located, inverse_indices = which unique grid cell each point belongs to
+    # group data point in each grid - unique_indices = unique grid cells where data points are located, inverse_indices 
+    # is which unique grid cell each point belongs to
     # grid without data points is not included in unique_indices
     unique_indices, inverse_indices = torch.unique(grid_indices_of_data_point, dim=0, return_inverse=True)
     unique_indices, inverse_indices = unique_indices.to(device_list[-1]), inverse_indices.to(device_list[0])
     representatives = []
 
-    print (f'unique: {unique_indices.size()}')
-    print (f'inverse: {inverse_indices.size()}\n')
-
     for idx in range(unique_indices.size(0)):
         points_in_cell = embeddings[(inverse_indices == idx)] # find points in current grid
-        # print(f'points in cell: {points_in_cell}')
         if method == 'random':
             representatives.append(points_in_cell[0])
         elif method == 'closest_to_mean':
@@ -179,40 +171,41 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
 
     return reduced_embeddings, delta
 
-# Test
-if __name__ == "__main__":
-    import matplotlib.pyplot as plt
 
-    batch_size = 12
-    sequence_length = 200
-    embedding_dimension = 2
+# # Test
+# if __name__ == "__main__":
+#     import matplotlib.pyplot as plt
 
-    device_list = []
-    if torch.cuda.device_count() > 1:
-        device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
-        print("Using", torch.cuda.device_count(), "GPUs")
-        for i, device in enumerate(device_list):
-            print(f"Device {i}: {device}")
-    else:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        device_list.append(device)
-        print(f'Using {device}')
+#     batch_size = 12
+#     sequence_length = 200
+#     embedding_dimension = 2
 
-    features = torch.randn(batch_size, sequence_length, embedding_dimension)  # Random tensor for testing
-    reduction_rate = 0.5
-    pre_delta = .9975
-    pca = False
+#     device_list = []
+#     if torch.cuda.device_count() > 1:
+#         device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
+#         print("Using", torch.cuda.device_count(), "GPUs")
+#         for i, device in enumerate(device_list):
+#             print(f"Device {i}: {device}")
+#     else:
+#         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+#         device_list.append(device)
+#         print(f'Using {device}')
 
-    distances = F.pdist(features.view(-1, embedding_dimension)) # Pairwise distances; returns upper triangular matrix
-    print("Distances shape:", distances.size())
-    print("Ratio of max to min distances:", distances.max() / distances.min())
+#     features = torch.randn(batch_size, sequence_length, embedding_dimension)  # Random tensor for testing
+#     reduction_rate = 0.5
+#     pre_delta = .9975
+#     pca = False
 
-    reduced_embeddings = perform_cla(features, reduction_rate, method='random', device_list=device_list, pca=pca, pre_delta=pre_delta)
+#     distances = F.pdist(features.view(-1, embedding_dimension)) # Pairwise distances; returns upper triangular matrix
+#     print("Distances shape:", distances.size())
+#     print("Ratio of max to min distances:", distances.max() / distances.min())
 
-    distances = F.pdist(reduced_embeddings)
-    print("Distances shape:", distances.size())
-    print("Ratio of max to min distances:", distances.max() / distances[distances > 0].min())
-    print("Hypercube volume:", pre_delta**embedding_dimension if pre_delta is not None else None)
+#     reduced_embeddings = perform_cla(features, reduction_rate, method='random', device_list=device_list, pca=pca, pre_delta=pre_delta)
+
+#     distances = F.pdist(reduced_embeddings)
+#     print("Distances shape:", distances.size())
+#     print("Ratio of max to min distances:", distances.max() / distances[distances > 0].min())
+#     print("Hypercube volume:", pre_delta**embedding_dimension if pre_delta is not None else None)
     
-    print("Original shape:", features.shape)
-    print("Reduced shape:", reduced_embeddings.shape)
+#     print("Original shape:", features.shape)
+#     print("Reduced shape:", reduced_embeddings.shape)

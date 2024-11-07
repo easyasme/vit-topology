@@ -1,97 +1,11 @@
 import torch
+import torch.nn.functional as F
 import numpy as np
 import pickle
 import os
 import argparse
 
 from reductions import perform_cla
-
-# @torch.no_grad()
-# def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=1000, tolerance=1, device_list=None, pca=False, pre_delta=None):
-#     # features: tensor of shape [batch_size, sequence_length, embedding_dimension]
-#     # Returns reduced_embeddings - tensor of reduced embeddings
-
-#     def find_delta(embeddings, reduction_rate, method='random', max_iterations=1000, tolerance=1):
-#         n_samples = embeddings.size(0)
-#         target_size = int(n_samples * reduction_rate)
-        
-#         # Initialize delta guess using std
-#         std = embeddings.std(dim=0).min()
-#         print(f'std size: {std.size()}')
-#         delta = std.item() / 10 # might need to divide by other value
-
-#         for i in range(max_iterations):
-#             # Grid indices calculated
-#             min_values = embeddings.min(dim=0)[0]
-#             indices = torch.floor((embeddings - min_values) / delta).long() # data point belongs to which grid
-
-#             # Count number of unique grid cells - unique indices
-#             unique_indices = torch.unique(indices, dim=0)
-#             reduced_size = unique_indices.size(0)
-
-#             # Check reduced size -> target
-#             if abs(reduced_size - target_size) <= tolerance:
-#                 print(f'iter: {i}')
-#                 break
-#             elif reduced_size > target_size:
-#                 # increase delta
-#                 delta *= 1.1
-#             else:
-#                 delta /= 1.1
-#             # print(f'iter: {i}')
-        
-#         return delta
-
-#     # Flatten data
-#     batch_size, sequence_length, embedding_dimension = features.size()
-#     embeddings = features.view(-1, embedding_dimension).to(device_list[0]) # [batch_size * patches, embedding_dimension]
-
-#     # PCA - dimensionality reduction among embedding dimension
-#     if pca:
-#         embeddings_reduced_np = perform_pca(embeddings, alpha=.05, center_only=True, device_list=device_list)
-#         embeddings_reduced = torch.tensor(embeddings_reduced_np, device=device_list[0]) # numpy -> tensor
-
-#     # Find delta - iteratively till resulting the desired reduction rate
-#     if pre_delta is None:
-#         delta = find_delta(embeddings, reduction_rate, method, max_iterations, tolerance) # side length of hypercubes
-#     else:
-#         delta = pre_delta
-#     print(f'delta: {delta}')
-
-#     # Grid indices calculated
-#     min_values = embeddings.min(dim=0)[0] # min value of data for starting point - dividing the space into grid
-#     # print(f'minned vals: {embeddings - min_values}')
-
-#     # Actual split of the space -> indices - tensor that each row represents the grid indices of data point
-#     grid_indices_of_data_point = torch.floor((embeddings - min_values) / delta).to(device_list[-1]).long() # grid index for each data point in embeddings_reduced
-#     # print(f'indices: {grid_indices_of_data_point}')
-
-#     # Find representative point in each grid
-#     # group data point in each grid - unique_indices = unique grid cells where data points are located, inverse_indices = which unique grid cell each point belongs to
-#     # grid without data points is not included in unique_indices
-#     unique_indices, inverse_indices = torch.unique(grid_indices_of_data_point, dim=0, return_inverse=True)
-#     representatives = []
-
-#     print (f'unique: {unique_indices.size()}')
-#     print (f'inverse: {inverse_indices.size()}\n')
-
-#     for idx in range(unique_indices.size(0)):
-#         points_in_cell = embeddings[(inverse_indices == idx)] # find points in current grid
-#         # print(f'points in cell: {points_in_cell}')
-#         if method == 'random':
-#             representatives.append(points_in_cell[0])
-#         elif method == 'closest_to_mean':
-#             # data point closest to mean
-#             grid_cell_mean = points_in_cell.mean(dim=0)
-#             distances = torch.norm(points_in_cell - grid_cell_mean, dim=1) # Euclidean distance to mean
-#             closest_point = points_in_cell[distances.argmin()]
-#             representatives.append(closest_point)
-#         else:
-#             raise ValueError("Method does not implemented")
-
-#     reduced_embeddings = torch.stack(representatives) # [k representative points, embedding_dimension]
-
-#     return reduced_embeddings
 
 
 # Generate data with specified distribution
@@ -127,144 +41,67 @@ def generate_data(batch_size, sequence_length, embedding_dimension, distribution
     
     return data
 
+def calculate_distance_ratio(x): # Pairwise distances; returns upper triangular matrix; x: [N, D]
+    dist = F.pdist(x)
+    ratio = dist.max() / dist.min()
+
+    del dist
+
+    return ratio
+
 def run_meta_study(args):
     os.makedirs(args.output_dir, exist_ok=True)
 
-    batch_size = 12
+    batch_size = 10
     tolerance = 1
     max_iterations = 1000
-    method = 'random'
-    distributions = ['uniform', 'normal', 'binary', 'exponential', 'beta', 'log_normal', 'poisson', 'gamma']
+    method = 'closest_to_mean' # 'random'
+    pca = False
 
     # small, medium, big values
-    embedding_dimension_values = [50, 100, 200, 400, 800, 1000]
-    sequence_length_values = [50, 100, 200, 400, 800, 1000]
-    reduction_rate_values = [0.1, 0.3, 0.5, 0.7, 0.9, 0.95]
+    distributions = ['uniform', 'normal', 'exponential', 'beta', 'log_normal', 'gamma']
+    embedding_dimension_values = np.linspace(0, 1000, 100, dtype=int) # [50, 100, 200, 400, 800, 1000]
+    sequence_length_values = np.linspace(5, 1000, 100, dtype=int) # [50, 100, 200, 400, 800, 1000]
+    pre_delta_values = np.linspace(.01, 1, 100) # [0.1, 0.3, 0.5, 0.7, 0.9, 0.95]
 
-    if args.study == 'embedding_dimension':
-        varying_param = list(range(1, 1001))
-        varying_param_name = 'embedding_dimension'
-        for embedding_dimension in varying_param:
-            for sequence_length in sequence_length_values:
-                for reduction_rate in reduction_rate_values:
-                    for distribution in distributions:
-                        device = args.device[-1]
-                        data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device_list=args.device)
-
-                        reduced_embeddings, delta = perform_cla(
-                            data,
-                            reduction_rate=reduction_rate,
-                            method=method,
-                            max_iterations=max_iterations,
-                            tolerance=tolerance,
-                            device_list=args.device,
-                            pca=False
-                        )
-
-                        # Calculate actual reduction rate
-                        n_samples_original = data.view(-1, embedding_dimension).size(0)
-                        n_samples_reduced = reduced_embeddings.size(0)
-                        actual_reduction_rate = n_samples_reduced / n_samples_original
-
-                        # Save results
-                        params = {
-                            'embedding_dimension': embedding_dimension,
-                            'sequence_length': sequence_length,
-                            'reduction_rate': reduction_rate,
-                            'method': method,
-                            'distribution': distribution,
-                            'delta': delta,
-                            'actual_reduction_rate': actual_reduction_rate
-                        }
-
-                        # study_embedding_dimension_ed100_sl50_rr50_duniform
-                        filename = f"study_{args.study}_ed{embedding_dimension}_sl{sequence_length}_rr{int(reduction_rate*100)}_d{distribution}.pkl"
-                        save_path = os.path.join(args.output_dir, filename)
-
-                        with open(save_path, 'wb') as f:
-                            pickle.dump(params, f, protocol=pickle.HIGHEST_PROTOCOL) # python 3.8.18
-
-                        print(f"Saved results to {save_path}")
-    elif args.study == 'sequence_length':
-        varying_param = list(range(1, 1001))
-        varying_param_name = 'sequence_length'
-        for sequence_length in varying_param:
+    results_dict = dict()
+    for distribution in distributions:
+        for sequence_length in sequence_length_values:
             for embedding_dimension in embedding_dimension_values:
-                for reduction_rate in reduction_rate_values:
-                    for distribution in distributions:
-                        data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device_list=args.device)
+                for delta in pre_delta_values:
+                    data = generate_data(batch_size,
+                                         sequence_length,
+                                         embedding_dimension,
+                                         distribution=distribution,
+                                         device_list=args.device_list
+                                        )
 
-                        reduced_embeddings, delta = perform_cla(
-                            data,
-                            reduction_rate=reduction_rate,
-                            method=method,
-                            max_iterations=max_iterations,
-                            tolerance=tolerance,
-                            device_list=args.device,
-                            pca=False
-                        )
+                    reduced_embeddings, delta = perform_cla(data,
+                                                            method=method,
+                                                            max_iterations=max_iterations,
+                                                            tolerance=tolerance,
+                                                            device_list=args.device_list,
+                                                            pca=pca,
+                                                            pre_delta=delta
+                                                           )
 
-                        n_samples_original = data.view(-1, embedding_dimension).size(0)
-                        n_samples_reduced = reduced_embeddings.size(0)
-                        actual_reduction_rate = n_samples_reduced / n_samples_original
+                    # Calculate actual reduction rate
+                    n_samples_reduced = reduced_embeddings.size(0)
+                    n_samples_og = data.view(-1, embedding_dimension).size(0)
 
-                        params = {
-                            'embedding_dimension': embedding_dimension,
-                            'sequence_length': sequence_length,
-                            'reduction_rate': reduction_rate,
-                            'method': method,
-                            'distribution': distribution,
-                            'delta': delta,
-                            'actual_reduction_rate': actual_reduction_rate
-                        }
-                        filename = f"study_{args.study}_ed{embedding_dimension}_sl{sequence_length}_rr{int(reduction_rate*100)}_d{distribution}.pkl"
-                        save_path = os.path.join(args.output_dir, filename)
+                    reduced_distance_ratio = calculate_distance_ratio(reduced_embeddings)
+                    og_distance_ratio = calculate_distance_ratio(data.view(-1, embedding_dimension))
 
-                        with open(save_path, 'wb') as f:
-                            pickle.dump(params, f)
+                    # Save results
+                    results = np.array([n_samples_reduced, n_samples_og, reduced_dist_ratio, og_dist_ratio])
+                    results_dict[(distribution, sequence_length, embedding_dimension, delta)] = results
 
-                        print(f"Saved results to {save_path}")
-    elif args.study == 'reduction_rate':
-        varying_param = np.arange(0, 1.05, 0.05).tolist()
-        varying_param_name = 'reduction_rate'
-        for reduction_rate in varying_param:
-            for embedding_dimension in embedding_dimension_values:
-                for sequence_length in sequence_length_values:
-                    for distribution in distributions:
-                        data = generate_data(batch_size, sequence_length, embedding_dimension, distribution=distribution, device_list=args.device)
+    filename = f"meta_study.pkl"
+    save_path = os.path.join(args.output_dir, filename)
+    with open(save_path, 'wb') as f:
+        pickle.dump(params, f, protocol=pickle.HIGHEST_PROTOCOL) # python 3.8.18
 
-                        reduced_embeddings, delta = perform_cla(
-                            data,
-                            reduction_rate=reduction_rate,
-                            method=method,
-                            max_iterations=max_iterations,
-                            tolerance=tolerance,
-                            device_list=args.device,
-                            pca=False
-                        )
-
-                        n_samples_original = data.view(-1, embedding_dimension).size(0)
-                        n_samples_reduced = reduced_embeddings.size(0)
-                        actual_reduction_rate = n_samples_reduced / n_samples_original
-
-                        params = {
-                            'embedding_dimension': embedding_dimension,
-                            'sequence_length': sequence_length,
-                            'reduction_rate': reduction_rate,
-                            'method': method,
-                            'distribution': distribution,
-                            'delta': delta,
-                            'actual_reduction_rate': actual_reduction_rate
-                        }
-                        filename = f"study_{args.study}_ed{embedding_dimension}_sl{sequence_length}_rr{int(reduction_rate*100)}_d{distribution}.pkl"
-                        save_path = os.path.join(args.output_dir, filename)
-
-                        with open(save_path, 'wb') as f:
-                            pickle.dump(params, f)
-
-                        print(f"Saved results to {save_path}")
-    else:
-        raise ValueError("Invalid study type.")
+    print(f"Saved results to {save_path}")
 
 if __name__ == "__main__":
     device_list = []
@@ -276,13 +113,13 @@ if __name__ == "__main__":
     else:
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         device_list.append(device)
-        print(f'Using {device}')
+        print(f'Using {k}')
 
     parser = argparse.ArgumentParser(description='Run CLA Meta-Study')
 
     parser.add_argument('--study', type=str, required=True, choices=['embedding_dimension', 'sequence_length', 'reduction_rate'], help='Parameter to study')
     parser.add_argument('--output_dir', type=str, default='meta_study_results')
-    parser.add_argument('--device', type=list, default=device_list)
+    parser.add_argument('--device_list', type=list, default=device_list)
     
     args = parser.parse_args()
 
