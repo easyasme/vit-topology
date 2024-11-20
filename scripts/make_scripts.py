@@ -4,7 +4,7 @@ import argparse
 def main(args):
     job_name = f'cla_meta_study'
     script_dir = os.path.join('./scripts', args.script_dir)
-    script_filename = os.path.join(script_dir, f'sbatch_{job_name}')
+    script_filename = os.path.join(script_dir, f'sbatch_{job_name}_gs_{args.grid_samples}')
 
     print(f'\n ==> Job name: {job_name}')
     print(f'\n ==> Script filename: {script_filename}')
