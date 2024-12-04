@@ -60,8 +60,8 @@ def run_meta_study(args):
 
     # small, medium, big values
     distributions = ['uniform', 'normal', 'exponential', 'beta', 'log_normal', 'gamma']
-    embedding_dimension_values = np.linspace(2, 200, args.grid_samples, dtype=int) # [50, 100, 200, 400, 800, 1000]
-    sequence_length_values = np.linspace(5, 200, args.grid_samples, dtype=int) # [50, 100, 200, 400, 800, 1000]
+    embedding_dimension_values = np.linspace(2, 20, args.grid_samples, dtype=int) # [50, 100, 200, 400, 800, 1000]
+    sequence_length_values = np.linspace(100, 2000, args.grid_samples, dtype=int) # [50, 100, 200, 400, 800, 1000]
     pre_delta_values = np.linspace(.01, 1, args.grid_samples) # [0.1, 0.3, 0.5, 0.7, 0.9, 0.95]
 
     for distribution in distributions:
