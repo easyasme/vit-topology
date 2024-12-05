@@ -43,11 +43,38 @@ def generate_data(batch_size, sequence_length, embedding_dimension, distribution
 
 def calculate_distance_ratio(x): # Pairwise distances; returns upper triangular matrix; x: [N, D]
     dist = F.pdist(x)
-    ratio = dist.max() / dist.min()
+    max_dist = dist.max()
+    min_dist = dist.min()
+
+    if min_dist == 0:
+        ratio = float('inf')
+    else:
+        ratio = max_dist / min_dist
 
     del dist
-
     return ratio
+
+# torch -> multinomial -> bootstrap sample
+# def calculate_distance_ratio(x, sample_size=1000):
+#     N = x.size(0)
+#     if N > sample_size:
+#         # Randomly sample
+#         indices = torch.randperm(N)[:sample_size]
+#         x_sampled = x[indices]
+#     else:
+#         x_sampled = x
+
+#     dist = F.pdist(x_sampled)
+#     max_dist = dist.max()
+#     min_dist = dist.min()
+
+#     if min_dist == 0:
+#         ratio = float('inf')
+#     else:
+#         ratio = max_dist / min_dist
+
+#     del dist
+#     return ratio.cpu().item()
 
 def run_meta_study(args):
     os.makedirs(args.output_dir, exist_ok=True)
@@ -61,7 +88,7 @@ def run_meta_study(args):
     # small, medium, big values
     distributions = ['uniform', 'normal', 'exponential', 'beta', 'log_normal', 'gamma']
     embedding_dimension_values = np.linspace(2, 200, args.grid_samples, dtype=int) # [50, 100, 200, 400, 800, 1000]
-    sequence_length_values = np.linspace(5, 200, args.grid_samples, dtype=int) # [50, 100, 200, 400, 800, 1000]
+    sequence_length_values = np.linspace(15001, 20000, args.grid_samples, dtype=int) # [50, 100, 200, 400, 800, 1000]
     pre_delta_values = np.linspace(.01, 1, args.grid_samples) # [0.1, 0.3, 0.5, 0.7, 0.9, 0.95]
 
     for distribution in distributions:
