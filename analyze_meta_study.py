@@ -139,5 +139,45 @@ def analyze_meta_study(results_dir='test', grid_samples=6):
 
         print(f"Graphs saved in {results_dir} for distribution {distribution}.")
 
+
+        # Calculate Distance Ratio (Reduced / Original)
+        dist_ratio_reduced_original = reduced_dist_ratios / og_dist_ratios
+
+        # Distance Ratio (Reduced / Original) vs Embedding Dimension
+        plt.figure(figsize=(10, 6))
+        for delta_val in unique_deltas:
+            indices = deltas == delta_val
+            if np.any(indices):
+                plt.plot(embedding_dimensions[indices], dist_ratio_reduced_original[indices], marker='o', label=f'Delta: {delta_val:.2f}')
+        plt.xlabel('Embedding Dimension')
+        plt.ylabel('Distance Ratio (Reduced / Original)')
+        plt.title(f'Distance Ratio (Reduced / Original) vs. Embedding Dimension\n{distribution.capitalize()} Distribution')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        save_path = os.path.join(results_dir, f'dist_ratio_vs_embedding_{distribution}.png')
+        plt.savefig(save_path)
+        plt.close()
+        print(f"Graph saved to: {save_path}")
+
+        # Distance Ratio (Reduced / Original) vs Delta
+        plt.figure(figsize=(10, 6))
+        for embed_dim in unique_embedding_dims:
+            indices = embedding_dimensions == embed_dim
+            if np.any(indices):
+                plt.plot(deltas[indices], dist_ratio_reduced_original[indices], marker='o', label=f'Embed Dim: {embed_dim}')
+        plt.xlabel('Delta')
+        plt.ylabel('Distance Ratio (Reduced / Original)')
+        plt.title(f'Distance Ratio (Reduced / Original) vs. Delta\n{distribution.capitalize()} Distribution')
+        plt.legend()
+        plt.grid(True)
+        plt.tight_layout()
+        save_path = os.path.join(results_dir, f'dist_ratio_vs_delta_{distribution}.png')
+        plt.savefig(save_path)
+        plt.close()
+        print(f"Graph saved to: {save_path}")
+
+        print(f"Graphs saved in {results_dir} for distribution {distribution}.")
+
 if __name__ == "__main__":
     analyze_meta_study()
