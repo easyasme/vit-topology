@@ -30,67 +30,35 @@ parser.add_argument('--epochs', default=50, type=int)
 parser.add_argument('--resume', default=0, type=int, help='resume from checkpoint')
 parser.add_argument('--resume_epoch', default=0, type=int, help='resume from epoch')
 parser.add_argument('--train_batch_size', default=32, type=int)
-parser.add_argument('--test_batch_size', default=32, type=int)
-parser.add_argument('--input_size', default=32, type=int)
-parser.add_argument('--iter', default=0, type=int)
+parser.add_argument('--val_batch_size', default=32, type=int)
+parser.add_argument('--it', default=0, type=int)
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
 
 args = parser.parse_args()
 
-''' Set seed and other cudnn settings '''
-torch.manual_seed(SEED)
-np.random.seed(SEED)
-random.seed(SEED)
-cudnn.benchmark = False
-# torch.use_deterministic_algorithms(True, warn_only=True)
-
-''' Directory to save training transformers '''
-TRANS_DIR = f'./train_processing/{args.net}/{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet' else f'./train_processing/{args.net}/{args.net}_{args.dataset}'
-os.makedirs(TRANS_DIR, exist_ok=True)
-
-ONAME = f'{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet' else f'{args.net}_{args.dataset}'
+ONAME = f'{args.net}_{args.dataset}_ss{args.it}' if args.dataset == 'imagenet' else f'{args.net}_{args.dataset}'
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print("Device: ", device, "\n")
-
-''' Prepare loaders '''
-print(f'==> Preparing data..\n')
-print(f'Preparing train loader')
-train_loader, train_transform = loader(f'{args.dataset}_train', batch_size=args.train_batch_size, iter=args.iter, verbose=True)
-
-test_transform = []
-size = (IMG_SIZE, IMG_SIZE) if args.dataset == 'imagenet' else (28, 28)
-test_transform.append(transforms.CenterCrop(size))
-for item in train_transform.transforms:
-    if isinstance(item, torchvision.transforms.transforms.ToTensor):
-        test_transform.append(item)
-    elif isinstance(item, torchvision.transforms.transforms.Normalize):
-        test_transform.append(item)
-
-# test_transform.append(transforms.CenterCrop(size))
-test_transform = transforms.Compose(test_transform)
-
-print(f'train transform: {train_transform}')
-print(f'test transform before: {test_transform}')
-
-print(f'Preparing test loader\n')
-test_loader, _ = loader(f'{args.dataset}_test', batch_size=args.test_batch_size, iter=args.iter, verbose=False, transform=test_transform)
-print(f'test transform after: {test_transform}')
-
-trans_pkl_file = os.path.join(TRANS_DIR, f'test_transform.pkl')
-if not os.path.exists(os.path.dirname(trans_pkl_file)):
-    os.makedirs(os.path.dirname(trans_pkl_file))
-with open(trans_pkl_file, 'wb') as f:
-    pickle.dump(test_transform, f, protocol=pickle.HIGHEST_PROTOCOL)
-
-n_samples = len(train_loader) * args.train_batch_size
-
-criterion = nn.CrossEntropyLoss()
+print("Training device: ", device, "\n")
 
 ''' Build models '''
 print(f'==> Building model..\n')
 net = get_model(args.net, args.dataset)
 net = net.to(device)
+
+transform = net._get_transform()
+print(f'Transform: {transform}')
+
+''' Prepare loaders '''
+print(f'==> Preparing data..\n')
+print(f'Preparing train loader')
+train_loader = loader(f'{args.dataset}_train', batch_size=args.train_batch_size, it=args.it, verbose=True, transform=transform)
+
+print(f'Preparing val loader\n')
+val_loader = loader(f'{args.dataset}_val', batch_size=args.val_batch_size, it=args.it, verbose=False, transform=transform)
+
+''' Define loss function '''
+criterion = nn.CrossEntropyLoss()
 
 ''' Optimization '''
 if args.optimizer == 'adabelief':
@@ -100,7 +68,7 @@ elif args.optimizer == 'adam':
 else:
     optimizer = optim.SGD(net.parameters(), lr=args.lr, momentum=0.9, weight_decay=5e-4)
 
-best_acc = 0  # best test accuracy
+best_acc = 0  # best val accuracy
 start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 
 ''' Initialize from checkpoint '''
@@ -108,24 +76,24 @@ if args.resume:
     net, optimizer, loss_tr, loss_te, acc_tr, acc_te, start_epoch = init_from_checkpoint(net, optimizer, args)
     start_epoch += 1
     print(f'==> Resuming from checkpoint.. Epoch: {start_epoch}\n')
-elif args.iter != 0:
+elif args.it != 0:
     net, optimizer, loss_tr, loss_te, acc_tr, acc_te, start_epoch = init_from_checkpoint(net, optimizer, args, start=True)
     start_epoch += 1
 
 ''' Define passer '''
 passer_train = Passer(net, train_loader, criterion, device)
-passer_test = Passer(net, test_loader, criterion, device)
+passer_val = Passer(net, val_loader, criterion, device)
 
 ''' Make intial pass before any training '''
-if not args.resume and args.iter == 0:
-    loss_te, acc_te = passer_test.run()
+if not args.resume and args.it == 0:
+    loss_te, acc_te = passer_val.run()
     save_checkpoint(checkpoint = {'net':net.state_dict(),
-                                  'loss_te': loss_te,
-                                  'acc_te': acc_te,
-                                  'optimizer': optimizer.state_dict()},
-                                  path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_0.pt")
+                                'loss_te': loss_te,
+                                'acc_te': acc_te,
+                                'optimizer': optimizer.state_dict()},
+                                path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_0.pt")
 
-# 
+
 losses = []
 for epoch in range(start_epoch, args.epochs + 1):
     print(f'Epoch {epoch}')
@@ -133,7 +101,12 @@ for epoch in range(start_epoch, args.epochs + 1):
     loss_tr, acc_tr = passer_train.run(optimizer)
     loss_te, acc_te = passer_test.run()
 
-    losses.append({'loss_tr': loss_tr, 'loss_te': loss_te, 'acc_tr': acc_tr, 'acc_te': acc_te, 'epoch': int(epoch)})
+    losses.append({'loss_tr': loss_tr,
+                   'loss_te': loss_te,
+                   'acc_tr': acc_tr,
+                   'acc_te': acc_te,
+                   'epoch': int(epoch)})
+
     if epoch in vars(args)['chkpt_epochs']:
         save_checkpoint(checkpoint = {'net':net.state_dict(),
                                       'loss_tr': loss_tr,

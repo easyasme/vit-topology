@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 def test_vtransformer():
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cpu' if torch.cuda.is_available() else 'cpu')
     print(f"Using {device} for computation.")
 
     # Initialize VTransformer model
@@ -17,8 +17,8 @@ def test_vtransformer():
 
     batch_size = 1
     input_size = 224
-    # dummy_input = torch.randn(batch_size, 3, input_size, input_size).to(device)
-    dummy_input Image.open('data/imagenet_sample.jpg').resize((input_size, input_size))
+    dummy_input = torch.randn(batch_size, 3, input_size, input_size).to(device)
+    # dummy_input = Image.open('~/imagenet_data/imagenet_sample.jpg').resize((input_size, input_size))
 
     # Run forward pass through the model
     with torch.no_grad():

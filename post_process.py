@@ -16,9 +16,9 @@ parser.add_argument('--net')
 parser.add_argument('--dataset')
 parser.add_argument('--save_dir')
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
-parser.add_argument('--reduction', default=None, type=str, help='Reductions: "pca" or "umap"')
+parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, kmeans, umap, or cla.')
 parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcorr", or callable.')
-parser.add_argument('--iter', default=0, type=int)
+parser.add_argument('--it', default=0, type=int)
 
 args = parser.parse_args()
 
@@ -28,7 +28,7 @@ SAVE_DIR = args.save_dir
 EPOCHS = args.chkpt_epochs
 RED = args.reduction
 METRIC = args.metric
-ITER = args.iter
+IT = args.it
 
 ''' Create save directories to store images '''
 SAVE_DIR = args.save_dir
@@ -61,7 +61,7 @@ ENT_DIR = os.path.join(IMG_DIR, 'entropy')
 if not os.path.exists(ENT_DIR):
     os.makedirs(ENT_DIR)
 
-pkl_folder = f'./losses/{NET}/{NET}_{DATASET}_ss{ITER}' if DATASET == 'imagenet' else f'./losses/{NET}/{NET}_{DATASET}'
+pkl_folder = f'./losses/{NET}/{NET}_{DATASET}_ss{IT}' if DATASET == 'imagenet' else f'./losses/{NET}/{NET}_{DATASET}'
 pkl_folder += f'/{RED}' if RED is not None else ''
 pkl_folder += f'/{METRIC}' if METRIC is not None else ''
 

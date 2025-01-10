@@ -7,27 +7,13 @@ import pickle
 
 import matplotlib.pyplot as plt
 import numpy as np
+import torch
 import torch.nn as nn
 import torch.nn.init as init
 from matplotlib import cm
 
 from config import UPPER_DIM
 
-
-def init_params(net):
-    '''Init layer parameters.'''
-    for m in net.modules():
-        if isinstance(m, nn.Conv2d):
-            init.kaiming_normal(m.weight, mode='fan_out')
-            if m.bias:
-                init.constant(m.bias, 0)
-        elif isinstance(m, nn.BatchNorm2d):
-            init.constant(m.weight, 1)
-            init.constant(m.bias, 0)
-        elif isinstance(m, nn.Linear):
-            init.normal(m.weight, std=1e-3)
-            if m.bias:
-                init.constant(m.bias, 0)
 
 try:
     _, term_width = os.popen('stty size', 'r').read().split()
@@ -39,49 +25,6 @@ term_width = int(term_width)
 TOTAL_BAR_LENGTH = 65.
 last_time = time.time()
 begin_time = last_time
-
-def progress_bar(current, total, msg=None):
-    global last_time, begin_time
-    if current == 0:
-        begin_time = time.time()  # Reset for new bar.
-
-    cur_len = int(TOTAL_BAR_LENGTH * (current/total))
-    rest_len = int(TOTAL_BAR_LENGTH - cur_len) - 1
-
-    sys.stdout.write(' [')
-    for i in range(cur_len):
-        sys.stdout.write('=')
-    sys.stdout.write('>')
-    for i in range(rest_len):
-        sys.stdout.write('.')
-    sys.stdout.write(']')
-
-    cur_time = time.time()
-    step_time = cur_time - last_time
-    last_time = cur_time
-    tot_time = cur_time - begin_time
-
-    L = []
-    L.append('  Step: %s' % format_time(step_time))
-    L.append(' | Tot: %s' % format_time(tot_time))
-    if msg:
-        L.append(' | ' + msg)
-
-    msg = ''.join(L)
-    sys.stdout.write(msg)
-    for i in range(term_width-int(TOTAL_BAR_LENGTH)-len(msg)-3):
-        sys.stdout.write(' ')
-
-    # Go back to the center of the bar.
-    for i in range(term_width-int(TOTAL_BAR_LENGTH/2)+2):
-        sys.stdout.write('\b')
-    sys.stdout.write(' %d/%d ' % (current+1, total))
-
-    if current < total-1:
-        sys.stdout.write('\r')
-    else:
-        sys.stdout.write('\n')
-    sys.stdout.flush()
 
 def format_time(seconds):
     days = int(seconds / 3600/24)
@@ -114,6 +57,43 @@ def format_time(seconds):
     if f == '':
         f = '0ms'
     return f
+
+def get_accuracy(predictions, targets):
+    ''' Compute accuracy of predictions to targets. max(predictions) is best'''
+    _, predicted = predictions.max(1)
+    total = targets.size(0)
+    correct = predicted.eq(targets).sum().item()
+
+    return 100. * (correct / total)
+
+def get_device_list():
+    device_list = []
+    if torch.cuda.device_count() > 1:
+        device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
+        print("Using", torch.cuda.device_count(), "GPUs")
+        for i, device in enumerate(device_list):
+            print(f"Device {i}: {device}")
+    else:
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device_list.append(device)
+        print(f'Using {device}')
+
+    return device_list
+
+def init_params(net):
+    '''Init layer parameters.'''
+    for m in net.modules():
+        if isinstance(m, nn.Conv2d):
+            init.kaiming_normal(m.weight, mode='fan_out')
+            if m.bias:
+                init.constant(m.bias, 0)
+        elif isinstance(m, nn.BatchNorm2d):
+            init.constant(m.weight, 1)
+            init.constant(m.bias, 0)
+        elif isinstance(m, nn.Linear):
+            init.normal(m.weight, std=1e-3)
+            if m.bias:
+                init.constant(m.bias, 0)
 
 def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, orig_nodes, thresholds, eps_thresh, curves_dir, threeD_img_dir, start, stop, net, dataset, subset):
     # pickle betti numbers along with epoch and thresholds in a dictionary
@@ -173,3 +153,54 @@ def make_plots(betti_nums, betti_nums_3d, epoch, num_nodes, orig_nodes, threshol
 
         plt.clf()
         plt.close(fig)
+
+def progress_bar(current, total, msg=None):
+    global last_time, begin_time
+    if current == 0:
+        begin_time = time.time()  # Reset for new bar.
+
+    cur_len = int(TOTAL_BAR_LENGTH * (current/total))
+    rest_len = int(TOTAL_BAR_LENGTH - cur_len) - 1
+
+    sys.stdout.write(' [')
+    for i in range(cur_len):
+        sys.stdout.write('=')
+    sys.stdout.write('>')
+    for i in range(rest_len):
+        sys.stdout.write('.')
+    sys.stdout.write(']')
+
+    cur_time = time.time()
+    step_time = cur_time - last_time
+    last_time = cur_time
+    tot_time = cur_time - begin_time
+
+    L = []
+    L.append('  Step: %s' % format_time(step_time))
+    L.append(' | Tot: %s' % format_time(tot_time))
+    if msg:
+        L.append(' | ' + msg)
+
+    msg = ''.join(L)
+    sys.stdout.write(msg)
+    for i in range(term_width-int(TOTAL_BAR_LENGTH)-len(msg)-3):
+        sys.stdout.write(' ')
+
+    # Go back to the center of the bar.
+    for i in range(term_width-int(TOTAL_BAR_LENGTH/2)+2):
+        sys.stdout.write('\b')
+    sys.stdout.write(' %d/%d ' % (current+1, total))
+
+    if current < total-1:
+        sys.stdout.write('\r')
+    else:
+        sys.stdout.write('\n')
+    sys.stdout.flush()
+
+def visible_print(message):
+    ''' Visible print'''
+    print('')
+    print(50*'-')
+    print(message)
+    print(50*'-')
+    print('')

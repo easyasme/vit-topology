@@ -82,7 +82,6 @@ def get_model(name, dataset):
     
     elif name=='vtransformer' and dataset == 'imagenet':
         print("\n Fetching Vtransformer")
-        print("Input size:", IMG_SIZE)
         net = VTransformer(num_classes=10, pretrained=True, input_size=IMG_SIZE)
     
     else:
@@ -101,7 +100,7 @@ def init_from_checkpoint(net, optimizer, args, start=False):
             print('==> Starting from original weight init..')
             checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss0/ckpt_epoch_0.pt')
         else:
-            checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss{args.iter}/ckpt_epoch_{args.resume_epoch}.pt')
+            checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss{args.it}/ckpt_epoch_{args.resume_epoch}.pt')
     else:
         checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}/ckpt_epoch_{args.resume_epoch}.pt')
     

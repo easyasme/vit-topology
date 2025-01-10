@@ -27,42 +27,22 @@ parser.add_argument('--dataset')
 parser.add_argument('--chkpt_epochs', nargs='+', action='extend', type=int, default=[])
 parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
 parser.add_argument('--metric', default=None, type=str, help='Distance metric: none, spearman, dcorr, or callable.')
+parser.add_argument('--average', default=1, type=int, help='Average over all samples.')
 parser.add_argument('--thresholds', default='0. 1.0', help='Defining thresholds range in the form \'start stop\' ')
 parser.add_argument('--eps_thresh', default=1., type=float)
-parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap or kmeans.')
+parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, umap, kmeans or cla.')
 parser.add_argument('--resume', default=0, type=int, help='resume from checkpoint')
 parser.add_argument('--resume_epoch', default=20, type=int, help='resume from epoch')
 parser.add_argument('--exp', default=1, type=float, help='Exponent for correlation distance.')
-parser.add_argument('--iter', default=0, type=int)
+parser.add_argument('--it', default=0, type=int)
 parser.add_argument('--verbose', default=0, type=int)
 
 args = parser.parse_args()
 
-device_list = []
-if torch.cuda.device_count() > 1:
-    device_list = [torch.device('cuda:{}'.format(i)) for i in range(torch.cuda.device_count())]
-    print("Using", torch.cuda.device_count(), "GPUs")
-    for i, device in enumerate(device_list):
-        print(f"Device {i}: {device}")
-else:
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    device_list.append(device)
-    print(f'Using {device}')
-
-''' Set seed and other deterministic settings '''
-torch.manual_seed(SEED)
-np.random.seed(SEED)
-random.seed(SEED)
-torch.backends.cudnn.benchmark = False
-# torch.use_deterministic_algorithms(True, warn_only=True)
-
-''' Directory to retrieve transformers '''
-TRANS_DIR = f'./train_processing/{args.net}/{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet' else f'./train_processing/{args.net}/{args.net}_{args.dataset}'
-if not os.path.exists(TRANS_DIR):
-    os.makedirs(TRANS_DIR)
+device_list = get_device_list()
 
 ''' Directory to save persistence diagrams '''
-pkl_folder = f'./losses/{args.net}/{args.net}_{args.dataset}_ss{args.iter}' if args.dataset == 'imagenet' else f'./losses/{args.net}/{args.net}_{args.dataset}'
+pkl_folder = f'./dgms/{args.net}/{args.net}_{args.dataset}'
 pkl_folder += f'/{args.reduction}' if args.reduction is not None else ''
 pkl_folder += f'/{args.metric}' if args.metric is not None else ''
 
@@ -70,18 +50,15 @@ pkl_folder += f'/{args.metric}' if args.metric is not None else ''
 print('\n ==> Building model..')
 net = get_model(args.net, args.dataset)
 net = net.to(device_list[0])
-
-''' Prepare criterion '''
-criterion = nn.CrossEntropyLoss()
+net.eval()
 
 ''' Prepare val data loader '''
-trans_pkl_file = os.path.join(TRANS_DIR, f'test_transform.pkl')
-with open(trans_pkl_file, 'rb') as f:
-    test_transform = pickle.load(f)
-functloader, _ = loader(f'{args.dataset}_test', batch_size=100, iter=args.iter, subset=args.subset, verbose=False, transform=test_transform) # subset size
+test_transform = net._get_transform()
+functloader = loader(f'{args.dataset}_test', batch_size=100, it=args.it, subset=args.subset, verbose=False, transform=test_transform) # subset size
 
 ''' Load checkpoint and get activations '''
 assert os.path.isdir('./checkpoint'), 'Error: no checkpoint directory found!'
+
 with torch.no_grad():
     total_time = 0.
 
@@ -89,21 +66,17 @@ with torch.no_grad():
     for epoch in epoch_iter:
         if args.resume and (epoch <= args.resume_epoch):
             continue
+        
         print(f'\n==> Loading checkpoint for epoch {epoch}...\n')
         
-        if args.dataset == 'imagenet':
-            checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}_ss{args.iter}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
-        else:
-            checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
+        checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
         
-        net.load_state_dict(checkpoint['net'])
-        net.requires_grad_(False)
-        net.eval()
+        # net.load_state_dict(checkpoint['net'])
 
         ''' Define passer and get activations '''
         # get activations and reduce dimensionality; compute distance adjacency matrix
-        passer = Passer(net, functloader, criterion, device_list[0])
-        activs = passer.get_function(reduction=args.reduction, device_list=device_list, corr=args.metric if not None else 'pearson', exp=args.exp)
+        passer = Passer(net, functloader, None, device_list[0])
+        activs = passer.get_function(reduction=args.reduction, device_list=device_list, corr=args.metric if not None else 'pearson', exp=args.exp, average=args.average)
         adj = adjacency(activs, metric=args.metric, device=device_list[0])
 
         if args.verbose:
@@ -160,4 +133,4 @@ with torch.no_grad():
     with open(time_pkl_file, 'ab') as f:
         pickle.dump(total_time, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    del passer, net, criterion, functloader, total_time, checkpoint
+    del passer, net, functloader, total_time, checkpoint

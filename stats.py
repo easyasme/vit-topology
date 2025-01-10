@@ -40,11 +40,11 @@ Xs = None
 test_accs = []
 train_accs = []
 times = []
-for iter in range(START, SUBSETS):
-    # print(f'Processing losses for subset {iter}')
+for it in range(START, SUBSETS):
+    # print(f'Processing losses for subset {it}')
     if DATASET.__eq__('imagenet'):
-        # pkl_path = f"./losses/{NET}/{NET}_{DATASET}_ss{iter}/"
-        pkl_path = f'/home/trogdent/compute/qual/results/trial_0/losses/{NET}/{NET}_{DATASET}_ss{iter}/'
+        # pkl_path = f"./losses/{NET}/{NET}_{DATASET}_ss{it}/"
+        pkl_path = f'/home/trogdent/compute/qual/results/trial_0/losses/{NET}/{NET}_{DATASET}_ss{it}/'
     else:
         # pkl_path = f"./losses/{NET}/{NET}_{DATASET}/"
         pkl_path = f'/home/trogdent/compute/qual/results/trial_0/losses/{NET}/{NET}_{DATASET}/'
@@ -59,7 +59,7 @@ for iter in range(START, SUBSETS):
         continue
     
     if DATASET.__eq__('imagenet'):
-        save_dir = f"{SAVE_DIR}/{NET}_{DATASET}_ss{iter}/images/loss/"
+        save_dir = f"{SAVE_DIR}/{NET}_{DATASET}_ss{it}/images/loss/"
     else:
         save_dir = f'{SAVE_DIR}/{NET}_{DATASET}/images/loss/'
     
@@ -84,7 +84,7 @@ for iter in range(START, SUBSETS):
 
         '''Create plots of accuracies'''
         fig = go.Figure(layout=go.Layout(
-                        title=f'Accuracy on subset {iter}',
+                        title=f'Accuracy on subset {it}',
                         xaxis=dict(title='Epoch'),
                         yaxis=dict(title='Accuracy'),
                         font=dict(size=16)
@@ -102,7 +102,7 @@ for iter in range(START, SUBSETS):
         train_std = np.array([np.std(loss['loss_tr']) for loss in losses])
 
         fig = go.Figure(layout=go.Layout(
-                        title=f'Average loss on subset {iter}',
+                        title=f'Average loss on subset {it}',
                         xaxis=dict(title='Epoch'),
                         yaxis=dict(title='Loss'),
                         font=dict(size=16)
@@ -115,7 +115,7 @@ for iter in range(START, SUBSETS):
         fig.add_trace(go.Scatter(x=X, y=train_loss + train_std, fill=None, mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
         fig.add_trace(go.Scatter(x=X, y=train_loss - train_std, fill='tonexty', mode='lines', showlegend=False, line=dict(color='blue', width=.1, dash='dash')))
         
-        # fig.update_layout(title=f'Average loss on subset {iter}', xaxis_title='Epoch', yaxis_title='Loss')
+        # fig.update_layout(title=f'Average loss on subset {it}', xaxis_title='Epoch', yaxis_title='Loss')
         write_image(fig, loss_save_file, format='png')
 
 ''' Plot averages over all subsets '''
@@ -157,10 +157,10 @@ times = np.array(times)
 print(f'Average time per subset: {times.mean()/60.:.3f} minutes')
 
 # ''' Concatenate images of curves '''
-# for iter in range(START, SUBSETS):
-#     print(f'Processing images for subset {iter}')
+# for it in range(START, SUBSETS):
+#     print(f'Processing images for subset {it}')
 #     if DATASET.__eq__('imagenet'):
-#         save_dir = f"{SAVE_DIR}/{NET}_{DATASET}_ss{iter}/images/curves/"
+#         save_dir = f"{SAVE_DIR}/{NET}_{DATASET}_ss{it}/images/curves/"
 #     else:
 #         save_dir = f'{SAVE_DIR}/{NET}_{DATASET}/images/curves/'
     
