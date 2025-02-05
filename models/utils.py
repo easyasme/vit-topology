@@ -80,8 +80,8 @@ def get_model(name, dataset):
         print("Input size:", IMG_SIZE)
         net = AlexNet(num_classes=10, input_size=IMG_SIZE)
     
-    elif name=='vtransformer' and dataset == 'imagenet':
-        print("\n Fetching Vtransformer")
+    elif name=='vit' and dataset == 'imagenet':
+        print("\n Fetching ViT")
         net = VTransformer(num_classes=10, pretrained=True, input_size=IMG_SIZE)
     
     else:

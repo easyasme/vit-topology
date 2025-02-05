@@ -22,7 +22,7 @@ parser = argparse.ArgumentParser(description='PyTorch Training')
 
 parser.add_argument('--net')
 parser.add_argument('--dataset')
-parser.add_argument('--reduction', default=None, type=str, help='Reductions: "pca" or "umap"')
+parser.add_argument('--reduction', default=None, type=str, help='Reductions: "pca", "umap", or "cla".')
 parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcorr", or callable.')
 parser.add_argument('--lr', default=0.001, type=float, help='learning rate')
 parser.add_argument('--optimizer', default='adabelief', type=str, help='optimizer')
@@ -46,7 +46,10 @@ print(f'==> Building model..\n')
 net = get_model(args.net, args.dataset)
 net = net.to(device)
 
-transform = net._get_transform()
+if "vit" == args.net:
+    transform = net._get_transform()
+else:
+    transform = None
 print(f'Transform: {transform}')
 
 ''' Prepare loaders '''
@@ -73,11 +76,11 @@ start_epoch = 1  # start from epoch 1 or last checkpoint epoch
 
 ''' Initialize from checkpoint '''
 if args.resume:
-    net, optimizer, loss_tr, loss_te, acc_tr, acc_te, start_epoch = init_from_checkpoint(net, optimizer, args)
+    net, optimizer, loss_tr, loss_val, acc_tr, acc_val, start_epoch = init_from_checkpoint(net, optimizer, args)
     start_epoch += 1
     print(f'==> Resuming from checkpoint.. Epoch: {start_epoch}\n')
 elif args.it != 0:
-    net, optimizer, loss_tr, loss_te, acc_tr, acc_te, start_epoch = init_from_checkpoint(net, optimizer, args, start=True)
+    net, optimizer, loss_tr, loss_val, acc_tr, acc_val, start_epoch = init_from_checkpoint(net, optimizer, args, start=True)
     start_epoch += 1
 
 ''' Define passer '''
@@ -86,10 +89,10 @@ passer_val = Passer(net, val_loader, criterion, device)
 
 ''' Make intial pass before any training '''
 if not args.resume and args.it == 0:
-    loss_te, acc_te = passer_val.run()
+    loss_val, acc_val = passer_val.run()
     save_checkpoint(checkpoint = {'net':net.state_dict(),
-                                'loss_te': loss_te,
-                                'acc_te': acc_te,
+                                'loss_val': loss_val,
+                                'acc_val': acc_val,
                                 'optimizer': optimizer.state_dict()},
                                 path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_0.pt")
 
@@ -99,20 +102,20 @@ for epoch in range(start_epoch, args.epochs + 1):
     print(f'Epoch {epoch}')
 
     loss_tr, acc_tr = passer_train.run(optimizer)
-    loss_te, acc_te = passer_test.run()
+    loss_val, acc_val = passer_val.run()
 
     losses.append({'loss_tr': loss_tr,
-                   'loss_te': loss_te,
+                   'loss_val': loss_val,
                    'acc_tr': acc_tr,
-                   'acc_te': acc_te,
+                   'acc_val': acc_val,
                    'epoch': int(epoch)})
 
     if epoch in vars(args)['chkpt_epochs']:
         save_checkpoint(checkpoint = {'net':net.state_dict(),
                                       'loss_tr': loss_tr,
-                                      'loss_te': loss_te,
+                                      'loss_val': loss_val,
                                       'acc_tr': acc_tr,
-                                      'acc_te': acc_te,
+                                      'acc_val': acc_val,
                                       'epoch': epoch,
                                       'optimizer': optimizer.state_dict()},
                                        path=f'./checkpoint/{args.net}/{ONAME}/', fname=f"ckpt_epoch_{epoch}.pt")

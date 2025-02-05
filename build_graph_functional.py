@@ -52,9 +52,9 @@ net = get_model(args.net, args.dataset)
 net = net.to(device_list[0])
 net.eval()
 
-''' Prepare val data loader '''
-test_transform = net._get_transform()
-functloader = loader(f'{args.dataset}_test', batch_size=100, it=args.it, subset=args.subset, verbose=False, transform=test_transform) # subset size
+''' Prepare test data loader '''
+transform = net._get_transform()
+test_loader = loader(f'{args.dataset}_test', batch_size=100, it=args.it, subset=args.subset, verbose=False, transform=transform) # subset size
 
 ''' Load checkpoint and get activations '''
 assert os.path.isdir('./checkpoint'), 'Error: no checkpoint directory found!'
@@ -64,18 +64,17 @@ with torch.no_grad():
 
     epoch_iter = iter(vars(args)['chkpt_epochs'])
     for epoch in epoch_iter:
-        if args.resume and (epoch <= args.resume_epoch):
-            continue
-        
         print(f'\n==> Loading checkpoint for epoch {epoch}...\n')
         
-        checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
-        
+        # these commented lines are for loading the checkpoint from the training script
+        # if we don't train then we don't have the checkpoint
+
+        # checkpoint = torch.load(f'./checkpoint/{args.net}/{args.net}_{args.dataset}/ckpt_epoch_{epoch}.pt', map_location=device_list[0])
         # net.load_state_dict(checkpoint['net'])
 
         ''' Define passer and get activations '''
         # get activations and reduce dimensionality; compute distance adjacency matrix
-        passer = Passer(net, functloader, None, device_list[0])
+        passer = Passer(net, test_loader, None, device_list[0])
         activs = passer.get_function(reduction=args.reduction, device_list=device_list, corr=args.metric if not None else 'pearson', exp=args.exp, average=args.average)
         adj = adjacency(activs, metric=args.metric, device=device_list[0])
 
@@ -133,4 +132,4 @@ with torch.no_grad():
     with open(time_pkl_file, 'ab') as f:
         pickle.dump(total_time, f, protocol=pickle.HIGHEST_PROTOCOL)
 
-    del passer, net, functloader, total_time, checkpoint
+    del passer, net, test_loader, total_time #, checkpoint

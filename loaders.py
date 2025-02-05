@@ -11,7 +11,7 @@ from PIL import PngImagePlugin
 from torch.utils.data import (DataLoader, Dataset, RandomSampler,
                               SequentialSampler, Subset, random_split)
 
-from config import IMG_SIZE, SUBSETS_LIST, SEED
+from config import SEED
 
 # uncomment these lines to allow large images and truncated images to be loaded
 LARGE_ENOUGH_NUMBER = 1000
@@ -20,11 +20,58 @@ PngImagePlugin.MAX_TEXT_CHUNK = LARGE_ENOUGH_NUMBER * (1024**2)
 # file where mappings from class codes to class names are stored
 CODES_TO_NAMES_FILE = './results/codes_to_names.txt'
 
+def get_color_distortion(s=0.125): # s is the strength of color distortion.
+    torch.manual_seed(SEED)
+    np.random.seed(SEED)
+    random.seed(SEED)
 
-def get_dataset(data, path, transform, verbose, train=False, it=0):
+    color_jitter = transforms.ColorJitter(0.8*s, 0.8*s, 0.8*s, 0.2*s)
+    rnd_color_jitter = transforms.RandomApply([color_jitter], p=0.8)
+    rnd_gray = transforms.RandomGrayscale(p=0.2)
+    color_distort = transforms.Compose([rnd_color_jitter, rnd_gray])
+
+    return color_distort
+
+def get_transform(train=True, crop=True, hflip=True, vflip=False, color_dis=True, blur=True, resize=None):
+    transform = transforms.Compose([])
+
+    if train:
+        if crop:
+            len_trans = len(transform.transforms)
+            # transform.transforms.insert(len_trans, transforms.RandomResizedCrop(size=(IMG_SIZE, IMG_SIZE), \
+                                                                        # interpolation=Image.BICUBIC))
+            transform.transforms.insert(len_trans, transforms.CenterCrop(size=(IMG_SIZE, IMG_SIZE)))
+        if hflip:
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, transforms.RandomHorizontalFlip())
+        if color_dis:
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, get_color_distortion())
+        if vflip:
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, transforms.RandomVerticalFlip())
+        if resize is not None:
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, transforms.Resize((resize, resize), interpolation=Image.BICUBIC))
+    else:
+        if resize is not None:
+            len_trans = len(transform.transforms)
+            transform.transforms.insert(len_trans, transforms.Resize((IMG_SIZE, IMG_SIZE), interpolation=Image.BICUBIC))
+
+    len_trans = len(transform.transforms)
+    transform.transforms.insert(len_trans, transforms.ToTensor())
+    transform.transforms.insert(len_trans+1, transforms.Normalize(mean=[0.485, 0.456, 0.406], 
+                                                                  std=[0.229, 0.224, 0.225]))
+
+    del len_trans
+
+    return transform
+
+def get_dataset(data, path, transform, verbose, train=False):
     ''' Return loader for torchvision data. If data in [mnist, cifar] torchvision.datasets has built-in loaders else load from ImageFolder '''
+    
     if data == 'imagenet':
-        dataset = CustomImageNet(path, './data/map_cls.txt', subset=SUBSETS_LIST[it], transform=transform, verbose=verbose, it=it)
+        dataset = CustomImageNet(path, './data/cls_map.txt', transform=transform, verbose=verbose)
     elif data == 'mnist':
         dataset = CustomMNIST(train=train, transform=transform)
     else:
@@ -32,14 +79,13 @@ def get_dataset(data, path, transform, verbose, train=False, it=0):
 
     return dataset
 
-def dataloader(data, path=None, train=False, transform=None, batch_size=1, it=0, verbose=False, sampling=-1, \
-               normalize=True, subset=None):
+def dataloader(data, path=None, train=False, transform=None, batch_size=1, verbose=False, sampling=-1, subset=None):
     
-    dataset = get_dataset(data, path, transform, train=train, verbose=verbose, it=it)
+    dataset = get_dataset(data, path, transform, train=train, verbose=verbose)
 
     if subset is not None:
-        subset_iter = list(np.random.choice(dataset.__len__(), size=subset, replace=False))
-        dataset = CustomSubset(dataset, subset_iter)
+        subset_iter = list(np.random.choice(dataset.__len__(), size=subset, replace=True)) # True for bootstrapping
+        dataset = Subset(dataset, subset_iter)
 
     if sampling == -1:
         print(f'Using RandomSampler, train is {train}')
@@ -56,115 +102,59 @@ def dataloader(data, path=None, train=False, transform=None, batch_size=1, it=0,
     g = torch.Generator()
     g.manual_seed(SEED)
 
-    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=1, worker_init_fn=seed_worker, generator=g, drop_last=True)
+    data_loader = DataLoader(dataset, batch_size=batch_size, sampler=sampler, num_workers=4, worker_init_fn=seed_worker, generator=g, drop_last=True)
 
     return data_loader
 
-def loader(data, batch_size, verbose, it=0, sampling=-1, subset=None, transform=None):
+def loader(data, batch_size, verbose, sampling=-1, subset=None, transform=None):
     ''' Interface to the dataloader function '''
 
     # set data paths for different image sizes (32, 64, 256)
-    if IMG_SIZE == 32:
-        train_data_path = '/home/trogdent/imagenet_data/train_32'
-        test_data_path = '/home/trogdent/imagenet_data/val_32'
-    elif IMG_SIZE == 64:
-        train_data_path = '/home/trogdent/imagenet_data/train_64'
-        test_data_path = '/home/trogdent/imagenet_data/val_64'
-    else:
-        train_data_path = '/home/trogdent/imagenet_data/train'
-        test_data_path = '/home/trogdent/imagenet_data/val'
+    train_data_path = '~/groups/grp_dnn_topo/nobackup/archive/imagenet_data/train'
+    val_data_path = '~/groups/grp_dnn_topo/nobackup/archive/imagenet_data/val'
+    test_data_path = '~/groups/grp_dnn_topo/nobackup/archive/imagenet_data/test'
+    
+    train = True if 'train' in data else False
+
+    if transform is None:
+        transform = get_transform(train=train, crop=True, hflip=True, vflip=False, color_dis=True, blur=True, resize=None)
     
     # return dataloader for different datasets and train/test splits
     if data == 'imagenet_train':
-        return dataloader('imagenet', path=train_data_path, train=True, transform=transform, batch_size=batch_size, it=it, verbose=verbose, subset=subset) 
+        return dataloader('imagenet', path=train_data_path, train=train, transform=transform, batch_size=batch_size, verbose=verbose, subset=subset)
+    elif data == 'imagenet_val':
+        return dataloader('imagenet', path=val_data_path, train=train, transform=transform, batch_size=batch_size, verbose=verbose, subset=subset)
     elif data == 'imagenet_test':
-        return dataloader('imagenet', test_data_path, transform=transform, batch_size=batch_size, it=it, verbose=verbose, subset=subset)
+        return dataloader('imagenet', path=test_data_path, transform=transform, batch_size=batch_size, verbose=verbose, subset=subset)
     elif data == 'mnist_train':
-        return dataloader('mnist', train=True, transform=transform, batch_size=batch_size, it=it, verbose=verbose, normalize=True, subset=subset)
+        return dataloader('mnist', train=train, transform=transform, batch_size=batch_size, verbose=verbose, subset=subset)
     elif data == 'mnist_test':
-        return dataloader('mnist', train=False, transform=transform, batch_size=batch_size, it=it, verbose=verbose, normalize=True, subset=subset)
+        return dataloader('mnist', train=train, transform=transform, batch_size=batch_size, verbose=verbose, subset=subset)
     else:
         raise ValueError(f"Invalid dataset: {data}")
 
 
 class CustomImageNet(Dataset):
 
-    def __init__(self, data_path, labels_path, verbose, subset=[], transform=None, grayscale=False, it=0, num_samples=20000):
+    def __init__(self, data_path, verbose, subset=[], transform=None, num_samples=10000):
         super(CustomImageNet, self).__init__()
         
         self.data_path = data_path
-        self.data = []
-        self.label_dict = {}
-        self.name_dict = {}
+        self.image_files = glob.glob(data_path, '*.JPEG')
         self.transform = transform
         self.verbose = verbose
-
-        if data_path == '/home/trogdent/imagenet_data/train' or data_path == '/home/trogdent/imagenet_data/val':
-            img_format = '*.JPEG'
-        else:
-            img_format = '*.png'
-
-        with open(labels_path, 'r') as f:
-            for line in f:
-                key = line.split()[0]
-                value = int(line.split()[1])
-                name = line.split()[2]
-                
-                if value in subset:
-                    self.name_dict[key] = name
-                    self.label_dict[key] = value
-
-        lines = []
-        lines.append(f'Subset number: {it}\n')
-        for i, key in enumerate(self.label_dict.keys()):
-            img_paths = glob.glob(os.path.join(data_path, key, img_format))
-
-            if i in range(9) and self.verbose:
-                lines.append(f'Label mapping: {key} --> {i} {self.name_dict[key]}\n')
-            elif self.verbose:
-                lines.append(f'Label mapping: {key} --> {i} {self.name_dict[key]}\n')
-                lines.append(f'Original subset labels: {subset}\n')
-
-            counter = 0
-            for img_path in img_paths:
-                try:
-                    img = Image.open(img_path)
-                    img.load()
-                except OSError:
-                    print("Cannot open: {}".format(img_path))
-                    continue
-
-                if counter > num_samples:
-                    break
-
-                if img.mode == 'RGB' and not grayscale:
-                    self.data.append((img, i))
-                elif img.mode == 'L' and grayscale:
-                    self.data.append((img, i))
-
-                counter += 1
-
-        if not os.path.exists(CODES_TO_NAMES_FILE):
-                with open(CODES_TO_NAMES_FILE, 'w') as f:
-                    f.writelines(lines)
-        else:
-            with open(CODES_TO_NAMES_FILE, 'r') as f:
-                existing_lines = f.readlines()
-            if lines[-1] not in existing_lines:
-                with open(CODES_TO_NAMES_FILE, 'a') as f:
-                    f.writelines(lines)
 
     def __len__(self):
         return len(self.data)
     
     def __getitem__(self, idx):
-        img = self.data[idx][0]
-        label = self.data[idx][1]
+        img = torchvision.io.read_image(self.image_files[idx])
+
+        img.load()
 
         img = self.transform(img) if self.transform else transforms.ToTensor()(img)
-        label = torch.tensor(label, dtype=torch.long)
 
-        return (img, label)
+        return img
 
     def __settransform__(self, transform):
         self.transform = transform
@@ -192,16 +182,3 @@ class CustomMNIST(Dataset):
             return getattr(self.data, 'transform')
         else:
             raise AttributeError("CustomMNIST has no attribute 'transform'")
-
-class CustomSubset(Subset):
-    def __init__(self, dataset, indices):
-        super(CustomSubset, self).__init__(dataset, indices)
-
-    def __settransform__(self, transform):
-        if hasattr(self.dataset, '__settransform__'):
-            self.dataset.__settransform__(transform)
-        else:
-            raise AttributeError("CustomSubset has no attribute '__settransform__'")
-
-    def __gettransform__(self):
-        return self.dataset.__gettransform__()
