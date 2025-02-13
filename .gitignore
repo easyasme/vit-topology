@@ -8,4 +8,13 @@ config.py
 *.png
 *.txt
 *.pkl
+test/
 scripts/sbatch_scripts/
+# test/meta_study_beta_gs_6.pkl
+# test/meta_study_exponential_gs_6.pkl
+# test/meta_study_gamma_gs_6.pkl
+# test/meta_study_log_normal_gs_6.pkl
+# test/meta_study_normal_gs_6.pkl
+# test/meta_study_uniform_gs_6.pkl
+# weights/ViT-B_16.npz
+# weights/wget-log
