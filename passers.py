@@ -1,17 +1,16 @@
-import os
-
 import numpy as np
 import torch
+import matplotlib.pyplot as plt
 
-from config import SEED
-from graph import signal_concat
 from utils import progress_bar, get_accuracy
 from reductions import *
 
 
 class Passer():
-    def __init__(self, net, loader, criterion, device, repeat=1):
+    def __init__(self, net, loader, criterion, device, train=False, val=False, repeat=1):
         self.network = net
+        self.training = train
+        self.validation = val
         self.criterion = criterion
         self.device = device
         self.loader = loader
@@ -19,7 +18,7 @@ class Passer():
 
     def _pass(self, optimizer=None, mask=None):
         ''' Main data passing routing '''
-        losses, features, total, correct = [], [], 0, 0
+        losses = []
         accuracies = []
         
         for r in range(1, self.repeat + 1):
@@ -49,23 +48,31 @@ class Passer():
     def get_function(self, reduction=None, device_list=None, corr='pearson', exp=1, average=True):
         ''' Collect function (features) from the self.network.forward_features() routine '''
         features = []
+
         with torch.no_grad():
-            for batch_idx, (inputs, targets) in enumerate(self.loader):
-                inputs, targets = inputs.to(self.device), targets.to(self.device)
+            for batch_idx, inputs in enumerate(self.loader):
+                inputs = inputs.to(self.device)
 
                 # Collect activations from each batch - store in features
                 activations = self.network.forward_features(inputs)
-                activations = torch.cat(activations, dim=0)
+                activations = torch.stack(activations)
 
                 features.append(activations)
                     
                 progress_bar(batch_idx, len(self.loader))
-        features = torch.cat(features, dim=0) # b x c x h x w
+        features = torch.cat(features, dim=1) # layers x samples x num_vec x emb_dim
 
         if average:
-            features = torch.mean(features, dim=0, keepdim=True)
+            features = torch.mean(features, dim=1, keepdim=True)
 
-        m, n = features.size()
+        # print(f"\nFeatures size: {features.size()}")
+        # for idx, activation in enumerate(torch.unbind(features, dim=0)):
+        #     print(f"Encoder Block {idx} activation shape: {activation.shape}")
+        #     plt.imshow(activation.permute(1, 2, 0).numpy(force=True))
+        #     plt.savefig(f"encoder_block_{idx}_activation.png")
+        # exit()
+
+        layers, m, n = features.size()
         print(f"\nFeatures size: {(m, n)}")
 
         if reduction is not None:
@@ -102,7 +109,7 @@ class Passer():
         for batch_idx, (inputs, targets) in enumerate(self.loader):
             inputs, targets = inputs.to(self.device), targets.to(self.device)
             outputs = self.network(inputs)
-                
+
             gts.append(targets.cpu().data.numpy())
             preds.append(outputs.cpu().data.numpy().argmax(1))
             
