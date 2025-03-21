@@ -125,7 +125,7 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
         return delta
 
     # Flatten data
-    _, _, embedding_dimension = features.size()
+    embedding_dimension = features.size()[-1]
     embeddings = features.view(-1, embedding_dimension).to(device_list[0]) # [batch_size * patches, embedding_dimension]
 
     # PCA - dimensionality reduction among embedding dimension
@@ -135,7 +135,7 @@ def perform_cla(features, reduction_rate=0.5, method='random', max_iterations=10
 
     # Find delta - iteratively till resulting the desired reduction rate
     if pre_delta is None:
-        delta = find_delta(embeddings, reduction_rate, method, max_iterations, tolerance) # side length of hypercubes
+        delta = find_delta(embeddings, reduction_rate, max_iterations, tolerance) # side length of hypercubes
     else:
         delta = pre_delta
 

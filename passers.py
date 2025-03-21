@@ -2,7 +2,7 @@ import numpy as np
 import torch
 import matplotlib.pyplot as plt
 
-from utils import progress_bar, get_accuracy
+from utils import progress_bar, get_accuracy, create_img_from_tensors
 from reductions import *
 
 
@@ -45,7 +45,7 @@ class Passer():
 
         return np.asarray(losses), np.mean(accuracies)
 
-    def get_function(self, reduction=None, device_list=None, corr='pearson', exp=1, average=True):
+    def get_function(self, reduction=None, device_list=None, corr='pearson', exp=1, average=False, save_imgs=False):
         ''' Collect function (features) from the self.network.forward_features() routine '''
         features = []
 
@@ -63,44 +63,60 @@ class Passer():
         features = torch.cat(features, dim=1) # layers x samples x num_vec x emb_dim
 
         if average:
-            features = torch.mean(features, dim=1, keepdim=True)
+            features = torch.mean(features, dim=1)
 
-        # print(f"\nFeatures size: {features.size()}")
-        # for idx, activation in enumerate(torch.unbind(features, dim=0)):
-        #     print(f"Encoder Block {idx} activation shape: {activation.shape}")
-        #     plt.imshow(activation.permute(1, 2, 0).numpy(force=True))
-        #     plt.savefig(f"encoder_block_{idx}_activation.png")
-        # exit()
+        if save_imgs:
+            create_img_from_tensors(features)
 
-        layers, m, n = features.size()
-        print(f"\nFeatures size: {(m, n)}")
+        print(f"\nFeatures size before reduction: {features.size()}")
 
         if reduction is not None:
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
             torch.set_float32_matmul_precision('medium') # 'medium' or 'high' for TPU core utilization
 
             if reduction.__eq__('pca'):
-                print(f"Performing PCA on features with {n} components...\n")
-                features = perform_pca(features, m, alpha=.01, device_list=device_list)
+                print(f"Performing PCA...\n")
+                features = perform_pca(features, features.size()[-2], alpha=.01, device_list=device_list)
             elif reduction.__eq__('umap'):
-                print(f"Performing UMAP on features with {n} components...\n")
-                # features = self.perform_umap(features, num_components=int(.4*n), num_neighbors=50, min_dist=.175, num_epochs=50, metric='correlation', device_list=device_list)
-                features = perform_umap(features, num_components=int(.4*n), num_neighbors=50, min_dist=.175, num_epochs=50, metric='correlation', device_list=device_list)
+                print(f"Performing UMAP...\n")
+                features = perform_umap(features,
+                                        num_components=int(.4*features.size()[-1]),
+                                        num_neighbors=50,
+                                        min_dist=.175,
+                                        num_epochs=50,
+                                        metric='correlation',
+                                        device_list=device_list)
             elif reduction.__eq__('kmeans'):
-                print(f"Performing K-means on features with {n} components...\n")
+                print(f"Performing K-means...\n")
                 features = perform_kmeans(features, device_list=device_list, exp=exp, corr=corr)
-            elif reduction.__eq__('cla'):
-                print(f"Performing CLA on features with {m} samples...\n")
-                features = perform_cla(features, device_list=device_list)
+            elif reduction.__eq__('cla'): # return list of tensors for each encoder block; reduces vectors
+                print(f"Performing CLA...\n")
+                if len(features.size()) == 4:
+                    for layer in torch.unbind(features, dim=0):
+                        layers = []
+                        print(f"Layer size: {layer.shape}")
+                        red_features = []
+                        for i,sample in enumerate(torch.unbind(layer, dim=0)):
+
+                            print(f"Sample number: {i}, Sample size: {sample.shape}")
+                            red_features.append(perform_cla(sample, device_list=device_list)[0])
+                        layers.append(torch.stack(red_features))
+                    features = layers
+                else:
+                    red_features = []
+                    for activation in torch.unbind(features, dim=0):
+                        red_features.append(perform_cla(activation, device_list=device_list)[0])
+                    features = red_features
             else:
                 raise ValueError(f"Reduction {reduction} not supported!")
+        else:
+            features = torch.unbind(features, dim=0) # list of tensors for each encoder block
+        
+        print(f"\nFeatures size after reduction: {len(features), features[0].shape}")
 
-            print(f"Features size after {reduction}: {features.shape}")
-
-        del m, n
-
-        return features.T # put in features x data format; features are rows, samples are columns
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
+        
+        return features # list of tensors for each encoder block; reduces vectors if reduction is not None
 
     def get_predictions(self):
         ''' Returns predictions and targets '''

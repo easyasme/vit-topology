@@ -1,26 +1,28 @@
 import torch
 import torch.nn as nn
 from torchvision.models import vit_b_16, vit_b_32, vit_l_16, vit_l_32
-from torchvision.models import ViT_B_16_Weights, ViT_B_32_Weights, ViT_L_16_Weights, ViT_L_32_Weightsfrom typing import Dict, Iterable, Callable
+from torchvision.models import ViT_B_16_Weights, ViT_B_32_Weights, ViT_L_16_Weights, ViT_L_32_Weights
+from typing import Dict, Iterable, Callable
 from torchvision import transforms
 
 
 class VTransformerB16(nn.Module):
-    def __init__(self, num_classes=10, pretrained=True, input_size=224):
-        super(VTransformerB, self).__init__()
-
+    def __init__(self, num_classes=10, pretrained=True, input_size=224, pos_emb_flag=True):
+        super(VTransformerB16, self).__init__()
+        
+        print(f'\nPositional embedding is turned {'on' if pos_emb_flag else 'off'}.')
         # Load pre-trained model
         if pretrained:
             weights = ViT_B_16_Weights.DEFAULT
             self.preprocess = weights.transforms()
-            self.model = vit_b_16(weights=weights)
+            self.model = vit_b_16(weights=weights, pos_emb_flag=pos_emb_flag)
         else:
             self.preprocess = transforms.Compose([
                 transforms.Resize((input_size, input_size)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
-            self.model = vit_b_16(weights=None)
+            self.model = vit_b_16(weights=None, pos_emb_flag=pos_emb_flag)
 
         # Modify classifier head to match classes
         self.model.heads.head = nn.Linear(self.model.heads.head.in_features, num_classes)
@@ -68,20 +70,21 @@ class VTransformerB16(nn.Module):
         return features
 
 class VTransformerB32(nn.Module):
-    def __init__(self, num_classes=10, pretrained=True, input_size=224):
+    def __init__(self, num_classes=10, pretrained=True, input_size=224, pos_emb_flag=True):
         super(VTransformerB32, self).__init__()
 
+        print(f'\nPositional embedding is turned {'on' if pos_emb_flag else 'off'}.')
         if pretrained:
             weights = ViT_B_32_Weights.DEFAULT
             self.preprocess = weights.transforms()
-            self.model = vit_b_32(weights=weights)
+            self.model = vit_b_32(weights=weights, pos_emb_flag=pos_emb_flag)
         else:
             self.preprocess = transforms.Compose([
                 transforms.Resize((input_size, input_size)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
-            self.model = vit_b_32(weights=None)
+            self.model = vit_b_32(weights=None, pos_emb_flag=pos_emb_flag)
 
         self.model.heads.head = nn.Linear(self.model.heads.head.in_features, num_classes)
 
@@ -115,20 +118,21 @@ class VTransformerB32(nn.Module):
         return features
 
 class VTransformerL16(nn.Module):
-    def __init__(self, num_classes=10, pretrained=True, input_size=224):
-        super(VTransformerL, self).__init__()
+    def __init__(self, num_classes=10, pretrained=True, input_size=224, pos_emb_flag=True):
+        super(VTransformerL16, self).__init__()
 
+        print(f'\nPositional embedding is turned {'on' if pos_emb_flag else 'off'}.')
         if pretrained:
             weights = ViT_L_16_Weights.DEFAULT
             self.preprocess = weights.transforms()
-            self.model = vit_l_16(weights=weights)
+            self.model = vit_l_16(weights=weights, pos_emb_flag=pos_emb_flag)
         else:
             self.preprocess = transforms.Compose([
                 transforms.Resize((input_size, input_size)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
-            self.model = vit_l_16(weights=None)
+            self.model = vit_l_16(weights=None, pos_emb_flag=pos_emb_flag)
 
         self.model.heads.head = nn.Linear(self.model.heads.head.in_features, num_classes)
 
@@ -140,8 +144,8 @@ class VTransformerL16(nn.Module):
 
     def _register_hooks(self):
         for idx, block in enumerate(self.model.encoder.layers):
-            block.register_forward_hook(self._capture_hook(f'encoder_block_{idx}'))
-        self.model.encoder.ln.register_forward_hook(self._capture_hook('encoder_ln'))
+            block.register_forward_hook(self._get_activation(f'encoder_block_{idx}'))
+        self.model.encoder.ln.register_forward_hook(self._get_activation('encoder_ln'))
 
     def _get_activation(self, name: str) -> Callable:
         def hook(module, inputs, output):
@@ -162,20 +166,21 @@ class VTransformerL16(nn.Module):
         return features
 
 class VTransformerL32(nn.Module):
-    def __init__(self, num_classes=10, pretrained=True, input_size=224):
+    def __init__(self, num_classes=10, pretrained=True, input_size=224, pos_emb_flag=True):
         super(VTransformerL32, self).__init__()
 
+        print(f'\nPositional embedding is turned {'on' if pos_emb_flag else 'off'}.')
         if pretrained:
             weights = ViT_L_32_Weights.DEFAULT
             self.preprocess = weights.transforms()
-            self.model = vit_l_32(weights=weights)
+            self.model = vit_l_32(weights=weights, pos_emb_flag=pos_emb_flag)
         else:
             self.preprocess = transforms.Compose([
                 transforms.Resize((input_size, input_size)),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
             ])
-            self.model = vit_l_32(weights=None)
+            self.model = vit_l_32(weights=None, pos_emb_flag=pos_emb_flag)
 
         self.model.heads.head = nn.Linear(self.model.heads.head.in_features, num_classes)
 

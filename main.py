@@ -10,8 +10,8 @@ parser.add_argument('--build_graph', default=1, type=int)
 parser.add_argument('--post_process', default=1, type=int)
 parser.add_argument('--net', help='Specify deep network architecture.')
 parser.add_argument('--dataset', help='Specify dataset (e.g. mnist, cifar10, imagenet)')
-parser.add_argument('--subset', default=500, type=int, help='Subset size for building graph.')
-parser.add_argument('--average', default=1, type=int, help='Average over all samples.')
+parser.add_argument('--subset', default=50, type=int, help='Subset size for building graph.')
+parser.add_argument('--average', default=0, type=int, help='Average over all samples.')
 parser.add_argument('--metric', default=None, type=str, help='Distance metric: "spearman", "dcorr", or callable.')
 parser.add_argument('--n_epochs_train', default='50', help='Number of epochs to train.')
 parser.add_argument('--lr', default='0.001', help='Specify learning rate for training.')
@@ -20,7 +20,6 @@ parser.add_argument('--epochs_test', default='0 4 8 20 30 40 50', help='Epochs f
 parser.add_argument('--reduction', default=None, type=str, help='Reductions: pca, cla or kmeans.')
 parser.add_argument('--resume', default=0, type=int)
 parser.add_argument('--resume_epoch', default=20, type=int)
-parser.add_argument('--verbose', default=0, type=int)
 parser.add_argument('--save_dir', default='./results', help='Directory to save results.')
 
 args = parser.parse_args()
@@ -54,7 +53,6 @@ if args.build_graph:
     cmd = f'python ./build_graph_functional.py'
     cmd += f' --net {args.net}'
     cmd += f' --dataset {args.dataset}'
-    cmd += f' --verbose {args.verbose}'
     cmd += f' --subset {args.subset}'
     cmd += f' --reduction {args.reduction}' if args.reduction else ''
     cmd += f' --metric {args.metric}' if args.metric else ''
@@ -67,8 +65,8 @@ if args.post_process:
     cmd = f'python ./post_process.py'
     cmd += f' --net {args.net}'
     cmd += f' --dataset {args.dataset}'
+    cmd += f' --subset {args.subset}'
     cmd += f' --save_dir {SAVE_DIR}'
-    cmd += f' --chkpt_epochs {args.epochs_test}'
     cmd += f' --reduction {args.reduction}' if args.reduction else ''
     cmd += f' --metric {args.metric}' if args.metric else ''
 

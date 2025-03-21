@@ -1,91 +1,64 @@
 import argparse
-import os
 import pickle
 import torch
 import numpy as np
-from PIL import Image
-
-from transformer import (
-    VTransformerB16,
-    VTransformerB32,
-    VTransformerL16,
-    VTransformerL32
-)
+from gtda.diagrams import PairwiseDistance
 
 def parse_args():
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description="Compare extracted layers for inference.")
+    parser.add_argument('--alignment', type=str, required=True, help='Path to alignment.pkl from compare_layers.py.')
+    parser.add_argument('--device', type=str, default='cuda', help='Device to run on.')
+    return parser.parse_args()
 
-def build_model(key):
-    """Return the appropriate VTransformer model based on the string."""
-    key = key.lower()
-    if key == 'b16':
-        return VTransformerB16(num_classes=10, pretrained=True)
-    elif key == 'b32':
-        return VTransformerB32(num_classes=10, pretrained=True)
-    elif key == 'l16':
-        return VTransformerL16(num_classes=10, pretrained=True)
-    elif key == 'l32':
-        return VTransformerL32(num_classes=10, pretrained=True)
-    else:
-        raise ValueError(f"Unknown model type: {key}")
+def load_pickle(path):
+    with open(path, 'rb') as f:
+        return pickle.load(f)
 
-class PrunedModel(torch.nn.Module):
-    def __init__(self, model, matched_layers):
-        super(PrunedModel, self).__init__()
+def wasserstein_total_distance(dgm_a, dgm_b, device):
+    """Compute Wasserstein distance between full model persistence structures."""
+    dist_metric = PairwiseDistance(metric='wasserstein')
+    
+    dgm_a_tensor = torch.tensor(np.concatenate(dgm_a), dtype=torch.float32).to(device)
+    dgm_b_tensor = torch.tensor(np.concatenate(dgm_b), dtype=torch.float32).to(device)
 
-        self.model = model
-        self.matched_layers = matched_layers
-
-    def forward(self, x):
-        pass
-
+    total_dist = dist_metric.fit_transform([dgm_a_tensor.cpu().numpy(), dgm_b_tensor.cpu().numpy()])[0, 1] # use it as tensor?
+    
+    return total_dist
 
 def main():
     args = parse_args()
-
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
     print("Using device:", device)
 
-    # Load alignment
-    if not os.path.exists(args.alignment_pkl):
-        raise FileNotFoundError(f"Alignment PKL not found: {args.alignment_pkl}")
-    with open(args.alignment_pkl, 'rb') as f:
-        alignment = pickle.load(f)
+    print("\nLoading alignment results...")
+    alignment_data = load_pickle(args.alignment) 
 
-    netA = build_model(args.netA).to(device).eval()
-    netB = build_model(args.netB).to(device).eval()
+    # Extract paths for diagrams from alignment.pkl
+    diagram_a_path = alignment_data["diagram_a_path"]
+    diagram_b_path = alignment_data["diagram_b_path"]
 
-    matched_i = [t[0] for t in alignment]
-    matched_j = [t[1] for t in alignment]
-
-    print(f"Original netA has {num_layers_a} total layers.")
-    print(f"Original netB has {num_layers_b} total layers.")
-    print(f"Alignment length: {len(alignment)}")
-
-
-    prunedA = netA
-    prunedB = netB
-
-    if num_layers_a < num_layers_b:
-        prunedB = PrunedModel(netB, matched_j)
-    elif num_layers_b < num_layers_a:
-        prunedA = PrunedModel(netA, matched_i)
+    print("\nLoading persistence diagrams...")
+    dgm_a = load_pickle(diagram_a_path)
+    dgm_b = load_pickle(diagram_b_path)
+    
+    # Extract most similar layers from 
+    alignment = alignment_data["alignment"]
+    
+    if len(dgm_a) == len(alignment):
+        selected_a = dgm_a  # Use Model A as-is
+        selected_b = [dgm_b[j] for _, j, _ in alignment]  # Extract aligned layers from Model B
     else:
-        print("Both models have the same number of layers. No pruning needed.")
+        selected_a = [dgm_a[i] for i, _, _ in alignment]
+        selected_b = dgm_b
+    
 
-    if args.img_path:
-        if not os.path.exists(args.img_path):
-            raise FileNotFoundError(f"Image not found: {args.img_path}")
-        pil_img = Image.open(args.img_path).convert('RGB')
-        transform_func = netA._get_transform()
-        input_tensor = transform_func(pil_img).unsqueeze(0).to(device)
+    print(f"\nUsing {len(selected_a)} matched layers from Model A.")
+    print(f"Using {len(selected_b)} matched layers from Model B.\n")
 
-        with torch.no_grad():
-            outA = prunedA.forward_features(input_tensor)
-            outB = prunedB.forward_features(input_tensor)
+    # Compute Wasserstein distance as the final model similarity metric
+    final_wasserstein_dist = wasserstein_total_distance(selected_a, selected_b, device)
 
-        print("\nAfter pruning, test inference with single image:")
-        print(f" prunedA layers = {len(outA)}   prunedB layers = {len(outB)}")
+    print(f"\nFinal Wasserstein Distance: {final_wasserstein_dist:.4f}")
 
 if __name__ == "__main__":
     main()

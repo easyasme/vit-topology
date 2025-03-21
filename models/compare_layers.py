@@ -2,115 +2,138 @@ import argparse
 import os
 import torch
 import numpy as np
-from PIL import Image
 from gtda.diagrams import PairwiseDistance
 import pickle
 
-from transformer import (
-    VTransformerB16,
-    VTransformerB32,
-    VTransformerL16,
-    VTransformerL32
-)
-
 def parse_args():
-    parser = argparse.ArgumentParser(description="Compare two ViT models and align their layers.")
-    parser.add_argument('--netA', type=str, required=True,
-                        help='One of: "b16", "b32", "l16", "l32"')
-    parser.add_argument('--netB', type=str, required=True,
-                        help='One of: "b16", "b32", "l16", "l32"')
-    parser.add_argument('--img_path', type=str, required=True,
-                        help='Full path to a single .JPEG image')
-    parser.add_argument('--device', type=str, default='cuda',
-                        help='Select "cuda" or "cpu"')
+    parser = argparse.ArgumentParser(description="Compare two ViT models using persistence diagrams.")
+    parser.add_argument('--diagram_a', type=str, required=True, help='Path to dgm.pkl for model A.')
+    parser.add_argument('--diagram_b', type=str, required=True, help='Path to dgm.pkl for model B.')
+    parser.add_argument('--device', type=str, default='cuda', help='Select "cuda" or "cpu".')
     return parser.parse_args()
 
-def build_model(key):
-    """
-    Build and return the appropriate VTransformer model based on the string.
-    """
-    key = key.lower()
-    if key == 'b16':
-        return VTransformerB16(num_classes=10, pretrained=True)
-    elif key == 'b32':
-        return VTransformerB32(num_classes=10, pretrained=True)
-    elif key == 'l16':
-        return VTransformerL16(num_classes=10, pretrained=True)
-    elif key == 'l32':
-        return VTransformerL32(num_classes=10, pretrained=True)
-    else:
-        raise ValueError(f"Unknown model type: {key}. Must be one of b16, b32, l16, l32.")
+def load_diagram(path):
+    """Load the persistence diagram from a .pkl file."""
+    with open(path, 'rb') as f:
+        diagrams = pickle.load(f)[0]
+    if not isinstance(diagrams, np.ndarray):
+        raise ValueError("Expected dgm.pkl to contain a list of diagrams.")
+    return diagrams
 
-def greedy_align_layers(b_layers, l_layers, similarity_fn):
-    """
-    Returns: List of tuples (i, j, cost)
-    B-16 layer i is matched with L-16 layer j with a similarity cost.
-    """
+import numpy as np
+
+def normalize_diagrams(dgm_a, dgm_b, device):
+    """Ensures all persistence diagrams have the same number of points."""
+    
+    max_points = max(max(len(dgm) for dgm in dgm_a), max(len(dgm) for dgm in dgm_b))
+    
+    def normalize_one_set(dgms):
+        normalized_dgms = []
+
+        for dgm in dgms:
+            num_points = len(dgm)
+
+            if num_points == max_points:
+                normalized_dgms.append(dgm)
+                continue
+
+            all_births = torch.tensor(dgm[:, 0], dtype=torch.float32, device=device)
+            all_deaths = torch.tensor(dgm[:, 1], dtype=torch.float32, device=device)
+
+            birth_mean, birth_std = torch.mean(all_births), torch.std(all_births)
+            death_mean, death_std = torch.mean(all_deaths), torch.std(all_deaths)
+
+            # Consider zero standard deviation?
+
+            # Generate additional points using normal distribution
+            num_extra = max_points - num_points
+            extra_births = torch.normal(birth_mean, birth_std, size=(num_extra,), device=device)
+            extra_deaths = torch.normal(death_mean, death_std, size=(num_extra,), device=device)
+
+            # Ensure birth ≤ death for valid persistence points
+            extra_births, extra_deaths = torch.minimum(extra_births, extra_deaths), torch.maximum(extra_births, extra_deaths)
+
+            # Append new points with homology dimension = 0
+            extra_points = torch.stack((extra_births, extra_deaths, torch.zeros(num_extra, device=device)), dim=1)
+            expanded_dgm = torch.cat((torch.tensor(dgm, dtype=torch.float32, device=device), extra_points), dim=0)
+            normalized_dgms.append(expanded_dgm.cpu().numpy())
+
+        return normalized_dgms
+
+    if max(len(dgm) for dgm in dgm_a) < max_points:
+        dgm_a = normalize_one_set(dgm_a, max_points)
+    if max(len(dgm) for dgm in dgm_b) < max_points:
+        dgm_b = normalize_one_set(dgm_b, max_points)
+
+    return dgm_a, dgm_b
+
+def greedy_align_diagrams(dgm_a, dgm_b, dist_metric, device):
+    """Greedy alignment of diagrams to find minimized distance."""
     alignment = []
     j_start = 0
 
-    for i in range(len(b_layers)):
+    for i, diagram_a in enumerate(dgm_a):
         best_j, best_cost = None, float('inf')
-        # Compare to L-16 layers, starting from the last matched layer.
-        for j in range(j_start, len(l_layers)):
-            cost = similarity_fn(b_layers[i], l_layers[j])
-            if cost < best_cost: # minimum
-                best_cost = cost
+        for j in range(j_start, len(dgm_b)):
+            # convert diagram data to float tensors
+            diagram_a_tensor = torch.tensor(diagram_a, dtype=torch.float32, device=device).detach()
+            diagram_b_tensor = torch.tensor(dgm_b[j], dtype=torch.float32, device=device).detach()
+            # diagram_a_tensor = diagram_a.float().to(device).clone().detach()
+            # diagram_b_tensor = dgm_b[j].float().to(device).clone().detach()
+
+            # Ensure shape is (N, 3)
+            if diagram_a_tensor.shape[-1] != 3 or diagram_b_tensor.shape[-1] != 3:
+                raise ValueError(f"Diagrams must have exactly 3 components (birth, death, homology), but got {diagram_a_tensor.shape[-1]} and {diagram_b_tensor.shape[-1]}.")
+
+            dist = dist_metric.fit_transform([diagram_a_tensor.cpu().numpy(), diagram_b_tensor.cpu().numpy()])[0, 1]
+            
+            if dist < best_cost:
+                best_cost = dist
                 best_j = j
-        alignment.append((i, best_j, best_cost))  # Store the best match for B-16 layer i.
-        j_start = best_j  # Update the start index for L-16 layers
+                
+        alignment.append((i, best_j, best_cost))
+        j_start = best_j
+
     return alignment
-
-def layer_similarity(tensor1, tensor2):
-    """
-    Computes similarity between two layers by flattening their activations and calculating L2 norm.
-    Returns: L2 distance between the two flattened activations.
-    """
-    arr1 = tensor1.flatten().cpu().numpy()
-    arr2 = tensor2.flatten().cpu().numpy()
-    d1 = np.column_stack((arr1, np.zeros_like(arr1), np.zeros_like(arr1)))
-    d2 = np.column_stack((arr2, np.zeros_like(arr2), np.zeros_like(arr2)))
-    data = np.array([d1, d2], dtype=object) # Stack two persistence diagrams into single array
-    dist_metric = PairwiseDistance(metric='euclidean')
-    dist_matrix = dist_metric.fit_transform(data)
-    return dist_matrix[0, 1]
-
 
 def main():
     args = parse_args()
-
     device = torch.device(args.device if torch.cuda.is_available() else 'cpu')
-    print("Using device:", device)
+    print(f"\nUsing device: {device}")
 
-    modelA = build_model(args.netA).to(device).eval()
-    modelB = build_model(args.netB).to(device).eval()
+    # Load diagrams
+    print("\nLoading persistence diagrams...")
+    dgm_a = load_diagram(args.diagram_a)
+    dgm_b = load_diagram(args.diagram_b)
 
-    if not os.path.exists(args.img_path):
-        raise FileNotFoundError(f"Image not found: {args.img_path}")
+    # Normalize diagrams - equal sample sizes
+    print("\nNormalizing persistence diagrams...")
+    dgm_a, dgm_b = normalize_diagrams(dgm_a, dgm_b, device)
 
-    print(f"Loading image from: {args.img_path}")
-    pil_img = Image.open(args.img_path).convert('RGB') # is this needed for imagenet data?
+    # Use wasserstein metric for comparison
+    dist_metric = PairwiseDistance(metric='wasserstein') # bottleneck
 
-    # Preprocessing transformation of model to the input image, add a batch dimension
-    input_tensorA = modelA._get_transform()(pil_img).unsqueeze(0).to(device)
-    input_tensorB = modelB._get_transform()(pil_img).unsqueeze(0).to(device)
+    # Greedy alignment of diagrams
+    print("\nPerforming greedy alignment of diagrams...")
+    alignment = greedy_align_diagrams(dgm_a, dgm_b, dist_metric, device)
 
-    with torch.no_grad():
-        # Extract feature activations
-        a_acts = modelA.forward_features(input_tensorA)
-        b_acts = modelB.forward_features(input_tensorB)
+    print("\nGreedy Layer Alignment Results:")
+    for i, j, cost in alignment:
+        print(f"Model A Layer {i} -> Model B Layer {j}, Distance = {cost:.4f}")
 
-    alignment = greedy_align_layers(a_acts, b_acts, layer_similarity)
+    # Save alignment results and paths
+    alignment_filename = f"alignment_{os.path.basename(args.diagram_a)}_vs_{os.path.basename(args.diagram_b)}.pkl"
+    output_path = os.path.join(os.path.dirname(args.diagram_a), alignment_filename)
 
-    print(f"\nGreedy alignment of {args.netA.upper()} layers to {args.netB.upper()} layers on: {os.path.basename(args.img_path)}")
-    for (i, j, cost) in alignment:
-        print(f"  {args.netA.upper()} layer {i} -> {args.netB.upper()} layer {j}, cost = {cost:.4f}")
+    output_data = {
+        "alignment": alignment,
+        "diagram_a_path": args.diagram_a,
+        "diagram_b_path": args.diagram_b
+    }
 
-    image_base = os.path.splitext(os.path.basename(args.img_path))[0]
-    alignment_name = f"{args.netA}_{args.netB}_{image_base}.pkl"
-    with open(alignment_name, 'wb') as f:
-        pickle.dump(alignment, f)
-    print(f"\nAlignment saved to: {alignment_name}")
+    with open(output_path, 'wb') as f:
+        pickle.dump(output_data, f)
+    print(f"\nAlignment results saved to: {output_path}")
 
 if __name__ == "__main__":
     main()

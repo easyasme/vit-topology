@@ -26,6 +26,14 @@ TOTAL_BAR_LENGTH = 65.
 last_time = time.time()
 begin_time = last_time
 
+
+def create_img_from_tensors(features):
+    ''' Create PNG images from tensors'''
+    for idx, activation in enumerate(torch.unbind(features, dim=0)):
+        print(f"Encoder Block {idx} activation shape: {activation.shape}")
+        plt.imshow(activation.permute(1, 2, 0).numpy(force=True))
+        plt.savefig(f"encoder_block_{idx}_activation.png")
+
 def format_time(seconds):
     days = int(seconds / 3600/24)
     seconds = seconds - days*3600*24

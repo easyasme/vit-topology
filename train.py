@@ -55,10 +55,18 @@ print(f'Transform: {transform}')
 ''' Prepare loaders '''
 print(f'==> Preparing data..\n')
 print(f'Preparing train loader')
-train_loader = loader(f'{args.dataset}_train', batch_size=args.train_batch_size, it=args.it, verbose=True, transform=transform)
+train_loader = loader(f'{args.dataset}_train',
+                      batch_size=args.train_batch_size,
+                      it=args.it,
+                      verbose=True,
+                      transform=transform)
 
 print(f'Preparing val loader\n')
-val_loader = loader(f'{args.dataset}_val', batch_size=args.val_batch_size, it=args.it, verbose=False, transform=transform)
+val_loader = loader(f'{args.dataset}_val',
+                    batch_size=args.val_batch_size,
+                    it=args.it,
+                    verbose=False,
+                    transform=transform)
 
 ''' Define loss function '''
 criterion = nn.CrossEntropyLoss()

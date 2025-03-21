@@ -1,14 +1,13 @@
-from math import floor
-
 import numpy as np
 import pandas as pd
 import torch
+
 from tqdm import trange
-from scipy.spatial import distance_matrix
+
 
 def adjacency_l2(signals):
     ''' In this case signal is an 1XN array not a time series. 
-    Builds adjacency based on L2 norm between node activations.
+        Builds adjacency based on L2 norm between node activations.
     '''
     x = np.tile(signals, (signals.size, 1))
     return np.sqrt((signals - signals.transpose())**2)
@@ -16,28 +15,40 @@ def adjacency_l2(signals):
 @torch.no_grad()
 def spearman_ranks(signals, device=torch.device('cpu')):
     ''' In this case signals is an MXN tensor not a time series. 
-    Builds adjacency based on Spearman correlation between node activations.
+        Builds adjacency based on Spearman correlation between node activations.
     '''
-    signals = pd.DataFrame(signals.numpy(force=True)).rank(axis=1, method='average').values
+    signals = pd.DataFrame(signals.numpy(force=True)).rank(axis=0, method='average').values
     signals = torch.tensor(signals, device=device).detach()
     
     return signals
 
 @torch.no_grad()
-def vec_diff(x, device='cpu'):
-    ''' Calculate the distance between the components of two 1D tensors. '''
-    return torch.cdist(x.view(-1, 1), x.view(-1, 1)).to(device)
-
-@torch.no_grad()
 def dist_corr(signals, device):
     ''' In this case signals is an MXN tensor not a time series. 
-    Builds adjacency based on distance correlation between node activations.
+        Builds adjacency based on distance correlation between node activations.
     '''
-    n, _ = signals.size()
+    
+    def vec_diff(x, device='cpu'):
+        ''' Calculate the distance between the components of two 1D tensors
+            or two 2D tensors.
+        '''
+        if len(x.shape) == 1:
+            return torch.cdist(x.view(-1, 1), x.view(-1, 1)).to(device)
+        else:
+            return torch.cdist(x, x).to(device)
+    
+    if len(signals.shape) == 3:
+        _, n, _ = signals.size()
+    else:
+        n, _ = signals.size()
     adj = torch.zeros((n, n)).detach()
 
     print('\nComputing differences...')
-    diffs = [vec_diff(signals[i,:], device=device).detach() for i in trange(n, leave=False)]
+    if len(signals.shape) == 3:
+        diffs = [vec_diff(signals[:,i,:], device=device).detach() for i in trange(n, leave=False)]
+    else:
+        diffs = [vec_diff(signals[i,:], device=device).detach() for i in trange(n, leave=False)]
+
     print('\nComputing centers...')
     centers = [diffs[i]-diffs[i].mean(dim=0, keepdim=True)-diffs[i].mean(dim=1, keepdim=True)+diffs[i].mean() for i in trange(n, leave=False)]
 
@@ -65,7 +76,7 @@ def dist_corr(signals, device):
     assert torch.all(torch.diag(adj) == 1), 'Adjacency matrix diagonal is not 1'
     assert torch.all(adj >= 0), 'Adjacency matrix has negative values'
 
-    return adj
+    return adj.to(device)
 
 @torch.no_grad()
 def partial_binarize(M, binarize_t, device):
@@ -77,35 +88,38 @@ def partial_binarize(M, binarize_t, device):
 
 @torch.no_grad()
 def adjacency(signals, device, metric=None):
-    '''
-    Build matrix A of dimensions nxn where a_{ij} = metric(a_i, a_j).
-    signals: nxm matrix where each row (signal[k], k=range(n)) is a signal. 
-    metric: a function f(.,.) that takes two 2D ndarrays and outputs a single real number (e.g correlation, KL divergence etc).
+    ''' Build matrix A of dimensions nxn where a_{ij} = metric(a_i, a_j).
+        signals: lxnxm list where each item is a tensor and each row is an signal embedding activation. 
+        metric: a function f(.,.) that takes two 2D tensors and outputs a single real number (e.g correlation, KL divergence etc).
     '''
     
-    signals = np.reshape(signals, (signals.shape[0], -1))
-    signals = torch.tensor(signals, device=device, dtype=torch.float32).detach()
-        
+    adjs = []
     if metric == 'spearman':
-        signals = spearman_ranks(signals, device=device)
-        adj = torch.nan_to_num(torch.corrcoef(signals)).detach()
+        for signal in signals:
+            ranks = spearman_ranks(signal, device=device)
+            adjs.append(torch.corrcoef(ranks).detach())
+        adj = torch.stack(adjs)
     elif metric == 'dcorr':
-        adj = dist_corr(signals, device=device).detach()
+        for signal in signals:
+            adjs.append(dist_corr(signal, device=device).detach())
+        adj = adjs
     elif callable(metric):
-        n, _ = signals.shape
-
-        adj= [[metric(signals[i], torch.transpose(signals[j])) for j in range(n)] for i in range(n)]
+        for signal in signals:
+            adjs.append(metric(signal, torch.transpose(signal, 0, 1)).detach())
+        adj = torch.stack(adjs)
 
         ''' Normalize '''
         adj = robust_scaler(adj)
         adj = torch.nan_to_num(adj).detach()
     else:
-        adj = torch.nan_to_num(torch.corrcoef(signals)).detach()
+        for signal in signals:
+            adjs.append(torch.nan_to_num(torch.corrcoef(signal)).detach())
+        adj = torch.stack(adjs)
 
-    del signals
+    del signals, adjs
     torch.cuda.empty_cache()
 
-    return adj.to(device)
+    return adj
 
 @torch.no_grad()
 def minmax_scaler(A):
